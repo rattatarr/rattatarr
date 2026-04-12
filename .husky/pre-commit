@@ -1,0 +1,58 @@
+#!/bin/sh
+
+echo "🔍 Running pre-commit checks..."
+
+# Get staged files
+CLIENT_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '^client/.*\.\(vue\|ts\|js\|json\)$' || true)
+SERVER_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '^server/.*\.\(java\|json\|yaml\)$' || true)
+
+# Run client checks if any Vue/TS/JS files are staged
+if [ -n "$CLIENT_FILES" ]; then
+  echo "🔍 Checking client files..."
+  cd client || exit
+
+  echo "  📝 Running linter..."
+  pnpm lint
+  LINT_EXIT=$?
+
+  echo "  🎨 Running formatter..."
+  pnpm format
+  FORMAT_EXIT=$?
+
+  echo "  🧪 Running tests..."
+  pnpm test:run
+  TEST_EXIT=$?
+
+  cd ..
+
+  if [ $LINT_EXIT -ne 0 ] || [ $FORMAT_EXIT -ne 0 ] || [ $TEST_EXIT -ne 0 ]; then
+    echo "❌ Client checks failed"
+    exit 1
+  fi
+
+  # Re-stage formatted files
+  echo "$CLIENT_FILES" | xargs git add
+
+  echo "✅ Client checks passed"
+fi
+
+# Run server checks if any Java/JSON/YAML files are staged
+if [ -n "$SERVER_FILES" ]; then
+  echo "🔍 Checking server files..."
+  cd server || exit
+
+  mvn spotless:check
+  SPOTLESS_CHECK_EXIT=$?
+
+  cd ..
+
+  if [ $SPOTLESS_CHECK_EXIT -ne 0 ]; then
+    echo "❌ Server checks failed"
+    exit 1
+  fi
+  echo "✅ Server checks passed"
+fi
+
+echo "✅ All pre-commit checks passed"
+exit 0
+

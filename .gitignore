@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+**/node_modules/
+.env
+.vscode/
+.idea/
+Rattatarr.Server/.github
+Rattatarr.Client/.github

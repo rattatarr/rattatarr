@@ -1,0 +1,92 @@
+/**
+ * Custom Scrollbar Styles
+ * Modern, sleek scrollbar matching the app's theme
+ */
+
+/* ===== Scrollbar Base Styles ===== */
+* {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-color) var(--scrollbar-track-color);
+}
+
+/* ===== Webkit Browsers (Chrome, Safari, Edge) ===== */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-color);
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-color);
+  border-radius: 10px;
+  border: 2px solid var(--scrollbar-track-color);
+  transition: all 0.3s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover-color);
+  border-width: 1px;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--scrollbar-glow-color) 40%, transparent);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active-color);
+}
+
+/* ===== Corner (where horizontal and vertical scrollbars meet) ===== */
+*::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track-color);
+}
+
+/* ===== Scrollbar Colors Using PrimeVue Variables ===== */
+:root {
+  --scrollbar-track-color: var(--p-surface-100);
+  --scrollbar-thumb-color: var(--p-primary-color);
+  --scrollbar-thumb-hover-color: var(--p-primary-600);
+  --scrollbar-thumb-active-color: var(--p-primary-700);
+  --scrollbar-glow-color: var(--p-primary-color);
+}
+
+/* ===== Dark Mode Colors ===== */
+.app-dark {
+  --scrollbar-track-color: var(--p-surface-900);
+  --scrollbar-thumb-color: var(--p-primary-color);
+  --scrollbar-thumb-hover-color: var(--p-primary-400);
+  --scrollbar-thumb-active-color: var(--p-primary-500);
+  --scrollbar-glow-color: var(--p-primary-color);
+}
+
+/* ===== Special Scrollbars for Specific Contexts ===== */
+
+/* Smaller scrollbar for modals/dialogs */
+.p-dialog ::-webkit-scrollbar,
+.p-sidebar ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+/* Minimal scrollbar for dropdown menus */
+.p-menu ::-webkit-scrollbar,
+.p-dropdown-panel ::-webkit-scrollbar,
+.p-multiselect-panel ::-webkit-scrollbar {
+  width: 4px;
+}
+
+.p-menu ::-webkit-scrollbar-thumb,
+.p-dropdown-panel ::-webkit-scrollbar-thumb,
+.p-multiselect-panel ::-webkit-scrollbar-thumb {
+  border-width: 0;
+}
+
+/* ===== Animated Gradient Scrollbar (Optional Enhancement) ===== */
+/* Uncomment to enable gradient effect on hover */
+/*
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+}
+*/

@@ -1,0 +1,12 @@
+{
+  "name": "rattatarr",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "lint:frontend": "cd client && pnpm lint",
+    "format:frontend": "cd client && pnpm format"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}

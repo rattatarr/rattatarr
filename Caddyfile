@@ -1,0 +1,30 @@
+:80 {
+
+    # ── API ──────────────────────────────────────────────────────────────────
+    # Proxy all /api/* requests to the Spring Boot backend running locally.
+    handle /api/* {
+        reverse_proxy localhost:8080
+    }
+
+    # Swagger UI (served by Spring Boot at /docs and /swagger-ui)
+    handle /docs* {
+        reverse_proxy localhost:8080
+    }
+    handle /swagger-ui* {
+        reverse_proxy localhost:8080
+    }
+    handle /v3/api-docs* {
+        reverse_proxy localhost:8080
+    }
+
+    # ── SPA ──────────────────────────────────────────────────────────────────
+    # Serve the built Vue SPA. try_files falls back to index.html so that
+    # client-side routes (e.g. /movies/123) work on hard refresh.
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+
+    encode gzip
+}

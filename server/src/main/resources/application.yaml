@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: rattatarr
+  datasource:
+    url: jdbc:sqlite:./rattatarr.db?journal_mode=WAL
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.community.dialect.SQLiteDialect
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+    hibernate:
+      # For development purpose until a proper model is established and migrations are in place we use 'create'
+      # Use 'update' for preserving data between restarts
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+
+springdoc:
+  swagger-ui:
+    path: /docs
+
+rattatarr:
+  version: "@project.version@"
+  debug:
+    stacktrace: true
+  jellyfin:
+    api-key: your-jellyfin-api-key
+    base-url: http://localhost:8096
+  sync:
+    jellyfin-sync-enabled: true
+    jellyfin-interval: PT24H # 24 hours (ISO-8601 duration format)
+    jellyfin-initial-delay: PT5H # 5 minutes initial delay after startup (ISO-8601 duration format)
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+      - http://127.0.0.1:3000
+      - http://localhost
+      - http://localhost:80
+    allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
+    allowed-headers: Content-Type,Authorization,X-Requested-With
+    allow-credentials: true
+    max-age: 3600
+  cache:
+    statistics-warm-interval: PT10M
+    statistics-warm-initial-delay: PT1M
+
+logging:
+  level:
+    root: INFO
+    com.rattatarr: DEBUG
+    com.rattatarr.rattatarr.services: TRACE
+    org.springframework: WARN
+
+rest-client:
+  connect-timeout: 10s
+  read-timeout: 30s
+  write-timeout: 30s
+  max-retries: 3
+  retry-delay: 1000
+  max-in-memory-size: 10485760 # 10MB - buffer size for WebClient responses (increased for large TMDb API responses)
