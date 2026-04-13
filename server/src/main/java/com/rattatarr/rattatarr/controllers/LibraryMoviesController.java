@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/library/movies")
 @ApiVersion("v1")
@@ -57,6 +59,18 @@ public class LibraryMoviesController extends BaseController {
                         ),
                         pageable
                 )
+        ));
+    }
+
+    @GetMapping("/watched/unrated")
+    public ResponseEntity<MoviesResponseWrapper> getRecentlyWatchedUnratedMovies(
+            @PageableDefault(size = 20) Pageable pageable,
+            @ModelAttribute MoviesFiltersDTO filters
+    ) {
+        logger.info("Fetching recently watched unrated movies for profile {}", filters.profileId());
+
+        return ResponseEntity.ok(MoviesResponseWrapper.fromPage(
+                moviesService.findRecentlyWatchedUnratedMovies(filters, pageable)
         ));
     }
 }

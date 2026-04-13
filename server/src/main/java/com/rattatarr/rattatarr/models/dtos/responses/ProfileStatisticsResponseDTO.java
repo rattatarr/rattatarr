@@ -26,6 +26,7 @@ public record ProfileStatisticsResponseDTO(
         RatingConsistencyDTO ratingConsistency,
         List<DayOfWeekActivityDTO> dayOfWeekActivity,
         List<RatingHeatmapYearDTO> ratingHeatmap,
+        List<RatingHeatmapYearDTO> uniqueMediaPlayedHeatmap,
         List<GenreOverTimeYearDTO> genreOverTime
 ) implements Serializable {
 }

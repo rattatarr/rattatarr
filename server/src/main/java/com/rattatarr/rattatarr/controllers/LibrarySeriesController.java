@@ -69,6 +69,18 @@ public class LibrarySeriesController extends BaseController {
         ));
     }
 
+    @GetMapping("/watched/unrated")
+    public ResponseEntity<SeriesResponseWrapper> getRecentlyWatchedUnratedSeries(
+            @PageableDefault(size = 20) Pageable pageable,
+            @ModelAttribute SeriesFiltersDTO filters
+    ) {
+        logger.info("Fetching recently watched unrated series for profile {}", filters.profileId());
+
+        return ResponseEntity.ok(SeriesResponseWrapper.fromPage(
+                seriesService.findRecentlyWatchedUnratedSeries(filters, pageable)
+        ));
+    }
+
     /**
      * Manual refresh of a specific series
      * Decides automatically if the refresh is done via TMDb or Jellyfin

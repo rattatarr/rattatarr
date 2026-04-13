@@ -1,6 +1,7 @@
 package com.rattatarr.rattatarr.services;
 
 import com.rattatarr.rattatarr.models.MediaType;
+import com.rattatarr.rattatarr.models.WatchEventType;
 import com.rattatarr.rattatarr.models.dtos.requests.MoviesFiltersDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.MovieResponseDTO;
 import com.rattatarr.rattatarr.models.entities.MediaItem;
@@ -14,16 +15,12 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -291,5 +288,53 @@ class MoviesServiceTest {
         assertEquals(2, result.getTotalElements());
         verify(mediaItemViewHelper, times(2)).initializeCredits(any(MediaItem.class), eq(false));
         verify(mediaItemViewHelper, times(2)).applyImageUrls(any(MediaItem.class), any(), any(), any(), eq(false), eq(false));
+    }
+
+    @Test
+    void findRecentlyWatchedUnratedMovies_shouldReturnMappedMovies() {
+        UUID profileId = UUID.randomUUID();
+        MoviesFiltersDTO filters = new MoviesFiltersDTO(
+                null, null, null, null, null,
+                "w500", "w1280", "w185",
+                profileId, null, null, null, null
+        );
+        Page<MediaItem> page = new PageImpl<>(List.of(testMovie), pageable, 1);
+
+        when(repository.findAll(ArgumentMatchers.<Specification<MediaItem>>any(), eq(pageable))).thenReturn(page);
+
+        Page<MovieResponseDTO> result = service.findRecentlyWatchedUnratedMovies(filters, pageable);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals("Test Movie", result.getContent().getFirst().title());
+        verify(repository).findAll(ArgumentMatchers.<Specification<MediaItem>>any(), eq(pageable));
+        verify(mediaItemViewHelper).applyImageUrls(eq(testMovie), eq("w500"), eq("w1280"), eq("w185"), eq(false), eq(false));
+    }
+
+    @Test
+    void recentlyWatchedUnratedSpecification_shouldRequireCompleteWatchEvent() {
+        var spec = com.rattatarr.rattatarr.specifications.MediaItemSpecifications.recentlyWatchedUnrated(UUID.randomUUID());
+
+        var root = mock(jakarta.persistence.criteria.Root.class, RETURNS_DEEP_STUBS);
+        var query = mock(jakarta.persistence.criteria.CriteriaQuery.class);
+        var cb = mock(jakarta.persistence.criteria.CriteriaBuilder.class);
+        var watchedSubquery = mock(jakarta.persistence.criteria.Subquery.class);
+        var ratingSubquery = mock(jakarta.persistence.criteria.Subquery.class);
+        var latestWatchSubquery = mock(jakarta.persistence.criteria.Subquery.class);
+        var watchRoot = mock(jakarta.persistence.criteria.Root.class, RETURNS_DEEP_STUBS);
+        var ratingRoot = mock(jakarta.persistence.criteria.Root.class, RETURNS_DEEP_STUBS);
+        var latestWatchRoot = mock(jakarta.persistence.criteria.Root.class, RETURNS_DEEP_STUBS);
+
+        when(query.subquery(Long.class)).thenReturn(watchedSubquery, ratingSubquery);
+        when(query.subquery(Instant.class)).thenReturn(latestWatchSubquery);
+        when(watchedSubquery.from(com.rattatarr.rattatarr.models.entities.WatchEvent.class)).thenReturn(watchRoot);
+        when(ratingSubquery.from(com.rattatarr.rattatarr.models.entities.MediaItemRating.class)).thenReturn(ratingRoot);
+        when(latestWatchSubquery.from(com.rattatarr.rattatarr.models.entities.WatchEvent.class)).thenReturn(latestWatchRoot);
+
+        spec.toPredicate(root, query, cb);
+
+        verify(cb, atLeastOnce()).equal(any(), eq(WatchEventType.COMPLETE));
+        verify(cb, atLeastOnce()).equal(any(), eq(WatchEventType.PROGRESS));
+        verify(cb, atLeastOnce()).prod(any(), eq(54));
     }
 }

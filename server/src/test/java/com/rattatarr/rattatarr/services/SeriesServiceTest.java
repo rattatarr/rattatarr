@@ -506,4 +506,26 @@ class SeriesServiceTest {
         assertEquals(1, result.getTotalElements());
         verify(mediaItemRefreshService, times(1)).refreshIfStale(jellyfinSeries);
     }
+
+    @Test
+    void findRecentlyWatchedUnratedSeries_shouldReturnMappedSeries() {
+        UUID profileId = UUID.randomUUID();
+        SeriesFiltersDTO filters = new SeriesFiltersDTO(
+                null, null, null, null, null,
+                false, false,
+                "w500", "w1280", "w185",
+                profileId, null, null, null, null
+        );
+        Page<MediaItem> page = new PageImpl<>(List.of(testSeries), pageable, 1);
+
+        when(repository.findAll(ArgumentMatchers.<Specification<MediaItem>>any(), eq(pageable))).thenReturn(page);
+
+        Page<ShowResponseDTO> result = service.findRecentlyWatchedUnratedSeries(filters, pageable);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals("Test Series", result.getContent().getFirst().title());
+        verify(repository).findAll(ArgumentMatchers.<Specification<MediaItem>>any(), eq(pageable));
+        verify(mediaItemViewHelper).applyImageUrls(eq(testSeries), eq("w500"), eq("w1280"), eq("w185"), eq(false), eq(false));
+    }
 }

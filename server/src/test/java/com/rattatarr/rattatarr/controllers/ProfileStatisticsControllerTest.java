@@ -58,6 +58,7 @@ class ProfileStatisticsControllerTest {
                 null,
                 Collections.emptyList(),
                 Collections.emptyList(),
+                Collections.emptyList(),
                 Collections.emptyList());
 
         when(profileStatisticsService.getStatistics(profileId, 8.0f, 3, 5, 20, 8, 6, 5, "w185")).thenReturn(statistics);
@@ -96,6 +97,7 @@ class ProfileStatisticsControllerTest {
                 Collections.emptyList(),
                 null,
                 null,
+                Collections.emptyList(),
                 Collections.emptyList(),
                 Collections.emptyList(),
                 Collections.emptyList());

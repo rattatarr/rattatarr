@@ -104,6 +104,8 @@ public class ProfileStatisticsService {
                 query("dayOfWeekActivity", em -> getDayOfWeekActivity(em, profileId));
         CompletableFuture<List<RatingHeatmapYearDTO>> heatmapFuture =
                 query("ratingHeatmap", em -> getRatingHeatmap(em, profileId));
+        CompletableFuture<List<RatingHeatmapYearDTO>> uniqueMediaPlayedHeatmapFuture =
+                query("uniqueMediaPlayedHeatmap", em -> getUniqueMediaPlayedHeatmap(em, profileId));
         CompletableFuture<List<GenreOverTimeYearDTO>> genreOverTimeFuture =
                 query("genreOverTime", em -> getGenreOverTime(em, profileId, genreOverTimeLimit));
 
@@ -128,6 +130,7 @@ public class ProfileStatisticsService {
                 consistencyFuture.join(),
                 dayOfWeekFuture.join(),
                 heatmapFuture.join(),
+                uniqueMediaPlayedHeatmapFuture.join(),
                 genreOverTimeFuture.join());
     }
 
@@ -404,6 +407,24 @@ public class ProfileStatisticsService {
         List<Tuple> results = StatisticsSpecifications.queryRatingHeatmap(em, profileId);
 
         // Group days by year (first 4 characters of "YYYY-MM-DD"), preserving ascending order.
+        Map<Integer, List<RatingHeatmapDayDTO>> byYear = new LinkedHashMap<>();
+        for (Tuple tuple : results) {
+            String date = tuple.get("date", String.class);
+            Long count = tuple.get("count", Long.class);
+            if (date == null || count == null) continue;
+            int year = Integer.parseInt(date.substring(0, 4));
+            byYear.computeIfAbsent(year, y -> new ArrayList<>())
+                    .add(new RatingHeatmapDayDTO(date, count));
+        }
+
+        List<RatingHeatmapYearDTO> heatmap = new ArrayList<>();
+        byYear.forEach((year, days) -> heatmap.add(new RatingHeatmapYearDTO(year, days)));
+        return heatmap;
+    }
+
+    private List<RatingHeatmapYearDTO> getUniqueMediaPlayedHeatmap(EntityManager em, UUID profileId) {
+        List<Tuple> results = StatisticsSpecifications.queryUniqueMediaPlayedHeatmap(em, profileId);
+
         Map<Integer, List<RatingHeatmapDayDTO>> byYear = new LinkedHashMap<>();
         for (Tuple tuple : results) {
             String date = tuple.get("date", String.class);

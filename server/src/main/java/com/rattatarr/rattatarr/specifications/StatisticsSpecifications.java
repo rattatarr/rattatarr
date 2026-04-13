@@ -420,6 +420,39 @@ public final class StatisticsSpecifications {
         return em.createQuery(q).getResultList();
     }
 
+    /**
+     * Daily unique media items played from watch events, suitable for a profile activity heatmap.
+     *
+     * <p>Each row contains a date ({@code YYYY-MM-DD}) and the number of distinct media items
+     * watched that day for the given profile.
+     */
+    public static List<Tuple> queryUniqueMediaPlayedHeatmap(EntityManager em, UUID profileId) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+
+        Expression<Long> epochSeconds = cb.quot(
+                root.get("watchedAt").as(Long.class),
+                cb.literal(1000L)
+        ).as(Long.class);
+
+        Expression<String> dateStr = cb.function(
+                "strftime", String.class,
+                cb.literal("%Y-%m-%d"),
+                cb.function("datetime", String.class, epochSeconds, cb.literal("unixepoch"))
+        );
+
+        q.select(cb.tuple(
+                dateStr.alias("date"),
+                cb.countDistinct(root.get("mediaItem").get("id")).alias("count")
+        ));
+        q.where(cb.equal(root.get("profile").get("id"), profileId));
+        q.groupBy(dateStr);
+        q.orderBy(cb.asc(dateStr));
+
+        return em.createQuery(q).getResultList();
+    }
+
     public static List<Tuple> queryDayOfWeekActivity(EntityManager em, UUID profileId) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Tuple> q = cb.createTupleQuery();
