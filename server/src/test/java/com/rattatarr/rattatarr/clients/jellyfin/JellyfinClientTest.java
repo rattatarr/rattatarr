@@ -1,8 +1,12 @@
 package com.rattatarr.rattatarr.clients.jellyfin;
 
 import com.rattatarr.rattatarr.clients.jellyfin.requests.queries.JellyfinItemsQuery;
+import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientActivityLogEntryResponseDTO;
+import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientPlaybackItemResponseDTO;
+import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientPlaybackItemUserDataResponseDTO;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientUserResponseDTO;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinSystemInfoResponseDTO;
+import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientActivityLogEntriesWrapper;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientItemsWrapper;
 import com.rattatarr.rattatarr.configs.RestClientProperties;
 import com.rattatarr.rattatarr.exceptions.JellyfinClientExceptions;
@@ -216,18 +220,37 @@ class JellyfinClientTest {
     @Test
     void getActivityLogEntries_withValidResponse_shouldReturnLogs() {
         // Given
-        String expectedLogs = "{\"Items\":[{\"Id\":\"log-1\",\"Name\":\"User login\",\"Type\":\"AuthenticationSucceeded\"}]}";
+        JellyfinClientActivityLogEntryResponseDTO entry = new JellyfinClientActivityLogEntryResponseDTO(
+                1L,
+                "Playback started",
+                "Overview",
+                "Short",
+                "VideoPlayback",
+                "item-1",
+                "2026-04-13T09:20:36.680Z",
+                "user-1",
+                "Trace"
+        );
+        JellyfinClientActivityLogEntriesWrapper expectedLogs = new JellyfinClientActivityLogEntriesWrapper(
+                List.of(entry),
+                1,
+                0
+        );
 
-        when(responseSpec.body(Object.class)).thenReturn(expectedLogs);
+        when(responseSpec.body(JellyfinClientActivityLogEntriesWrapper.class)).thenReturn(expectedLogs);
 
         // When
-        Object result = jellyfinClient.getActivityLogEntries();
+        JellyfinClientActivityLogEntriesWrapper result = jellyfinClient.getActivityLogEntries();
 
         // Then
         assertNotNull(result);
-        assertEquals(expectedLogs, result);
+        assertEquals(1, result.items().size());
+        assertEquals("VideoPlayback", result.items().getFirst().type());
         verify(restClient).get();
-        verify(getSpec).uri(contains("System/ActivityLog/Entries"));
+        verify(getSpec).uri(org.mockito.ArgumentMatchers.<URI>argThat(uri ->
+                uri.toString().contains("System/ActivityLog/Entries")
+                        && uri.toString().contains("limit=50")
+        ));
         verify(headersSpec).headers(any());
     }
 
@@ -241,6 +264,34 @@ class JellyfinClientTest {
         assertThrows(JellyfinConfigExceptions.JellyfinIsNotConfiguredException.class, () ->
                 jellyfinClient.getActivityLogEntries()
         );
+    }
+
+    @Test
+    void getItemByIdForUser_withValidResponse_shouldReturnItem() {
+        // Given
+        JellyfinClientPlaybackItemResponseDTO expectedItem = new JellyfinClientPlaybackItemResponseDTO(
+                "item-1",
+                "Movie",
+                "Inception",
+                new JellyfinClientPlaybackItemUserDataResponseDTO(12345L, false)
+        );
+
+        when(responseSpec.body(JellyfinClientPlaybackItemResponseDTO.class)).thenReturn(expectedItem);
+
+        // When
+        JellyfinClientPlaybackItemResponseDTO result = jellyfinClient.getItemByIdForUser("item-1", "user-1");
+
+        // Then
+        assertNotNull(result);
+        assertEquals("item-1", result.id());
+        assertNotNull(result.userData());
+        assertEquals(12345L, result.userData().playbackPositionTicks());
+        assertFalse(result.userData().played());
+        verify(getSpec).uri(org.mockito.ArgumentMatchers.<URI>argThat(uri ->
+                uri.toString().contains("/Items/item-1")
+                        && uri.toString().contains("userId=user-1")
+        ));
+        verify(headersSpec).headers(any());
     }
 
     // ==================== getItems() Tests ====================

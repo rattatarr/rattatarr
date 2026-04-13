@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @NullMarked
@@ -95,5 +96,10 @@ public class ProfilesService extends BaseService<Profile, ProfilesRepository> {
         });
 
         return syncedProfiles;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Profile> findByJellyfinId(String jellyfinId) {
+        return repository.findByJellyfinId(jellyfinId);
     }
 }

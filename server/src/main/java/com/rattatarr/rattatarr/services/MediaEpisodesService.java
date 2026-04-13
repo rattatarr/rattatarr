@@ -36,6 +36,11 @@ public class MediaEpisodesService extends BaseService<MediaEpisode, MediaEpisode
         return repository.findByMediaSeasonAndEpisode(mediaSeason, episode);
     }
 
+    @Transactional(readOnly = true)
+    public Optional<MediaEpisode> findByJellyfinId(String jellyfinId) {
+        return repository.findByJellyfinId(jellyfinId);
+    }
+
     @Transactional
     public void upsertBatchFromTMDb(List<TMDbEpisodeResponseDTO> episodeDTOs, MediaSeason mediaSeason) {
         if (episodeDTOs.isEmpty()) {

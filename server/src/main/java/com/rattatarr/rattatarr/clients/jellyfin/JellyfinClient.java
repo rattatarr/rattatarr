@@ -3,8 +3,10 @@ package com.rattatarr.rattatarr.clients.jellyfin;
 import com.rattatarr.rattatarr.clients.BaseClient;
 import com.rattatarr.rattatarr.clients.Warmable;
 import com.rattatarr.rattatarr.clients.jellyfin.requests.queries.JellyfinItemsQuery;
+import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientPlaybackItemResponseDTO;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientUserResponseDTO;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinSystemInfoResponseDTO;
+import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientActivityLogEntriesWrapper;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientItemsWrapper;
 import com.rattatarr.rattatarr.configs.RestClientProperties;
 import com.rattatarr.rattatarr.exceptions.JellyfinClientExceptions;
@@ -17,6 +19,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 @Component
@@ -64,10 +67,30 @@ public class JellyfinClient extends BaseClient<JellyfinClientExceptions> impleme
         }
     }
 
-    public Object getActivityLogEntries() {
+    public JellyfinClientActivityLogEntriesWrapper getActivityLogEntries() {
+        URI uri = UriComponentsBuilder
+                .fromUriString(config.buildUrl(URISanitizer.pathEnsureLeadingSlash("System/ActivityLog/Entries")))
+                .queryParam("limit", 50)
+                .build()
+                .toUri();
+
         return executeGet(
-                config.buildUrl(URISanitizer.pathEnsureLeadingSlash("System/ActivityLog/Entries")),
-                Object.class,
+                uri,
+                JellyfinClientActivityLogEntriesWrapper.class,
+                headers -> headers.set("Authorization", config.getAuthHeader())
+        );
+    }
+
+    public JellyfinClientPlaybackItemResponseDTO getItemByIdForUser(String itemId, String userId) {
+        URI uri = UriComponentsBuilder
+                .fromUriString(config.buildUrl(URISanitizer.pathEnsureLeadingSlash("Items/" + itemId)))
+                .queryParam("userId", userId)
+                .build()
+                .toUri();
+
+        return executeGet(
+                uri,
+                JellyfinClientPlaybackItemResponseDTO.class,
                 headers -> headers.set("Authorization", config.getAuthHeader())
         );
     }

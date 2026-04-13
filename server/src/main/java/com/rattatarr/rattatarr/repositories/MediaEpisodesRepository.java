@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface MediaEpisodesRepository extends BaseRepository<MediaEpisode> {
     Optional<MediaEpisode> findByMediaSeasonAndEpisode(MediaSeason mediaSeason, Integer episode);
 
+    Optional<MediaEpisode> findByJellyfinId(String jellyfinId);
+
 }
