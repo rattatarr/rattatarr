@@ -3,6 +3,7 @@ package com.rattatarr.rattatarr.services.schedulers;
 import com.rattatarr.rattatarr.clients.jellyfin.JellyfinClient;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientActivityLogEntryResponseDTO;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientPlaybackItemResponseDTO;
+import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientActivityLogEntriesWrapper;
 import com.rattatarr.rattatarr.models.WatchEventType;
 import com.rattatarr.rattatarr.models.entities.*;
 import com.rattatarr.rattatarr.repositories.WatchEventsRepository;
@@ -29,6 +30,8 @@ public class JellyfinActivityPollingService {
     private static final long TICKS_PER_SECOND = 10_000_000L;
     private static final String VIDEO_PLAYBACK = "VideoPlayback";
     private static final String VIDEO_PLAYBACK_STOPPED = "VideoPlaybackStopped";
+
+    private final List<WatchEvent> pendingWatchEvents = new ArrayList<>();
 
     private final JellyfinClient jellyfinClient;
     private final SettingsService settingsService;
@@ -70,7 +73,7 @@ public class JellyfinActivityPollingService {
             return;
         }
 
-        List<JellyfinClientActivityLogEntryResponseDTO> entries = jellyfinClient.getActivityLogEntries().items();
+        List<JellyfinClientActivityLogEntryResponseDTO> entries = loadEntriesForCurrentCycle();
         if (entries == null || entries.isEmpty()) {
             return;
         }
@@ -89,6 +92,47 @@ public class JellyfinActivityPollingService {
                 .filter(entry -> entry.id() != null)
                 .filter(entry -> !existingEntryIds.contains(entry.id()))
                 .forEach(this::processEntry);
+
+        if (!pendingWatchEvents.isEmpty()) {
+            watchEventsRepository.saveAll(new ArrayList<>(pendingWatchEvents));
+            pendingWatchEvents.clear();
+        }
+    }
+
+    private List<JellyfinClientActivityLogEntryResponseDTO> loadEntriesForCurrentCycle() {
+        boolean backfillComplete = settingsService.getBooleanSetting(
+                SettingsService.SYNC_JELLYFIN_ACTIVITY_BACKFILL_COMPLETE,
+                false
+        );
+        if (backfillComplete) {
+            JellyfinClientActivityLogEntriesWrapper wrapper = jellyfinClient.getActivityLogEntries();
+            return wrapper.items() == null ? List.of() : wrapper.items();
+        }
+
+        List<JellyfinClientActivityLogEntryResponseDTO> collected = new ArrayList<>();
+        int startIndex = 0;
+        while (true) {
+            JellyfinClientActivityLogEntriesWrapper wrapper = jellyfinClient.getActivityLogEntries(startIndex);
+            List<JellyfinClientActivityLogEntryResponseDTO> batch = wrapper.items();
+            if (batch == null || batch.isEmpty()) {
+                break;
+            }
+
+            collected.addAll(batch);
+            Integer totalCount = wrapper.totalRecordCount();
+            if (totalCount != null && (startIndex + batch.size()) >= totalCount) {
+                break;
+            }
+            startIndex += 50;
+        }
+
+        settingsService.updateSetting(
+                SettingsService.SYNC_JELLYFIN_ACTIVITY_BACKFILL_COMPLETE,
+                "true",
+                null
+        );
+
+        return collected;
     }
 
     private boolean isSupportedPlaybackEntry(JellyfinClientActivityLogEntryResponseDTO entry) {
@@ -125,7 +169,7 @@ public class JellyfinActivityPollingService {
                     parseDateOrNow(entry.date()),
                     positionSeconds
             );
-            watchEventsRepository.save(watchEvent);
+            pendingWatchEvents.add(watchEvent);
         } catch (Exception e) {
             logger.error("Failed processing Jellyfin activity entry id={} type={}", entry.id(), entry.type(), e);
         }

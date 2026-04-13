@@ -68,9 +68,14 @@ public class JellyfinClient extends BaseClient<JellyfinClientExceptions> impleme
     }
 
     public JellyfinClientActivityLogEntriesWrapper getActivityLogEntries() {
+        return getActivityLogEntries(0);
+    }
+
+    public JellyfinClientActivityLogEntriesWrapper getActivityLogEntries(int startIndex) {
         URI uri = UriComponentsBuilder
                 .fromUriString(config.buildUrl(URISanitizer.pathEnsureLeadingSlash("System/ActivityLog/Entries")))
                 .queryParam("limit", 50)
+                .queryParam("StartIndex", startIndex)
                 .build()
                 .toUri();
 

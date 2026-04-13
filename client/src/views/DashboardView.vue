@@ -40,7 +40,7 @@
 
   const watchedUnratedPageable = computed(() => ({
     page: 0,
-    size: 10,
+    size: 12,
     sort: ['productionYear,desc'],
   }))
 
@@ -65,10 +65,10 @@
 
   const statistics = computed(() => statisticsData.value?.statistics)
   const watchedUnratedMovies = computed(
-    () => watchedUnratedMoviesData.value?.movies?.slice(0, 10) ?? [],
+    () => watchedUnratedMoviesData.value?.movies?.slice(0, 12) ?? [],
   )
   const watchedUnratedSeries = computed(
-    () => watchedUnratedSeriesData.value?.series?.slice(0, 10) ?? [],
+    () => watchedUnratedSeriesData.value?.series?.slice(0, 12) ?? [],
   )
   const hasWatchedUnrated = computed(
     () => watchedUnratedMovies.value.length > 0 || watchedUnratedSeries.value.length > 0,

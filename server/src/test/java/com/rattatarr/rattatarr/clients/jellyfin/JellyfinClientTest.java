@@ -255,6 +255,29 @@ class JellyfinClientTest {
     }
 
     @Test
+    void getActivityLogEntries_withStartIndex_shouldIncludeStartIndexAndLimit() {
+        // Given
+        JellyfinClientActivityLogEntriesWrapper expectedLogs = new JellyfinClientActivityLogEntriesWrapper(
+                List.of(),
+                0,
+                50
+        );
+
+        when(responseSpec.body(JellyfinClientActivityLogEntriesWrapper.class)).thenReturn(expectedLogs);
+
+        // When
+        JellyfinClientActivityLogEntriesWrapper result = jellyfinClient.getActivityLogEntries(50);
+
+        // Then
+        assertNotNull(result);
+        verify(getSpec).uri(org.mockito.ArgumentMatchers.<URI>argThat(uri ->
+                uri.toString().contains("System/ActivityLog/Entries")
+                        && uri.toString().contains("limit=50")
+                        && uri.toString().contains("StartIndex=50")
+        ));
+    }
+
+    @Test
     void getActivityLogEntries_whenNotConfigured_shouldThrowException() {
         // Given
         when(config.buildUrl(anyString()))
