@@ -2,23 +2,25 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { computed, ref } from 'vue'
 import { useProfileManagement } from '@/composables'
 import type { Profile } from '@/types'
+import { useRoute } from 'vue-router'
 
 // Mock data
-const mockProfilesData = {
+const mockProfilesData = ref({
   profiles: [
     { id: '1', name: 'Profile 1' },
     { id: '2', name: 'Profile 2' },
   ] as Profile[],
-}
+})
 
 // Mock functions
 const mockSetProfile = vi.fn()
 const mockGetSelectedProfile = vi.fn()
+const mockGoToSettings = vi.fn()
 
 // Mock modules
 vi.mock('@/queries', () => ({
   useProfiles: vi.fn(() => ({
-    data: computed(() => mockProfilesData),
+    data: computed(() => mockProfilesData.value),
     isLoading: ref(false),
     isError: ref(false),
     error: ref(null),
@@ -37,9 +39,29 @@ vi.mock('../useQueryError', () => ({
   useQueryError: vi.fn(),
 }))
 
+vi.mock('../useNavigation', () => ({
+  useNavigation: vi.fn(() => ({
+    goToSettings: mockGoToSettings,
+  })),
+}))
+
+vi.mock('vue-router', () => ({
+  useRoute: vi.fn(),
+}))
+
 describe('useProfileManagement', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockProfilesData.value = {
+      profiles: [
+        { id: '1', name: 'Profile 1' },
+        { id: '2', name: 'Profile 2' },
+      ],
+    }
+
+    vi.mocked(useRoute).mockReturnValue({
+      name: 'dashboard',
+    } as any)
   })
 
   it('returns profile list from query', () => {
@@ -112,5 +134,15 @@ describe('useProfileManagement', () => {
     onProfileChange(event)
 
     expect(mockSetProfile).toHaveBeenCalledWith(null)
+  })
+
+  it('redirects to settings onboarding when no profiles are available', () => {
+    mockProfilesData.value = {
+      profiles: [],
+    }
+
+    useProfileManagement()
+
+    expect(mockGoToSettings).toHaveBeenCalledWith({ onboarding: 'profiles' })
   })
 })

@@ -55,4 +55,44 @@ describe('useNavigation', () => {
 
     expect(mockPush).toHaveBeenCalledWith({ name: 'howto' })
   })
+
+  it('should provide goToSettings function', () => {
+    const mockPush = vi.fn()
+    vi.mocked(useRouter).mockReturnValue({
+      push: mockPush,
+    } as any)
+
+    const { goToSettings } = useNavigation()
+
+    expect(typeof goToSettings).toBe('function')
+  })
+
+  it('should navigate to settings without query', () => {
+    const mockPush = vi.fn()
+    vi.mocked(useRouter).mockReturnValue({
+      push: mockPush,
+    } as any)
+
+    const { goToSettings } = useNavigation()
+
+    goToSettings()
+
+    expect(mockPush).toHaveBeenCalledWith({ name: 'settings' })
+  })
+
+  it('should navigate to settings with query', () => {
+    const mockPush = vi.fn()
+    vi.mocked(useRouter).mockReturnValue({
+      push: mockPush,
+    } as any)
+
+    const { goToSettings } = useNavigation()
+
+    goToSettings({ onboarding: 'profiles' })
+
+    expect(mockPush).toHaveBeenCalledWith({
+      name: 'settings',
+      query: { onboarding: 'profiles' },
+    })
+  })
 })

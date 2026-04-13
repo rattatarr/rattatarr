@@ -40,6 +40,13 @@ export function useNavigation() {
     void router.push({ name: 'search', query: { q: trimmedQuery } })
   }
 
+  function goToSettings(query?: Record<string, string>) {
+    void router.push({
+      name: 'settings',
+      ...(query ? { query } : {}),
+    })
+  }
+
   return {
     goHome,
     goToHowTo,
@@ -47,5 +54,6 @@ export function useNavigation() {
     goToMovies,
     goToSeries,
     goToSearch,
+    goToSettings,
   }
 }

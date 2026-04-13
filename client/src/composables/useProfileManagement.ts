@@ -1,7 +1,9 @@
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import type { DropdownChangeEvent } from 'primevue/dropdown'
 import { useProfiles } from '@/queries'
 import { useProfileStore } from '@/stores'
+import { useNavigation } from './useNavigation'
 import { useQueryError } from './useQueryError'
 import type { Profile } from '@/types'
 
@@ -26,6 +28,8 @@ import type { Profile } from '@/types'
  */
 export function useProfileManagement() {
   const profileStore = useProfileStore()
+  const route = useRoute()
+  const { goToSettings } = useNavigation()
 
   const profiles = useProfiles(
     { page: 0, size: 100 },
@@ -42,6 +46,18 @@ export function useProfileManagement() {
     if (!profiles.data.value?.profiles) return []
     return profiles.data.value.profiles ?? []
   })
+
+  watch(
+    [profileList, profiles.isLoading],
+    ([list, isLoading]) => {
+      if (isLoading || list.length > 0 || route.name === 'settings') {
+        return
+      }
+
+      goToSettings({ onboarding: 'profiles' })
+    },
+    { immediate: true },
+  )
 
   // Selected profile (synced with store)
   const selectedProfile = computed({
