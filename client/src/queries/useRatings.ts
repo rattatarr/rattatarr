@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import * as ratingsApi from '@/api/ratings'
+import type { ExportRatingsCsvResponse } from '@/api/ratings'
 import { movieKeys, seriesKeys } from './queryKeys'
 import type { RateRequest, GenericResponse } from '@/types'
 
@@ -36,5 +37,14 @@ export function useImportIMDbRatings() {
         queryClient.invalidateQueries({ queryKey: seriesKeys.all }),
       ])
     },
+  })
+}
+
+/**
+ * Mutation hook to export profile ratings as CSV
+ */
+export function useExportRatingsCsv() {
+  return useMutation<ExportRatingsCsvResponse, Error, string>({
+    mutationFn: (profileId: string) => ratingsApi.exportRatingsCsv(profileId),
   })
 }

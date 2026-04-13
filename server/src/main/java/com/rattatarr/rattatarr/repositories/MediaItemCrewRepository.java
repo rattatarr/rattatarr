@@ -13,6 +13,8 @@ import java.util.UUID;
 public interface MediaItemCrewRepository extends BaseRepository<MediaItemCrew> {
     List<MediaItemCrew> findByMediaItemId(UUID mediaItemId);
 
+    List<MediaItemCrew> findByMediaItemIdIn(List<UUID> mediaItemIds);
+
     List<MediaItemCrew> findByPersonId(UUID personId);
 
     List<MediaItemCrew> findByJob(String job);

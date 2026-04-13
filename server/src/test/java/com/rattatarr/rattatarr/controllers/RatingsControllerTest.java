@@ -4,14 +4,18 @@ import com.rattatarr.rattatarr.models.RatingMediaType;
 import com.rattatarr.rattatarr.models.dtos.requests.DeleteRateRequestDTO;
 import com.rattatarr.rattatarr.models.dtos.requests.RateRequestDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.GenericResponseDTO;
+import com.rattatarr.rattatarr.models.entities.Profile;
 import com.rattatarr.rattatarr.services.IMDbImportService;
+import com.rattatarr.rattatarr.services.ProfilesService;
 import com.rattatarr.rattatarr.services.RatingService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -31,6 +35,9 @@ class RatingsControllerTest {
 
     @Mock
     private IMDbImportService imDbImportService;
+
+    @Mock
+    private ProfilesService profilesService;
 
     @InjectMocks
     private RatingsController controller;
@@ -311,5 +318,27 @@ class RatingsControllerTest {
         // Then
         verify(imDbImportService).parseCSV(eq(file));
         verify(imDbImportService, times(1)).triggerBackgroundImportRatings(any(), any(UUID.class));
+    }
+
+    @Test
+    void exportRatingsCsv_withValidProfile_shouldReturnCsvAttachment() {
+        // Given
+        UUID profileId = UUID.randomUUID();
+        Profile profile = new Profile("John", null);
+        byte[] csv = "title,media type\nInception,MOVIE\n".getBytes();
+        when(profilesService.findByIdOrThrow(eq(profileId), any())).thenReturn(profile);
+        when(ratingService.exportProfileMediaRatingsCsv(eq(profile))).thenReturn(csv);
+
+        // When
+        ResponseEntity<byte[]> response = controller.exportRatingsCsv(profileId);
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(MediaType.parseMediaType("text/csv"), response.getHeaders().getContentType());
+        assertNotNull(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));
+        assertTrue(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION).contains("attachment"));
+        assertArrayEquals(csv, response.getBody());
+        verify(profilesService).findByIdOrThrow(eq(profileId), any());
+        verify(ratingService).exportProfileMediaRatingsCsv(eq(profile));
     }
 }

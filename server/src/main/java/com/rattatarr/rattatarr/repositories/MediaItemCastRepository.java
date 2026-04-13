@@ -13,6 +13,8 @@ import java.util.UUID;
 public interface MediaItemCastRepository extends BaseRepository<MediaItemCast> {
     List<MediaItemCast> findByMediaItemId(UUID mediaItemId);
 
+    List<MediaItemCast> findByMediaItemIdIn(List<UUID> mediaItemIds);
+
     List<MediaItemCast> findByPersonId(UUID personId);
 
     List<MediaItemCast> findByCharacter(String character);

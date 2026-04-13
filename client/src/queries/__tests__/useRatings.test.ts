@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { useRateMediaItem, useImportIMDbRatings } from '@/queries'
+import { useRateMediaItem, useImportIMDbRatings, useExportRatingsCsv } from '@/queries'
 
 // Mock API
 const mockRateMediaItem = vi.fn()
 const mockImportIMDbRatings = vi.fn()
+const mockExportRatingsCsv = vi.fn()
 vi.mock('@/api/ratings', () => ({
   rateMediaItem: (...args: never[]) => mockRateMediaItem(...args),
   importIMDbRatings: (...args: never[]) => mockImportIMDbRatings(...args),
+  exportRatingsCsv: (...args: never[]) => mockExportRatingsCsv(...args),
 }))
 
 // Mock TanStack Query
@@ -127,5 +129,29 @@ describe('useImportIMDbRatings', () => {
 
     expect(mockImportIMDbRatings).toHaveBeenCalledWith(csvFile, profileId)
     expect(csvFile.name).toBe('test.csv')
+  })
+})
+
+describe('useExportRatingsCsv', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUseMutation.mockReturnValue({
+      mutate: vi.fn(),
+      mutateAsync: vi.fn(),
+    })
+  })
+
+  it('creates mutation with correct mutationFn', async () => {
+    const csv = { csvData: 'title,rating\nMovie,8.5', fileName: 'profile-ratings.csv' }
+    const profileId = 'profile-123'
+    mockExportRatingsCsv.mockResolvedValue(csv)
+
+    useExportRatingsCsv()
+
+    const call = mockUseMutation.mock.calls[0]![0]!
+    const result = await call.mutationFn(profileId)
+
+    expect(mockExportRatingsCsv).toHaveBeenCalledWith(profileId)
+    expect(result).toEqual(csv)
   })
 })

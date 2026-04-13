@@ -37,6 +37,11 @@ public class MediaItemRatingsService extends BaseService<MediaItemRating, MediaI
         return repository.findByProfileAndMediaItem(profile, mediaItem);
     }
 
+    @Transactional(readOnly = true)
+    public List<MediaItemRating> findAllByProfile(Profile profile) {
+        return repository.findAllByProfile(profile);
+    }
+
     @Transactional
     public MediaItemRating upsert(
             Profile profile,

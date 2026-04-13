@@ -3,7 +3,8 @@
   import { SettingsCard } from '@/components/settings'
   import { SyncButton, FileUpload } from '@/components/sync'
   import { useSyncJellyfinMedia, useSyncJellyfinProfiles } from '@/queries/useJellyfin'
-  import { useImportIMDbRatings } from '@/queries/useRatings'
+  import { useImportIMDbRatings, useExportRatingsCsv } from '@/queries/useRatings'
+  import { useProfileManagement } from '@/composables/useProfileManagement'
   import { useSyncOperation } from '@/composables/useSyncOperation'
   import { useToast } from '@/composables/useToast'
   import { useSettingsForm } from '@/composables/useSettingsForm'
@@ -14,6 +15,7 @@
   const toast = useToast()
   const { savedSettings } = useSettingsForm()
   const profileStore = useProfileStore()
+  const { selectedProfile } = useProfileManagement()
 
   // Setting keys
   const integrationKeys = {
@@ -42,6 +44,7 @@
 
   // IMDb Rating Import
   const importIMDbMutation = useImportIMDbRatings()
+  const exportRatingsCsvMutation = useExportRatingsCsv()
   const selectedFile = ref<File | null>(null)
 
   const imdbImportStatus = ref<OperationStatus>(OperationStatus.IDLE)
@@ -104,6 +107,63 @@
   }
 
   const canImportIMDb = computed(() => !!selectedFile.value)
+
+  const ratingsExportStatus = ref<OperationStatus>(OperationStatus.IDLE)
+  const ratingsExportButtonProps = computed(() => {
+    switch (ratingsExportStatus.value) {
+      case OperationStatus.LOADING:
+        return { loading: true }
+      case OperationStatus.SUCCESS:
+        return { severity: ButtonSeverity.SUCCESS, icon: Icon.CHECK, loading: false }
+      case OperationStatus.ERROR:
+        return { severity: ButtonSeverity.DANGER, icon: Icon.TIMES, loading: false }
+      default:
+        return { loading: false }
+    }
+  })
+
+  async function executeRatingsExport() {
+    if (!selectedProfile.value?.id) {
+      toast.error('No profile selected', { fallbackMessage: 'Please select a profile first' })
+      return
+    }
+
+    ratingsExportStatus.value = OperationStatus.LOADING
+
+    try {
+      const { csvData, fileName } = await exportRatingsCsvMutation.mutateAsync(
+        selectedProfile.value.id,
+      )
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+
+      link.href = url
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      ratingsExportStatus.value = OperationStatus.SUCCESS
+      toast.success('Ratings exported', {
+        description: 'CSV download started successfully',
+      })
+
+      setTimeout(() => {
+        ratingsExportStatus.value = OperationStatus.IDLE
+      }, 3000)
+    } catch (error) {
+      ratingsExportStatus.value = OperationStatus.ERROR
+      toast.error(error as Error, { fallbackMessage: 'Failed to export ratings CSV' })
+
+      setTimeout(() => {
+        ratingsExportStatus.value = OperationStatus.IDLE
+      }, 3000)
+    }
+  }
+
+  const canExportRatings = computed(() => !!selectedProfile.value?.id)
 </script>
 
 <template>
@@ -183,6 +243,20 @@
             @click="executeImdbImport"
           />
         </div>
+      </SettingsCard>
+
+      <!-- Ratings CSV Export -->
+      <SettingsCard title="Ratings CSV Export" description="Download profile ratings as CSV">
+        <SyncButton
+          label="Export Ratings CSV"
+          :status="ratingsExportStatus"
+          :severity="ratingsExportButtonProps.severity"
+          :icon="ratingsExportButtonProps.icon"
+          :loading="ratingsExportButtonProps.loading"
+          :disabled="!canExportRatings"
+          info-message="Exports ratings for selected profile and downloads a CSV file to your device."
+          @click="executeRatingsExport"
+        />
       </SettingsCard>
     </div>
   </section>

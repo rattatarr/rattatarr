@@ -9,12 +9,20 @@ import com.rattatarr.rattatarr.models.RatingMediaType;
 import com.rattatarr.rattatarr.models.dtos.requests.DeleteRateRequestDTO;
 import com.rattatarr.rattatarr.models.dtos.requests.RateRequestDTO;
 import com.rattatarr.rattatarr.models.entities.*;
+import com.rattatarr.rattatarr.repositories.MediaItemCastRepository;
+import com.rattatarr.rattatarr.repositories.MediaItemCrewRepository;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -41,6 +49,12 @@ class RatingServiceTest {
 
     @Mock
     private MediaSeasonsService mediaSeasonsService;
+
+    @Mock
+    private MediaItemCastRepository mediaItemCastRepository;
+
+    @Mock
+    private MediaItemCrewRepository mediaItemCrewRepository;
 
     @InjectMocks
     private RatingService ratingService;
@@ -439,5 +453,98 @@ class RatingServiceTest {
                 () -> ratingService.deleteRating(request)
         );
         verify(mediaItemRatingsService, never()).delete(any());
+    }
+
+    @Test
+    void exportProfileMediaRatingsCsv_shouldIncludeRequestedColumnsAndTopCredits() throws IOException {
+        // Given
+        Profile profile = new Profile("Test Profile", null);
+
+        MediaItem mediaItem = new MediaItem(
+                MediaType.MOVIE, "Inception", null, "27205", "tt1375666",
+                2010, 148, Set.of(), Set.of(), Set.of(), Set.of()
+        );
+        UUID mediaItemId = UUID.randomUUID();
+        ReflectionTestUtils.setField(mediaItem, "id", mediaItemId);
+
+        MediaItemRating rating = new MediaItemRating(profile, mediaItem, 9.5f);
+
+        Person actor1 = new Person("Leonardo DiCaprio", "1", null);
+        Person actor2 = new Person("Joseph Gordon-Levitt", "2", null);
+        Person director = new Person("Christopher Nolan", "3", null);
+        Person producer = new Person("Emma Thomas", "4", null);
+
+        MediaItemCast cast1 = new MediaItemCast(mediaItem, actor1, "Cobb", 0);
+        MediaItemCast cast2 = new MediaItemCast(mediaItem, actor2, "Arthur", 1);
+        MediaItemCrew directorCrew = new MediaItemCrew(mediaItem, director, "Director", "Directing");
+        MediaItemCrew producerCrew = new MediaItemCrew(mediaItem, producer, "Producer", "Production");
+
+        when(mediaItemRatingsService.findAllByProfile(profile)).thenReturn(java.util.List.of(rating));
+        when(mediaItemCastRepository.findByMediaItemIdIn(java.util.List.of(mediaItemId))).thenReturn(java.util.List.of(cast2, cast1));
+        when(mediaItemCrewRepository.findByMediaItemIdIn(java.util.List.of(mediaItemId))).thenReturn(java.util.List.of(directorCrew, producerCrew));
+
+        // When
+        byte[] csvBytes = ratingService.exportProfileMediaRatingsCsv(profile);
+        String csv = new String(csvBytes, StandardCharsets.UTF_8);
+
+        // Then
+        CSVParser parser = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).build().parse(new StringReader(csv));
+        var records = parser.getRecords();
+        assertEquals(1, records.size());
+
+        var row = records.getFirst();
+        assertEquals("Inception", row.get("title"));
+        assertEquals("MOVIE", row.get("media type"));
+        assertEquals("9.5", row.get("my rating"));
+        assertEquals("tt1375666", row.get("imdb id"));
+        assertEquals("27205", row.get("tmdb id"));
+        assertEquals("Leonardo DiCaprio", row.get("top actors 1"));
+        assertEquals("Joseph Gordon-Levitt", row.get("top actors 2"));
+        assertEquals("Christopher Nolan", row.get("director 1"));
+        assertEquals("Emma Thomas", row.get("producer 1"));
+        verify(mediaItemCastRepository).findByMediaItemIdIn(java.util.List.of(mediaItemId));
+        verify(mediaItemCrewRepository).findByMediaItemIdIn(java.util.List.of(mediaItemId));
+        verify(mediaItemCastRepository, never()).findByMediaItemId(any());
+        verify(mediaItemCrewRepository, never()).findByMediaItemId(any());
+    }
+
+    @Test
+    void exportProfileMediaRatingsCsv_withMissingCredits_shouldKeepColumnsEmpty() throws IOException {
+        // Given
+        Profile profile = new Profile("Test Profile", null);
+
+        MediaItem mediaItem = new MediaItem(
+                MediaType.SERIES, "Severance", null, "95396", "tt11280740",
+                2022, 50, Set.of(), Set.of(), Set.of(), Set.of()
+        );
+        UUID mediaItemId = UUID.randomUUID();
+        ReflectionTestUtils.setField(mediaItem, "id", mediaItemId);
+
+        MediaItemRating rating = new MediaItemRating(profile, mediaItem, 8.0f);
+
+        when(mediaItemRatingsService.findAllByProfile(profile)).thenReturn(java.util.List.of(rating));
+        when(mediaItemCastRepository.findByMediaItemIdIn(java.util.List.of(mediaItemId))).thenReturn(java.util.List.of());
+        when(mediaItemCrewRepository.findByMediaItemIdIn(java.util.List.of(mediaItemId))).thenReturn(java.util.List.of());
+
+        // When
+        byte[] csvBytes = ratingService.exportProfileMediaRatingsCsv(profile);
+        String csv = new String(csvBytes, StandardCharsets.UTF_8);
+
+        // Then
+        CSVParser parser = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).build().parse(new StringReader(csv));
+        var records = parser.getRecords();
+        assertEquals(1, records.size());
+
+        var row = records.getFirst();
+        assertEquals("", row.get("top actors 1"));
+        assertEquals("", row.get("top actors 5"));
+        assertEquals("", row.get("director 1"));
+        assertEquals("", row.get("director 3"));
+        assertEquals("", row.get("producer 1"));
+        assertEquals("", row.get("producer 3"));
+        verify(mediaItemCastRepository).findByMediaItemIdIn(java.util.List.of(mediaItemId));
+        verify(mediaItemCrewRepository).findByMediaItemIdIn(java.util.List.of(mediaItemId));
+        verify(mediaItemCastRepository, never()).findByMediaItemId(any());
+        verify(mediaItemCrewRepository, never()).findByMediaItemId(any());
     }
 }

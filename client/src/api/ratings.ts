@@ -1,5 +1,19 @@
-import { apiClient, handleResponse } from './client'
+import { APIError, apiClient, handleResponse } from './client'
 import type { RateRequest, GenericResponse } from '@/types'
+
+export interface ExportRatingsCsvResponse {
+  csvData: string
+  fileName: string
+}
+
+function parseContentDispositionFileName(headerValue: string | null): string | null {
+  if (!headerValue) {
+    return null
+  }
+
+  const match = /filename="?([^";]+)"?/i.exec(headerValue)
+  return match?.[1] ?? null
+}
 
 export async function rateMediaItem(request: RateRequest): Promise<GenericResponse> {
   const response = await apiClient.PUT('/api/v1/ratings', {
@@ -23,4 +37,55 @@ export async function importIMDbRatings(file: File, profileId: string): Promise<
     // Browser automatically sets Content-Type with multipart boundary
   })
   return handleResponse<GenericResponse>(response)
+}
+
+export async function exportRatingsCsv(profileId: string): Promise<ExportRatingsCsvResponse> {
+  const url = `/api/v1/ratings/export?profileId=${encodeURIComponent(profileId)}`
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'text/csv',
+    },
+  })
+
+  if (!response.ok) {
+    let body: unknown
+    let message = response.statusText || 'Failed to export ratings CSV'
+    const responseClone = response.clone()
+
+    try {
+      body = await response.json()
+      if (body && typeof body === 'object' && 'message' in body) {
+        message = String(body.message)
+      }
+    } catch {
+      try {
+        const textBody = await responseClone.text()
+        if (textBody) {
+          message = textBody
+          body = textBody
+        }
+      } catch {
+        body = undefined
+      }
+    }
+
+    throw new APIError({
+      status: response.status,
+      statusText: response.statusText,
+      message,
+      body,
+      url,
+    })
+  }
+
+  const csvData = await response.text()
+  const fileName =
+    parseContentDispositionFileName(response.headers.get('content-disposition')) ??
+    'profile-ratings.csv'
+
+  return {
+    csvData,
+    fileName,
+  }
 }

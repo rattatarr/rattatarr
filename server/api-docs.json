@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:8080",
+      "url": "http://localhost:8080",
       "description": "Generated server url"
     }
   ],
@@ -673,6 +673,38 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/SettingWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ratings/export": {
+      "get": {
+        "tags": [
+          "ratings-controller"
+        ],
+        "operationId": "exportRatingsCsv",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
                 }
               }
             }
