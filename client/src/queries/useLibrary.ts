@@ -28,6 +28,20 @@ export function useMovies(
 }
 
 /**
+ * Query hook to get recently watched unrated movies
+ */
+export function useRecentlyWatchedUnratedMovies(
+  pageable: MaybeRefOrGetter<Pageable>,
+  filters: MaybeRefOrGetter<MovieFilters>,
+) {
+  return useQuery<MoviesWrapper>({
+    queryKey: computed(() => movieKeys.watchedUnratedList(toValue(pageable), toValue(filters))),
+    queryFn: () => libraryApi.getRecentlyWatchedUnratedMovies(toValue(pageable), toValue(filters)),
+    enabled: computed(() => !!toValue(filters).profileId),
+  })
+}
+
+/**
  * Query hook to get a single movie by ID
  */
 export function useMovie(
@@ -54,6 +68,20 @@ export function useSeries(
   return useQuery<SeriesWrapper>({
     queryKey: computed(() => seriesKeys.list(toValue(pageable), toValue(filters))),
     queryFn: () => libraryApi.getAllSeries(toValue(pageable), toValue(filters)),
+  })
+}
+
+/**
+ * Query hook to get recently watched unrated series
+ */
+export function useRecentlyWatchedUnratedSeries(
+  pageable: MaybeRefOrGetter<Pageable>,
+  filters: MaybeRefOrGetter<SeriesFilters>,
+) {
+  return useQuery<SeriesWrapper>({
+    queryKey: computed(() => seriesKeys.watchedUnratedList(toValue(pageable), toValue(filters))),
+    queryFn: () => libraryApi.getRecentlyWatchedUnratedSeries(toValue(pageable), toValue(filters)),
+    enabled: computed(() => !!toValue(filters).profileId),
   })
 }
 

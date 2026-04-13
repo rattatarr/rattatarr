@@ -1,9 +1,15 @@
 <script setup lang="ts">
-  import { computed, onMounted } from 'vue'
+  import { computed, onMounted, ref } from 'vue'
   import Card from 'primevue/card'
   import Message from 'primevue/message'
+  import SelectButton from 'primevue/selectbutton'
+  import MediaItemCard from '@/components/common/MediaItemCard.vue'
   import { useProfileStore } from '@/stores'
   import { useProfileStatistics } from '@/queries'
+  import {
+    useRecentlyWatchedUnratedMovies,
+    useRecentlyWatchedUnratedSeries,
+  } from '@/queries/useLibrary'
   import { useRoutePreload } from '@/composables/useRoutePreload'
   import OverallStatsCard from '@/components/dashboard/OverallStatsCard.vue'
   import RatingDistributionChart from '@/components/dashboard/RatingDistributionChart.vue'
@@ -15,6 +21,7 @@
   import DayOfWeekActivity from '@/components/dashboard/DayOfWeekActivity.vue'
   import RatingHeatmap from '@/components/dashboard/RatingHeatmap.vue'
   import GenreOverTimeChart from '@/components/dashboard/GenreOverTimeChart.vue'
+  import { MediaType } from '@/utils/enums'
 
   const profileStore = useProfileStore()
   const { preloadMainRoutes } = useRoutePreload()
@@ -31,7 +38,59 @@
 
   const { data: statisticsData, isLoading, isError } = useProfileStatistics(statisticsRequest)
 
+  const watchedUnratedPageable = computed(() => ({
+    page: 0,
+    size: 10,
+    sort: ['productionYear,desc'],
+  }))
+
+  const watchedUnratedMovieFilters = computed(() => ({
+    title: '',
+    profileId: profileStore.selectedProfileId ?? undefined,
+  }))
+
+  const watchedUnratedSeriesFilters = computed(() => ({
+    title: '',
+    profileId: profileStore.selectedProfileId ?? undefined,
+  }))
+
+  const { data: watchedUnratedMoviesData } = useRecentlyWatchedUnratedMovies(
+    watchedUnratedPageable,
+    watchedUnratedMovieFilters,
+  )
+  const { data: watchedUnratedSeriesData } = useRecentlyWatchedUnratedSeries(
+    watchedUnratedPageable,
+    watchedUnratedSeriesFilters,
+  )
+
   const statistics = computed(() => statisticsData.value?.statistics)
+  const watchedUnratedMovies = computed(
+    () => watchedUnratedMoviesData.value?.movies?.slice(0, 10) ?? [],
+  )
+  const watchedUnratedSeries = computed(
+    () => watchedUnratedSeriesData.value?.series?.slice(0, 10) ?? [],
+  )
+  const hasWatchedUnrated = computed(
+    () => watchedUnratedMovies.value.length > 0 || watchedUnratedSeries.value.length > 0,
+  )
+
+  const HEATMAP_MODE_OPTIONS = [
+    { label: 'Activity', value: 'activity' as const },
+    { label: 'Rating', value: 'rating' as const },
+  ]
+  const heatmapMode = ref<'activity' | 'rating'>('activity')
+  const selectedHeatmap = computed(() => {
+    if (heatmapMode.value === 'activity') {
+      return statistics.value?.uniqueMediaPlayedHeatmap ?? []
+    }
+
+    return statistics.value?.ratingHeatmap ?? []
+  })
+  const hasAnyHeatmap = computed(
+    () =>
+      (statistics.value?.uniqueMediaPlayedHeatmap?.length ?? 0) > 0 ||
+      (statistics.value?.ratingHeatmap?.length ?? 0) > 0,
+  )
 
   const hasActors = computed(
     () =>
@@ -90,17 +149,68 @@
         :rating-consistency="statistics.ratingConsistency ?? undefined"
       />
 
-      <!-- Row 2: Heatmap (full width) -->
-      <div v-if="statistics.ratingHeatmap?.length" class="dashboard-row full-width">
-        <RatingHeatmap :heatmap="statistics.ratingHeatmap" class="stretch" />
+      <!-- Row 2: Watched but Unrated (full width), might be empty -> not displayed  -->
+      <div v-if="hasWatchedUnrated" class="dashboard-row full-width">
+        <Card class="stretch">
+          <template #title>Watched but Not Rated</template>
+          <template #content>
+            <div class="watched-unrated-layout">
+              <div v-if="watchedUnratedMovies.length" class="watched-unrated-column">
+                <h3 class="section-heading">Movies</h3>
+                <div class="watched-unrated-grid">
+                  <MediaItemCard
+                    v-for="movie in watchedUnratedMovies"
+                    :key="`movie-${movie.id}`"
+                    :item="movie"
+                    :media-type="MediaType.MOVIE"
+                  />
+                </div>
+              </div>
+
+              <div v-if="watchedUnratedSeries.length" class="watched-unrated-column">
+                <h3 class="section-heading">Series</h3>
+                <div class="watched-unrated-grid">
+                  <MediaItemCard
+                    v-for="show in watchedUnratedSeries"
+                    :key="`series-${show.id}`"
+                    :item="show"
+                    :media-type="MediaType.SERIES"
+                  />
+                </div>
+              </div>
+            </div>
+          </template>
+        </Card>
       </div>
 
-      <!-- Row 3: Decade Preferences (full width) -->
+      <!-- Row 3: Heatmap (full width) -->
+      <div v-if="hasAnyHeatmap" class="dashboard-row full-width">
+        <div class="heatmap-header-left">
+          <SelectButton
+            v-model="heatmapMode"
+            :options="HEATMAP_MODE_OPTIONS"
+            option-label="label"
+            option-value="value"
+            :allow-empty="false"
+          />
+        </div>
+        <RatingHeatmap
+          v-if="selectedHeatmap.length"
+          :heatmap="selectedHeatmap"
+          :mode="heatmapMode"
+          class="stretch"
+        />
+        <Message v-else severity="info" :closable="false">
+          No {{ heatmapMode }} heatmap data available.
+        </Message>
+      </div>
+
+      <!-- Row 4: Decade Preferences (full width) -->
       <div v-if="statistics.decadePreferences?.length" class="dashboard-row full-width">
         <DecadePreferences :decades="statistics.decadePreferences" class="stretch" />
       </div>
 
-      <!-- Row 4: Actors / Directors / Producers (3 columns) -->
+      <!-- Row 5: Actors / Directors / Producers (3 columns) -->
       <div v-if="hasActors || hasDirectors || hasProducers" class="dashboard-row three-col">
         <FavoritePeople
           v-if="hasActors"
@@ -125,7 +235,7 @@
         />
       </div>
 
-      <!-- Row 5: Rating Distribution + Top Genres (same height, two columns) -->
+      <!-- Row 6: Rating Distribution + Top Genres (same height, two columns) -->
       <div v-if="hasDistribution || hasGenres" class="dashboard-row two-col">
         <RatingDistributionChart
           v-if="hasDistribution"
@@ -141,17 +251,17 @@
         />
       </div>
 
-      <!-- Row 6: Genre Over Time (full width) -->
+      <!-- Row 7: Genre Over Time (full width) -->
       <div v-if="statistics.genreOverTime?.length" class="dashboard-row full-width">
         <GenreOverTimeChart :data="statistics.genreOverTime" class="stretch" />
       </div>
 
-      <!-- Row 7: Media Type Breakdown (full width) -->
+      <!-- Row 8: Media Type Breakdown (full width) -->
       <div v-if="statistics.mediaTypeBreakdown?.length" class="dashboard-row full-width">
         <MediaTypeBreakdown :breakdown="statistics.mediaTypeBreakdown" class="stretch" />
       </div>
 
-      <!-- Row 8: Recent Trends + Day of Week (two columns) -->
+      <!-- Row 9: Recent Trends + Day of Week (two columns) -->
       <div
         v-if="statistics.recentTrends?.length || statistics.dayOfWeekActivity?.length"
         class="dashboard-row two-col"
@@ -213,6 +323,35 @@
     width: 100%;
   }
 
+  .section-heading {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .watched-unrated-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .watched-unrated-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .watched-unrated-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  .heatmap-header-left {
+    display: flex;
+    justify-content: flex-start;
+  }
+
   /* Loading skeleton */
   .loading-placeholder {
     display: grid;
@@ -257,6 +396,10 @@
     .two-col > *,
     .three-col > * {
       flex: 1 1 100%;
+    }
+
+    .watched-unrated-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 </style>

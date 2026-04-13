@@ -2,8 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ref } from 'vue'
 import {
   useMovies,
+  useRecentlyWatchedUnratedMovies,
   useBrokenMovies,
   useSeries,
+  useRecentlyWatchedUnratedSeries,
   useBrokenSeries,
   useGenres,
   useRefreshAllStaleSeries,
@@ -12,14 +14,20 @@ import {
 
 // Mock API
 const mockGetAllMovies = vi.fn()
+const mockGetRecentlyWatchedUnratedMovies = vi.fn()
 const mockGetAllSeries = vi.fn()
+const mockGetRecentlyWatchedUnratedSeries = vi.fn()
 const mockGetAllGenres = vi.fn()
 const mockRefreshAllStaleSeries = vi.fn()
 const mockRefreshSeriesById = vi.fn()
 
 vi.mock('@/api/library', () => ({
   getAllMovies: (...args: never[]) => mockGetAllMovies(...args),
+  getRecentlyWatchedUnratedMovies: (...args: never[]) =>
+    mockGetRecentlyWatchedUnratedMovies(...args),
   getAllSeries: (...args: never[]) => mockGetAllSeries(...args),
+  getRecentlyWatchedUnratedSeries: (...args: never[]) =>
+    mockGetRecentlyWatchedUnratedSeries(...args),
   getAllGenres: (...args: never[]) => mockGetAllGenres(...args),
   refreshAllStaleSeries: () => mockRefreshAllStaleSeries(),
   refreshSeriesById: (...args: never[]) => mockRefreshSeriesById(...args),
@@ -54,11 +62,23 @@ vi.mock('../queryKeys', () => ({
   movieKeys: {
     all: ['movies'],
     list: (pageable: never, filters: never) => ['movies', 'list', pageable, filters],
+    watchedUnratedList: (pageable: never, filters: never) => [
+      'movies',
+      'watched-unrated',
+      pageable,
+      filters,
+    ],
     brokenList: (pageable: never) => ['movies', 'broken', pageable],
   },
   seriesKeys: {
     all: ['series'],
     list: (pageable: never, filters: never) => ['series', 'list', pageable, filters],
+    watchedUnratedList: (pageable: never, filters: never) => [
+      'series',
+      'watched-unrated',
+      pageable,
+      filters,
+    ],
     brokenList: (pageable: never) => ['series', 'broken', pageable],
   },
   genreKeys: {
@@ -101,6 +121,52 @@ describe('useMovies', () => {
     await call.queryFn()
 
     expect(mockGetAllMovies).toHaveBeenCalledWith(pageable, filters)
+  })
+})
+
+describe('useRecentlyWatchedUnratedMovies', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUseQuery.mockReturnValue({ data: ref(null) })
+  })
+
+  it('creates query with watched-unrated movie key', () => {
+    const pageable = ref({ page: 0, size: 10 })
+    const filters = ref({ title: '', profileId: 'profile-1' })
+
+    useRecentlyWatchedUnratedMovies(pageable, filters)
+
+    const call = mockUseQuery.mock.calls[0]![0]!
+    expect(call.queryKey.value).toEqual([
+      'movies',
+      'watched-unrated',
+      { page: 0, size: 10 },
+      { title: '', profileId: 'profile-1' },
+    ])
+  })
+
+  it('calls watched-unrated movies API with pageable and filters', async () => {
+    mockGetRecentlyWatchedUnratedMovies.mockResolvedValue({ movies: [] })
+
+    const pageable = { page: 0, size: 10 }
+    const filters = { title: '', profileId: 'profile-1' }
+
+    useRecentlyWatchedUnratedMovies(pageable, filters)
+
+    const call = mockUseQuery.mock.calls[0]![0]!
+    await call.queryFn()
+
+    expect(mockGetRecentlyWatchedUnratedMovies).toHaveBeenCalledWith(pageable, filters)
+  })
+
+  it('is disabled when profileId is missing', () => {
+    const pageable = { page: 0, size: 10 }
+    const filters = { title: '' }
+
+    useRecentlyWatchedUnratedMovies(pageable, filters)
+
+    const call = mockUseQuery.mock.calls[0]![0]!
+    expect(call.enabled.value).toBe(false)
   })
 })
 
@@ -170,6 +236,52 @@ describe('useSeries', () => {
     await call.queryFn()
 
     expect(mockGetAllSeries).toHaveBeenCalledWith(pageable, filters)
+  })
+})
+
+describe('useRecentlyWatchedUnratedSeries', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUseQuery.mockReturnValue({ data: ref(null) })
+  })
+
+  it('creates query with watched-unrated series key', () => {
+    const pageable = ref({ page: 0, size: 10 })
+    const filters = ref({ title: '', profileId: 'profile-1' })
+
+    useRecentlyWatchedUnratedSeries(pageable, filters)
+
+    const call = mockUseQuery.mock.calls[0]![0]!
+    expect(call.queryKey.value).toEqual([
+      'series',
+      'watched-unrated',
+      { page: 0, size: 10 },
+      { title: '', profileId: 'profile-1' },
+    ])
+  })
+
+  it('calls watched-unrated series API with pageable and filters', async () => {
+    mockGetRecentlyWatchedUnratedSeries.mockResolvedValue({ series: [] })
+
+    const pageable = { page: 0, size: 10 }
+    const filters = { title: '', profileId: 'profile-1' }
+
+    useRecentlyWatchedUnratedSeries(pageable, filters)
+
+    const call = mockUseQuery.mock.calls[0]![0]!
+    await call.queryFn()
+
+    expect(mockGetRecentlyWatchedUnratedSeries).toHaveBeenCalledWith(pageable, filters)
+  })
+
+  it('is disabled when profileId is missing', () => {
+    const pageable = { page: 0, size: 10 }
+    const filters = { title: '' }
+
+    useRecentlyWatchedUnratedSeries(pageable, filters)
+
+    const call = mockUseQuery.mock.calls[0]![0]!
+    expect(call.enabled.value).toBe(false)
   })
 })
 

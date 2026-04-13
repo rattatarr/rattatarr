@@ -28,6 +28,17 @@ export async function getAllMovies(
   return handleResponse<MoviesWrapper>(response)
 }
 
+export async function getRecentlyWatchedUnratedMovies(
+  pageable: Pageable,
+  filters: MovieFilters,
+): Promise<MoviesWrapper> {
+  const queryParams = buildMoviesQueryParams(pageable, filters)
+  const response = await apiClient.GET('/api/v1/library/movies/watched/unrated', {
+    params: { query: queryParams as any },
+  })
+  return handleResponse<MoviesWrapper>(response)
+}
+
 /**
  * Get a single movie by ID
  */
@@ -74,6 +85,17 @@ export async function getAllSeries(
 ): Promise<SeriesWrapper> {
   const queryParams = buildSeriesQueryParams(pageable, filters)
   const response = await apiClient.GET('/api/v1/library/series', {
+    params: { query: queryParams as any },
+  })
+  return handleResponse<SeriesWrapper>(response)
+}
+
+export async function getRecentlyWatchedUnratedSeries(
+  pageable: Pageable,
+  filters: SeriesFilters,
+): Promise<SeriesWrapper> {
+  const queryParams = buildSeriesQueryParams(pageable, filters)
+  const response = await apiClient.GET('/api/v1/library/series/watched/unrated', {
     params: { query: queryParams as any },
   })
   return handleResponse<SeriesWrapper>(response)

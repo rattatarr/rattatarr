@@ -35,6 +35,9 @@ export const movieKeys = {
   lists: () => [...movieKeys.all, 'list'] as const,
   list: (pageable: Pageable, filters: MovieFilters) =>
     [...movieKeys.lists(), { pageable, filters }] as const,
+  watchedUnrated: () => [...movieKeys.all, 'watched-unrated'] as const,
+  watchedUnratedList: (pageable: Pageable, filters: MovieFilters) =>
+    [...movieKeys.watchedUnrated(), { pageable, filters }] as const,
   broken: () => [...movieKeys.all, 'broken'] as const,
   brokenList: (pageable: Pageable) => [...movieKeys.broken(), { pageable }] as const,
   details: () => [...movieKeys.all, 'detail'] as const,
@@ -49,6 +52,9 @@ export const seriesKeys = {
   lists: () => [...seriesKeys.all, 'list'] as const,
   list: (pageable: Pageable, filters: SeriesFilters) =>
     [...seriesKeys.lists(), { pageable, filters }] as const,
+  watchedUnrated: () => [...seriesKeys.all, 'watched-unrated'] as const,
+  watchedUnratedList: (pageable: Pageable, filters: SeriesFilters) =>
+    [...seriesKeys.watchedUnrated(), { pageable, filters }] as const,
   broken: () => [...seriesKeys.all, 'broken'] as const,
   brokenList: (pageable: Pageable) => [...seriesKeys.broken(), { pageable }] as const,
   details: () => [...seriesKeys.all, 'detail'] as const,

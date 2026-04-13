@@ -404,6 +404,22 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/library/series/watched/unrated': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['getRecentlyWatchedUnratedSeries']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/library/series/broken': {
     parameters: {
       query?: never
@@ -460,6 +476,22 @@ export interface paths {
       cookie?: never
     }
     get: operations['getMovies']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/library/movies/watched/unrated': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['getRecentlyWatchedUnratedMovies']
     put?: never
     post?: never
     delete?: never
@@ -944,6 +976,7 @@ export interface components {
       ratingConsistency?: components['schemas']['RatingConsistencyDTO']
       dayOfWeekActivity?: components['schemas']['DayOfWeekActivityDTO'][]
       ratingHeatmap?: components['schemas']['RatingHeatmapYearDTO'][]
+      uniqueMediaPlayedHeatmap?: components['schemas']['RatingHeatmapYearDTO'][]
       genreOverTime?: components['schemas']['GenreOverTimeYearDTO'][]
     }
     ProfileStatisticsWrapper: {
@@ -1841,6 +1874,29 @@ export interface operations {
       }
     }
   }
+  getRecentlyWatchedUnratedSeries: {
+    parameters: {
+      query: {
+        pageable: components['schemas']['Pageable']
+        filters: components['schemas']['SeriesFiltersDTO']
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['SeriesResponseWrapper']
+        }
+      }
+    }
+  }
   getBrokenSeries: {
     parameters: {
       query: {
@@ -1911,6 +1967,29 @@ export interface operations {
     }
   }
   getMovies: {
+    parameters: {
+      query: {
+        pageable: components['schemas']['Pageable']
+        filters: components['schemas']['MoviesFiltersDTO']
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['MoviesResponseWrapper']
+        }
+      }
+    }
+  }
+  getRecentlyWatchedUnratedMovies: {
     parameters: {
       query: {
         pageable: components['schemas']['Pageable']

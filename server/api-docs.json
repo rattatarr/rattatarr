@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8080",
+      "url": "http://127.0.0.1:8080",
       "description": "Generated server url"
     }
   ],
@@ -879,6 +879,44 @@
         }
       }
     },
+    "/api/v1/library/series/watched/unrated": {
+      "get": {
+        "tags": [
+          "library-series-controller"
+        ],
+        "operationId": "getRecentlyWatchedUnratedSeries",
+        "parameters": [
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SeriesFiltersDTO"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/library/series/broken": {
       "get": {
         "tags": [
@@ -992,6 +1030,44 @@
           "library-movies-controller"
         ],
         "operationId": "getMovies",
+        "parameters": [
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MoviesFiltersDTO"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MoviesResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/library/movies/watched/unrated": {
+      "get": {
+        "tags": [
+          "library-movies-controller"
+        ],
+        "operationId": "getRecentlyWatchedUnratedMovies",
         "parameters": [
           {
             "name": "pageable",
@@ -2202,6 +2278,12 @@
             }
           },
           "ratingHeatmap": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RatingHeatmapYearDTO"
+            }
+          },
+          "uniqueMediaPlayedHeatmap": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RatingHeatmapYearDTO"

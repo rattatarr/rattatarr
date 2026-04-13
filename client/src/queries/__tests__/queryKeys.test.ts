@@ -60,6 +60,19 @@ describe('movieKeys', () => {
     const pageable: Pageable = { page: 0, size: 10 }
     expect(movieKeys.brokenList(pageable)).toEqual(['movies', 'broken', { pageable }])
   })
+
+  it('should generate watched-unrated movie keys', () => {
+    expect(movieKeys.watchedUnrated()).toEqual(['movies', 'watched-unrated'])
+
+    const pageable: Pageable = { page: 0, size: 10 }
+    const filters: MovieFilters = { title: '', profileId: 'profile-1' }
+
+    expect(movieKeys.watchedUnratedList(pageable, filters)).toEqual([
+      'movies',
+      'watched-unrated',
+      { pageable, filters },
+    ])
+  })
 })
 
 describe('seriesKeys', () => {
@@ -73,6 +86,19 @@ describe('seriesKeys', () => {
     const key = seriesKeys.list(pageable, filters)
 
     expect(key).toEqual(['series', 'list', { pageable, filters }])
+  })
+
+  it('should generate watched-unrated series keys', () => {
+    expect(seriesKeys.watchedUnrated()).toEqual(['series', 'watched-unrated'])
+
+    const pageable: Pageable = { page: 0, size: 10 }
+    const filters = { title: '', profileId: 'profile-2' }
+
+    expect(seriesKeys.watchedUnratedList(pageable, filters)).toEqual([
+      'series',
+      'watched-unrated',
+      { pageable, filters },
+    ])
   })
 })
 
