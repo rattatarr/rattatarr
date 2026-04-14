@@ -442,9 +442,17 @@ public final class StatisticsSpecifications {
                 cb.function("datetime", String.class, epochSeconds, cb.literal("unixepoch"))
         );
 
+        Expression<String> seriesEpisodeKey = cb.concat(
+                root.get("mediaItem").get("id").as(String.class),
+                cb.concat(
+                        cb.literal("#"),
+                        cb.coalesce(root.get("episode").get("id").as(String.class), cb.literal("-"))
+                )
+        );
+
         q.select(cb.tuple(
                 dateStr.alias("date"),
-                cb.countDistinct(root.get("mediaItem").get("id")).alias("count")
+                cb.countDistinct(seriesEpisodeKey).alias("count")
         ));
         q.where(cb.equal(root.get("profile").get("id"), profileId));
         q.groupBy(dateStr);
