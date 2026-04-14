@@ -151,4 +151,30 @@ class LibraryMoviesControllerTest {
         assertNotNull(response.getBody());
         assertEquals(0, response.getBody().movies().size());
     }
+
+    @Test
+    void getRecentlyWatchedUnratedMovies_shouldReturnMovies() {
+        UUID profileId = UUID.randomUUID();
+        Pageable pageable = PageRequest.of(0, 20);
+        MoviesFiltersDTO filters = new MoviesFiltersDTO(
+                null, null, null, null, null,
+                "w500", "w1280", "w185",
+                profileId, null, null, null, null
+        );
+
+        MovieResponseDTO movie = new MovieResponseDTO(
+                UUID.randomUUID(), "jf-123", "Test Movie", "123", "tt123",
+                2023, 120, null, Set.of(), null, null, null
+        );
+        Page<MovieResponseDTO> moviesPage = new PageImpl<>(List.of(movie), pageable, 1);
+
+        when(moviesService.findRecentlyWatchedUnratedMovies(filters, pageable)).thenReturn(moviesPage);
+
+        ResponseEntity<MoviesResponseWrapper> response = controller.getRecentlyWatchedUnratedMovies(pageable, filters);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().movies().size());
+        verify(moviesService).findRecentlyWatchedUnratedMovies(filters, pageable);
+    }
 }

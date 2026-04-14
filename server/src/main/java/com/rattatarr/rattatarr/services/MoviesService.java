@@ -83,4 +83,32 @@ public class MoviesService extends BaseService<MediaItem, MediaItemsRepository> 
 
         return new PageImpl<>(movies, ratingSort.pageable(), page.getTotalElements());
     }
+
+    @Transactional(readOnly = true)
+    public Page<MovieResponseDTO> findRecentlyWatchedUnratedMovies(MoviesFiltersDTO filters, Pageable pageable) {
+        UUID profileId = filters.profileId();
+        Specification<MediaItem> spec = Specification.allOf(
+                GenericSpecifications.notDeleted(),
+                MediaItemSpecifications.isMovie(),
+                MediaItemSpecifications.withMetadata(),
+                MediaItemSpecifications.recentlyWatchedUnrated(profileId)
+        );
+
+        Page<MediaItem> page = repository.findAll(spec, pageable);
+
+        page.forEach(mediaItem -> mediaItemViewHelper.applyImageUrls(
+                mediaItem,
+                filters.posterSize(),
+                filters.backdropSize(),
+                filters.profileSize(),
+                false,
+                false
+        ));
+
+        List<MovieResponseDTO> movies = page.getContent().stream()
+                .map(item -> MovieResponseDTO.fromEntity(item, false))
+                .toList();
+
+        return new PageImpl<>(movies, pageable, page.getTotalElements());
+    }
 }

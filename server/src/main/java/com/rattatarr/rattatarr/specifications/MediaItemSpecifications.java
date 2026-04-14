@@ -1,9 +1,7 @@
 package com.rattatarr.rattatarr.specifications;
 
-import com.rattatarr.rattatarr.models.entities.MediaItem;
-import com.rattatarr.rattatarr.models.entities.MediaItemCast;
-import com.rattatarr.rattatarr.models.entities.MediaItemCrew;
-import com.rattatarr.rattatarr.models.entities.MediaItemRating;
+import com.rattatarr.rattatarr.models.WatchEventType;
+import com.rattatarr.rattatarr.models.entities.*;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Order;
@@ -254,6 +252,71 @@ public class MediaItemSpecifications {
             ));
 
             return cb.not(cb.exists(subquery));
+        };
+    }
+
+    public static Specification<MediaItem> recentlyWatchedUnrated(@Nullable UUID profileId) {
+        return (root, query, cb) -> {
+            if (profileId == null) {
+                return cb.disjunction();
+            }
+
+            Subquery<Long> watchedSubquery = query.subquery(Long.class);
+            var watchRoot = watchedSubquery.from(WatchEvent.class);
+            var completeEvent = cb.equal(watchRoot.get("eventType"), WatchEventType.COMPLETE);
+            var progressNearEndEvent = cb.and(
+                    cb.equal(watchRoot.get("eventType"), WatchEventType.PROGRESS),
+                    cb.isNotNull(watchRoot.get("positionSeconds")),
+                    cb.isNotNull(watchRoot.get("mediaItem").get("runtimeMinutes")),
+                    cb.greaterThanOrEqualTo(
+                            watchRoot.get("positionSeconds"),
+                            cb.prod(watchRoot.get("mediaItem").get("runtimeMinutes"), 54)
+                    )
+            );
+
+            watchedSubquery.select(cb.literal(1L));
+            watchedSubquery.where(cb.and(
+                    cb.equal(watchRoot.get("mediaItem").get("id"), root.get("id")),
+                    cb.equal(watchRoot.get("profile").get("id"), profileId),
+                    cb.or(completeEvent, progressNearEndEvent)
+            ));
+
+            Subquery<Long> ratingSubquery = query.subquery(Long.class);
+            var ratingRoot = ratingSubquery.from(MediaItemRating.class);
+            ratingSubquery.select(cb.literal(1L));
+            ratingSubquery.where(cb.and(
+                    cb.equal(ratingRoot.get("mediaItem").get("id"), root.get("id")),
+                    cb.equal(ratingRoot.get("profile").get("id"), profileId)
+            ));
+
+            Subquery<Instant> lastWatchedSubquery = query.subquery(Instant.class);
+            var lastWatchRoot = lastWatchedSubquery.from(WatchEvent.class);
+            var latestCompleteEvent = cb.equal(lastWatchRoot.get("eventType"), WatchEventType.COMPLETE);
+            var latestProgressNearEndEvent = cb.and(
+                    cb.equal(lastWatchRoot.get("eventType"), WatchEventType.PROGRESS),
+                    cb.isNotNull(lastWatchRoot.get("positionSeconds")),
+                    cb.isNotNull(lastWatchRoot.get("mediaItem").get("runtimeMinutes")),
+                    cb.greaterThanOrEqualTo(
+                            lastWatchRoot.get("positionSeconds"),
+                            cb.prod(lastWatchRoot.get("mediaItem").get("runtimeMinutes"), 54) // 90%; 0.9 * 60 = 54
+                    )
+            );
+
+            lastWatchedSubquery.select(cb.greatest(lastWatchRoot.get("watchedAt").as(Instant.class)));
+            lastWatchedSubquery.where(cb.and(
+                    cb.equal(lastWatchRoot.get("mediaItem").get("id"), root.get("id")),
+                    cb.equal(lastWatchRoot.get("profile").get("id"), profileId),
+                    cb.or(latestCompleteEvent, latestProgressNearEndEvent)
+            ));
+
+            if (MediaItem.class.equals(query.getResultType())) {
+                query.orderBy(cb.desc(lastWatchedSubquery));
+            }
+
+            return cb.and(
+                    cb.exists(watchedSubquery),
+                    cb.not(cb.exists(ratingSubquery))
+            );
         };
     }
 

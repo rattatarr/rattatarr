@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
+  import { ref, computed, watchEffect } from 'vue'
   import Card from 'primevue/card'
   import Button from 'primevue/button'
   import Chart from 'primevue/chart'
@@ -7,12 +7,31 @@
 
   interface Props {
     breakdown: MediaTypeBreakdown[]
+    jellyfinBreakdown?: MediaTypeBreakdown[]
   }
 
   const props = defineProps<Props>()
 
-  type ViewMode = 'rated' | 'all'
+  type ViewMode = 'rated' | 'all' | 'jellyfin'
   const viewMode = ref<ViewMode>('rated')
+
+  const hasPrimaryData = computed(() => props.breakdown.length > 0)
+  const hasJellyfinData = computed(() => (props.jellyfinBreakdown?.length ?? 0) > 0)
+
+  watchEffect(() => {
+    if (!hasPrimaryData.value && hasJellyfinData.value) {
+      viewMode.value = 'jellyfin'
+      return
+    }
+
+    if (viewMode.value === 'jellyfin' && !hasJellyfinData.value) {
+      viewMode.value = 'rated'
+    }
+  })
+
+  const activeBreakdown = computed(() =>
+    viewMode.value === 'jellyfin' ? (props.jellyfinBreakdown ?? []) : props.breakdown,
+  )
 
   const SLICE_COLORS = [
     '#6366f1', // indigo  – Movie
@@ -33,8 +52,8 @@
   }
 
   const slices = computed<SliceData[]>(() => {
-    const allTotal = props.breakdown.reduce((s, b) => s + (b.totalCount ?? 0), 0)
-    return props.breakdown.map((b, i) => ({
+    const allTotal = activeBreakdown.value.reduce((s, b) => s + (b.totalCount ?? 0), 0)
+    return activeBreakdown.value.map((b, i) => ({
       label: b.mediaType ?? `Type ${i + 1}`,
       count: b.count ?? 0,
       totalCount: b.totalCount ?? 0,
@@ -116,6 +135,13 @@
             size="small"
             :severity="viewMode === 'all' ? 'primary' : 'secondary'"
             @click="viewMode = 'all'"
+          />
+          <Button
+            label="Jellyfin"
+            size="small"
+            :severity="viewMode === 'jellyfin' ? 'primary' : 'secondary'"
+            :disabled="!jellyfinBreakdown?.length"
+            @click="viewMode = 'jellyfin'"
           />
         </div>
       </div>

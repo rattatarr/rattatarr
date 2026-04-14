@@ -126,4 +126,32 @@ public class SeriesService extends BaseService<MediaItem, MediaItemsRepository> 
 
         return new PageImpl<>(series, ratingSort.pageable(), page.getTotalElements());
     }
+
+    @Transactional(readOnly = true)
+    public Page<ShowResponseDTO> findRecentlyWatchedUnratedSeries(SeriesFiltersDTO filters, Pageable pageable) {
+        UUID profileId = filters.profileId();
+        Specification<MediaItem> spec = Specification.allOf(
+                GenericSpecifications.notDeleted(),
+                MediaItemSpecifications.isSeries(),
+                MediaItemSpecifications.withMetadata(),
+                MediaItemSpecifications.recentlyWatchedUnrated(profileId)
+        );
+
+        Page<MediaItem> page = repository.findAll(spec, pageable);
+
+        page.forEach(mediaItem -> mediaItemViewHelper.applyImageUrls(
+                mediaItem,
+                filters.posterSize(),
+                filters.backdropSize(),
+                filters.profileSize(),
+                false,
+                false
+        ));
+
+        List<ShowResponseDTO> series = page.getContent().stream()
+                .map(item -> ShowResponseDTO.fromEntity(item, false))
+                .toList();
+
+        return new PageImpl<>(series, pageable, page.getTotalElements());
+    }
 }

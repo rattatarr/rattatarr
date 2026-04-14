@@ -404,6 +404,22 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/library/series/watched/unrated': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['getRecentlyWatchedUnratedSeries']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/library/series/broken': {
     parameters: {
       query?: never
@@ -460,6 +476,22 @@ export interface paths {
       cookie?: never
     }
     get: operations['getMovies']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/library/movies/watched/unrated': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['getRecentlyWatchedUnratedMovies']
     put?: never
     post?: never
     delete?: never
@@ -929,8 +961,10 @@ export interface components {
       ratingDistribution?: components['schemas']['RatingDistributionDTO'][]
       ratingDistributionByInteger?: components['schemas']['RatingDistributionDTO'][]
       mediaTypeBreakdown?: components['schemas']['MediaTypeBreakdownDTO'][]
+      jellyfinMediaTypeBreakdown?: components['schemas']['MediaTypeBreakdownDTO'][]
       topGenresByCount?: components['schemas']['GenreStatDTO'][]
       topGenresByScore?: components['schemas']['GenreStatDTO'][]
+      jellyfinTopGenresByCount?: components['schemas']['GenreStatDTO'][]
       directorsByCount?: components['schemas']['PersonStatDTO'][]
       directorsByScore?: components['schemas']['PersonStatDTO'][]
       producersByCount?: components['schemas']['PersonStatDTO'][]
@@ -938,13 +972,19 @@ export interface components {
       actorsByCount?: components['schemas']['PersonStatDTO'][]
       actorsByScore?: components['schemas']['PersonStatDTO'][]
       decadePreferences?: components['schemas']['DecadeStatDTO'][]
+      jellyfinDecadePreferences?: components['schemas']['DecadeStatDTO'][]
       recentTrends?: components['schemas']['RecentTrendsDTO'][]
+      jellyfinRecentTrends?: components['schemas']['RecentTrendsDTO'][]
       monthlyActivity?: components['schemas']['RatingActivityDTO'][]
       runtimeStats?: components['schemas']['RuntimeStatsDTO']
+      jellyfinRuntimeStats?: components['schemas']['RuntimeStatsDTO']
       ratingConsistency?: components['schemas']['RatingConsistencyDTO']
       dayOfWeekActivity?: components['schemas']['DayOfWeekActivityDTO'][]
+      jellyfinDayOfWeekActivity?: components['schemas']['DayOfWeekActivityDTO'][]
       ratingHeatmap?: components['schemas']['RatingHeatmapYearDTO'][]
+      uniqueMediaPlayedHeatmap?: components['schemas']['RatingHeatmapYearDTO'][]
       genreOverTime?: components['schemas']['GenreOverTimeYearDTO'][]
+      jellyfinGenreOverTime?: components['schemas']['GenreOverTimeYearDTO'][]
     }
     ProfileStatisticsWrapper: {
       statistics?: components['schemas']['ProfileStatisticsResponseDTO']
@@ -1841,6 +1881,29 @@ export interface operations {
       }
     }
   }
+  getRecentlyWatchedUnratedSeries: {
+    parameters: {
+      query: {
+        pageable: components['schemas']['Pageable']
+        filters: components['schemas']['SeriesFiltersDTO']
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['SeriesResponseWrapper']
+        }
+      }
+    }
+  }
   getBrokenSeries: {
     parameters: {
       query: {
@@ -1911,6 +1974,29 @@ export interface operations {
     }
   }
   getMovies: {
+    parameters: {
+      query: {
+        pageable: components['schemas']['Pageable']
+        filters: components['schemas']['MoviesFiltersDTO']
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['MoviesResponseWrapper']
+        }
+      }
+    }
+  }
+  getRecentlyWatchedUnratedMovies: {
     parameters: {
       query: {
         pageable: components['schemas']['Pageable']

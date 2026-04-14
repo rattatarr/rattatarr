@@ -41,12 +41,17 @@ if [ -n "$SERVER_FILES" ]; then
   echo "🔍 Checking server files..."
   cd server || exit
 
+  echo "  🎨 Running Spotless check..."
   mvn spotless:check
   SPOTLESS_CHECK_EXIT=$?
 
+  echo "  🧪 Running server tests..."
+  mvn test
+  SERVER_TEST_EXIT=$?
+
   cd ..
 
-  if [ $SPOTLESS_CHECK_EXIT -ne 0 ]; then
+  if [ $SPOTLESS_CHECK_EXIT -ne 0 ] || [ $SERVER_TEST_EXIT -ne 0 ]; then
     echo "❌ Server checks failed"
     exit 1
   fi
@@ -55,4 +60,3 @@ fi
 
 echo "✅ All pre-commit checks passed"
 exit 0
-

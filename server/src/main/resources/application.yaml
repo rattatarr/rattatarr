@@ -35,6 +35,8 @@ rattatarr:
     jellyfin-sync-enabled: true
     jellyfin-interval: PT24H # 24 hours (ISO-8601 duration format)
     jellyfin-initial-delay: PT5H # 5 minutes initial delay after startup (ISO-8601 duration format)
+    jellyfin-activity-poll-interval: PT10S
+    jellyfin-activity-poll-initial-delay: PT10S
   cors:
     allowed-origins:
       - http://localhost:3000

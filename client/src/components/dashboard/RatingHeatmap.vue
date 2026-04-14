@@ -6,9 +6,12 @@
 
   interface Props {
     heatmap: RatingHeatmapYear[]
+    mode?: 'activity' | 'rating'
   }
 
-  const props = defineProps<Props>()
+  const props = withDefaults(defineProps<Props>(), {
+    mode: 'rating',
+  })
 
   // SVG cell geometry (fixed logical pixels — viewBox handles scaling)
   const CELL = 11
@@ -160,9 +163,10 @@
   }
 
   function tooltipText(cell: DayCell): string {
+    const noun = props.mode === 'activity' ? 'activity' : 'rating'
     return cell.count === 0
-      ? `${cell.date}: no ratings`
-      : `${cell.date}: ${cell.count} rating${cell.count !== 1 ? 's' : ''}`
+      ? `${cell.date}: no ${noun}`
+      : `${cell.date}: ${cell.count} ${noun}${cell.count !== 1 ? 's' : ''}`
   }
 
   // SVG viewBox width = DOW column + all week columns
@@ -188,7 +192,7 @@
   <Card class="heatmap-card">
     <template #title>
       <div class="heatmap-title-row">
-        <span>Rating Heatmap</span>
+        <span>{{ props.mode === 'activity' ? 'Activity Heatmap' : 'Rating Heatmap' }}</span>
         <div class="year-chips">
           <Button
             v-for="y in availableYears"

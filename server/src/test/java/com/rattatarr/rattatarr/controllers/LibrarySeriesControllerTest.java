@@ -182,4 +182,30 @@ class LibrarySeriesControllerTest {
         assertTrue(result.message().contains("started in background"));
         verify(mediaItemRefreshService).refreshAllStaleSeriesAsync();
     }
+
+    @Test
+    void getRecentlyWatchedUnratedSeries_shouldReturnSeries() {
+        UUID profileId = UUID.randomUUID();
+        Pageable pageable = PageRequest.of(0, 20);
+        SeriesFiltersDTO filters = new SeriesFiltersDTO(
+                null, null, null, null, null,
+                false, false,
+                "w500", "w1280", "w185",
+                profileId, null, null, null, null
+        );
+        ShowResponseDTO series = new ShowResponseDTO(
+                UUID.randomUUID(), "jf-123", "Test Series", "123", "tt123",
+                2023, 60, null, Set.of(), null, null, null, null
+        );
+        Page<ShowResponseDTO> seriesPage = new PageImpl<>(List.of(series), pageable, 1);
+
+        when(seriesService.findRecentlyWatchedUnratedSeries(filters, pageable)).thenReturn(seriesPage);
+
+        ResponseEntity<SeriesResponseWrapper> response = controller.getRecentlyWatchedUnratedSeries(pageable, filters);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().series().size());
+        verify(seriesService).findRecentlyWatchedUnratedSeries(filters, pageable);
+    }
 }

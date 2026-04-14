@@ -1,8 +1,9 @@
 <script setup lang="ts">
   import Card from 'primevue/card'
   import Chart from 'primevue/chart'
+  import Button from 'primevue/button'
   import type { RecentTrends } from '@/types'
-  import { computed } from 'vue'
+  import { computed, ref, watchEffect } from 'vue'
   import { useCssColor } from '@/utils/cssColor'
 
   const cssColor = useCssColor(
@@ -14,9 +15,31 @@
 
   interface Props {
     trends: RecentTrends[]
+    jellyfinTrends?: RecentTrends[]
   }
 
   const props = defineProps<Props>()
+
+  type ViewMode = 'count' | 'score' | 'jellyfin'
+  const viewMode = ref<ViewMode>('count')
+
+  const hasPrimaryData = computed(() => props.trends.length > 0)
+  const hasJellyfinData = computed(() => (props.jellyfinTrends?.length ?? 0) > 0)
+
+  watchEffect(() => {
+    if (!hasPrimaryData.value && hasJellyfinData.value) {
+      viewMode.value = 'jellyfin'
+      return
+    }
+
+    if (viewMode.value === 'jellyfin' && !hasJellyfinData.value) {
+      viewMode.value = 'count'
+    }
+  })
+
+  const activeTrends = computed(() =>
+    viewMode.value === 'jellyfin' ? (props.jellyfinTrends ?? []) : props.trends,
+  )
 
   function formatPeriod(period: string): string {
     switch (period) {
@@ -32,12 +55,12 @@
   }
 
   const chartData = computed(() => ({
-    labels: props.trends.map((t) => formatPeriod(t.period ?? '')),
+    labels: activeTrends.value.map((t) => formatPeriod(t.period ?? '')),
     datasets: [
       {
         type: 'bar' as const,
-        label: 'Ratings',
-        data: props.trends.map((t) => t.count ?? 0),
+        label: viewMode.value === 'jellyfin' ? 'Titles' : 'Ratings',
+        data: activeTrends.value.map((t) => t.count ?? 0),
         backgroundColor: cssColor['var(--p-primary-color)'],
         borderRadius: 4,
         borderSkipped: false,
@@ -47,7 +70,7 @@
       {
         type: 'line' as const,
         label: 'Avg Rating',
-        data: props.trends.map((t) => t.averageRating ?? null),
+        data: activeTrends.value.map((t) => t.averageRating ?? null),
         borderColor: cssColor['var(--p-amber-400)'],
         backgroundColor: 'transparent',
         pointBackgroundColor: cssColor['var(--p-amber-400)'],
@@ -80,9 +103,12 @@
         callbacks: {
           label: (ctx: { dataset: { label?: string }; raw: number | null }) => {
             if (ctx.dataset.label === 'Avg Rating') {
+              if (viewMode.value === 'jellyfin') {
+                return ''
+              }
               return ` Avg rating: ${ctx.raw?.toFixed(2) ?? '-'}`
             }
-            return ` Ratings: ${(ctx.raw as number).toLocaleString()}`
+            return ` ${viewMode.value === 'jellyfin' ? 'Titles' : 'Ratings'}: ${(ctx.raw as number).toLocaleString()}`
           },
         },
       },
@@ -104,6 +130,7 @@
         min: 0,
         max: 10,
         grid: { display: false },
+        display: viewMode.value !== 'jellyfin',
         ticks: {
           color: cssColor['var(--p-amber-400)'],
           font: { size: 11 },
@@ -112,13 +139,47 @@
       },
     },
   }))
+
+  const activeDatasets = computed(() =>
+    viewMode.value === 'jellyfin' ? chartData.value.datasets.slice(0, 1) : chartData.value.datasets,
+  )
+
+  const displayChartData = computed(() => ({
+    labels: chartData.value.labels,
+    datasets: activeDatasets.value,
+  }))
 </script>
 
 <template>
   <Card class="trends-card">
-    <template #title>Recent Trends</template>
+    <template #title>
+      <div class="card-header">
+        <span>Recent Trends</span>
+        <div class="toggle-buttons">
+          <Button
+            label="Count"
+            size="small"
+            :severity="viewMode === 'count' ? 'primary' : 'secondary'"
+            @click="viewMode = 'count'"
+          />
+          <Button
+            label="Score"
+            size="small"
+            :severity="viewMode === 'score' ? 'primary' : 'secondary'"
+            @click="viewMode = 'score'"
+          />
+          <Button
+            label="Jellyfin"
+            size="small"
+            :severity="viewMode === 'jellyfin' ? 'primary' : 'secondary'"
+            :disabled="!jellyfinTrends?.length"
+            @click="viewMode = 'jellyfin'"
+          />
+        </div>
+      </div>
+    </template>
     <template #content>
-      <Chart type="bar" :data="chartData" :options="chartOptions" class="trends-chart" />
+      <Chart type="bar" :data="displayChartData" :options="chartOptions" class="trends-chart" />
     </template>
   </Card>
 </template>
@@ -130,5 +191,18 @@
 
   .trends-chart {
     height: 220px !important;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .toggle-buttons {
+    display: flex;
+    gap: 0.25rem;
   }
 </style>

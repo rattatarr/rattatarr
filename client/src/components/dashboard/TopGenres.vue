@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
+  import { ref, computed, watchEffect } from 'vue'
   import Card from 'primevue/card'
   import Button from 'primevue/button'
   import Chart from 'primevue/chart'
@@ -15,23 +15,40 @@
   interface Props {
     byCount: GenreStat[]
     byScore: GenreStat[]
+    jellyfinByCount?: GenreStat[]
   }
 
   const props = defineProps<Props>()
 
-  type ViewMode = 'count' | 'score'
+  type ViewMode = 'count' | 'score' | 'jellyfin'
   const viewMode = ref<ViewMode>('count')
 
-  const activeGenres = computed<GenreStat[]>(() =>
-    viewMode.value === 'count' ? props.byCount : props.byScore,
-  )
+  const hasPrimaryData = computed(() => props.byCount.length > 0 || props.byScore.length > 0)
+  const hasJellyfinData = computed(() => (props.jellyfinByCount?.length ?? 0) > 0)
+
+  watchEffect(() => {
+    if (!hasPrimaryData.value && hasJellyfinData.value) {
+      viewMode.value = 'jellyfin'
+      return
+    }
+
+    if (viewMode.value === 'jellyfin' && !hasJellyfinData.value) {
+      viewMode.value = 'count'
+    }
+  })
+
+  const activeGenres = computed<GenreStat[]>(() => {
+    if (viewMode.value === 'count') return props.byCount
+    if (viewMode.value === 'score') return props.byScore
+    return props.jellyfinByCount ?? []
+  })
 
   const chartData = computed(() => ({
     labels: activeGenres.value.map((g) => g.genreName ?? ''),
     datasets: [
       {
         data: activeGenres.value.map((g) =>
-          viewMode.value === 'count' ? (g.count ?? 0) : (g.averageRating ?? 0),
+          viewMode.value === 'score' ? (g.averageRating ?? 0) : (g.count ?? 0),
         ),
         backgroundColor: cssColor['var(--p-cyan-500)'],
         borderRadius: 3,
@@ -51,7 +68,7 @@
           label: (ctx: { raw: number; dataIndex: number }) => {
             const g = activeGenres.value[ctx.dataIndex]
             if (!g) return ''
-            if (viewMode.value === 'count') {
+            if (viewMode.value !== 'score') {
               return ` ${ctx.raw.toLocaleString()} titles (avg ${g.averageRating?.toFixed(1)})`
             }
             return ` avg ${(ctx.raw as number).toFixed(2)} (${g.count} titles)`
@@ -91,6 +108,13 @@
             size="small"
             :severity="viewMode === 'score' ? 'primary' : 'secondary'"
             @click="viewMode = 'score'"
+          />
+          <Button
+            label="Jellyfin"
+            size="small"
+            :severity="viewMode === 'jellyfin' ? 'primary' : 'secondary'"
+            :disabled="!jellyfinByCount?.length"
+            @click="viewMode = 'jellyfin'"
           />
         </div>
       </div>

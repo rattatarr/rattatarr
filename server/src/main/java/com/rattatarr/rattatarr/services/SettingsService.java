@@ -26,6 +26,7 @@ public class SettingsService extends BaseService<Setting, SettingsRepository> {
     public static final String TMDB_IMAGE_BASE_URL = "tmdb.image_base_url";
 
     public static final String SYNC_JELLYFIN_ENABLED = "sync.jellyfin_enabled";
+    public static final String SYNC_JELLYFIN_ACTIVITY_BACKFILL_COMPLETE = "sync.jellyfin_activity_backfill_complete";
     public static final String SYNC_STALE_THRESHOLD = "sync.stale_threshold";
     public static final String SYNC_AUTO_REFRESH_ON_READ = "sync.auto_refresh_on_read";
 
@@ -67,6 +68,7 @@ public class SettingsService extends BaseService<Setting, SettingsRepository> {
 
         // Sync settings
         createSettingIfNotExists(SYNC_JELLYFIN_ENABLED, "true", "Enable scheduled Jellyfin media synchronization");
+        createSettingIfNotExists(SYNC_JELLYFIN_ACTIVITY_BACKFILL_COMPLETE, "false", "Whether initial Jellyfin activity log backfill has completed");
         createSettingIfNotExists(SYNC_STALE_THRESHOLD, "P2D", "Staleness threshold for TMDb items (ISO-8601 duration)");
         createSettingIfNotExists(SYNC_AUTO_REFRESH_ON_READ, "false", "Auto-refresh stale series when viewing them");
     }

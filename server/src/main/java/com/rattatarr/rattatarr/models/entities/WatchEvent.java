@@ -10,10 +10,14 @@ import java.time.Instant;
         indexes = {
                 @Index(name = "idx_watch_profile_time", columnList = "profile_id, watched_at"),
                 @Index(name = "idx_watch_media_time", columnList = "media_item_id"),
-                @Index(name = "idx_watch_season_time", columnList = "media_season_id")
+                @Index(name = "idx_watch_season_time", columnList = "media_season_id"),
+                @Index(name = "idx_watch_jellyfin_log_id", columnList = "jellyfin_log_id", unique = true)
         }
 )
 public class WatchEvent extends BaseEntity {
+
+    @Column(name = "jellyfin_log_id")
+    private Long jellyfinLogId;
 
     @ManyToOne(optional = false)
     private Profile profile;
@@ -40,7 +44,8 @@ public class WatchEvent extends BaseEntity {
     protected WatchEvent() {
     }
 
-    public WatchEvent(Profile profile, MediaItem mediaItem, MediaSeason mediaSeason, MediaEpisode episode, WatchEventType eventType, Instant watchedAt, Integer positionSeconds) {
+    public WatchEvent(Long jellyfinLogId, Profile profile, MediaItem mediaItem, MediaSeason mediaSeason, MediaEpisode episode, WatchEventType eventType, Instant watchedAt, Integer positionSeconds) {
+        this.jellyfinLogId = jellyfinLogId;
         this.profile = profile;
         this.mediaItem = mediaItem;
         this.mediaSeason = mediaSeason;
@@ -52,6 +57,14 @@ public class WatchEvent extends BaseEntity {
 
     public Profile profile() {
         return profile;
+    }
+
+    public Long jellyfinLogId() {
+        return jellyfinLogId;
+    }
+
+    public void setJellyfinLogId(Long jellyfinLogId) {
+        this.jellyfinLogId = jellyfinLogId;
     }
 
     public void setProfile(Profile profile) {
