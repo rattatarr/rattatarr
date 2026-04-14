@@ -38,28 +38,7 @@ class ProfileStatisticsControllerTest {
                 new ProfileStatisticsRequestDTO(profileId, 8.0f, 3, 5, 20, 8, 6, 5, "w185");
 
         OverallStatsDTO overallStats = new OverallStatsDTO(100L, 50L, 7.5, 1.0f, 10.0f);
-        ProfileStatisticsResponseDTO statistics = new ProfileStatisticsResponseDTO(
-                overallStats,
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                null,
-                null,
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList());
+        ProfileStatisticsResponseDTO statistics = emptyStatistics(overallStats);
 
         when(profileStatisticsService.getStatistics(profileId, 8.0f, 3, 5, 20, 8, 6, 5, "w185")).thenReturn(statistics);
 
@@ -79,28 +58,7 @@ class ProfileStatisticsControllerTest {
                 new ProfileStatisticsRequestDTO(profileId, null, null, null, null, null, null, null, null);
 
         OverallStatsDTO overallStats = new OverallStatsDTO(0L, 0L, 0.0, 0.0f, 0.0f);
-        ProfileStatisticsResponseDTO statistics = new ProfileStatisticsResponseDTO(
-                overallStats,
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                null,
-                null,
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList());
+        ProfileStatisticsResponseDTO statistics = emptyStatistics(overallStats);
 
         // All limits default to 10, ratingThreshold to 7.0, minCount to 1, genreOverTimeLimit to 5, profileImageSize to w185
         when(profileStatisticsService.getStatistics(profileId, 7.0f, 1, 10, 10, 10, 10, 5, "w185")).thenReturn(statistics);
@@ -125,5 +83,38 @@ class ProfileStatisticsControllerTest {
         assertThrows(
                 ProfilesExceptions.ProfileNotFoundExceptions.class,
                 () -> controller.getProfileStatistics(requestDTO));
+    }
+
+    private ProfileStatisticsResponseDTO emptyStatistics(OverallStatsDTO overallStats) {
+        return new ProfileStatisticsResponseDTO(
+                overallStats,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                null,
+                null,
+                null,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList());
     }
 }

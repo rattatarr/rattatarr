@@ -1,8 +1,9 @@
 <script setup lang="ts">
   import Card from 'primevue/card'
   import Chart from 'primevue/chart'
+  import Button from 'primevue/button'
   import type { DayOfWeekActivity } from '@/types'
-  import { computed } from 'vue'
+  import { computed, ref, watchEffect } from 'vue'
   import { useCssColor } from '@/utils/cssColor'
 
   const cssColor = useCssColor(
@@ -13,15 +14,37 @@
 
   interface Props {
     activity: DayOfWeekActivity[]
+    jellyfinActivity?: DayOfWeekActivity[]
   }
 
   const props = defineProps<Props>()
 
+  type ViewMode = 'count' | 'jellyfin'
+  const viewMode = ref<ViewMode>('count')
+
+  const hasPrimaryData = computed(() => props.activity.length > 0)
+  const hasJellyfinData = computed(() => (props.jellyfinActivity?.length ?? 0) > 0)
+
+  watchEffect(() => {
+    if (!hasPrimaryData.value && hasJellyfinData.value) {
+      viewMode.value = 'jellyfin'
+      return
+    }
+
+    if (viewMode.value === 'jellyfin' && !hasJellyfinData.value) {
+      viewMode.value = 'count'
+    }
+  })
+
+  const activeActivity = computed(() =>
+    viewMode.value === 'jellyfin' ? (props.jellyfinActivity ?? []) : props.activity,
+  )
+
   const chartData = computed(() => ({
-    labels: props.activity.map((d) => (d.dayOfWeek ?? '').slice(0, 3)),
+    labels: activeActivity.value.map((d) => (d.dayOfWeek ?? '').slice(0, 3)),
     datasets: [
       {
-        data: props.activity.map((d) => d.count ?? 0),
+        data: activeActivity.value.map((d) => d.count ?? 0),
         backgroundColor: cssColor['var(--p-cyan-500)'],
         borderRadius: 4,
         borderSkipped: false,
@@ -36,7 +59,8 @@
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (ctx: { raw: number }) => ` ${ctx.raw.toLocaleString()} ratings`,
+          label: (ctx: { raw: number }) =>
+            ` ${ctx.raw.toLocaleString()} ${viewMode.value === 'jellyfin' ? 'titles' : 'ratings'}`,
         },
       },
     },
@@ -55,7 +79,26 @@
 
 <template>
   <Card class="dow-card">
-    <template #title>Day of Week Activity</template>
+    <template #title>
+      <div class="card-header">
+        <span>Day of Week Activity</span>
+        <div class="toggle-buttons">
+          <Button
+            label="Count"
+            size="small"
+            :severity="viewMode === 'count' ? 'primary' : 'secondary'"
+            @click="viewMode = 'count'"
+          />
+          <Button
+            label="Jellyfin"
+            size="small"
+            :severity="viewMode === 'jellyfin' ? 'primary' : 'secondary'"
+            :disabled="!jellyfinActivity?.length"
+            @click="viewMode = 'jellyfin'"
+          />
+        </div>
+      </div>
+    </template>
     <template #content>
       <Chart type="bar" :data="chartData" :options="chartOptions" class="dow-chart" />
     </template>
@@ -69,5 +112,18 @@
 
   .dow-chart {
     height: 220px !important;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .toggle-buttons {
+    display: flex;
+    gap: 0.25rem;
   }
 </style>

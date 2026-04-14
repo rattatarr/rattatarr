@@ -110,12 +110,43 @@
   const hasGenres = computed(
     () =>
       (statistics.value?.topGenresByCount?.length ?? 0) > 0 ||
-      (statistics.value?.topGenresByScore?.length ?? 0) > 0,
+      (statistics.value?.topGenresByScore?.length ?? 0) > 0 ||
+      (statistics.value?.jellyfinTopGenresByCount?.length ?? 0) > 0,
+  )
+
+  const hasGenreOverTime = computed(
+    () =>
+      (statistics.value?.genreOverTime?.length ?? 0) > 0 ||
+      (statistics.value?.jellyfinGenreOverTime?.length ?? 0) > 0,
+  )
+
+  const hasMediaTypeBreakdown = computed(
+    () =>
+      (statistics.value?.mediaTypeBreakdown?.length ?? 0) > 0 ||
+      (statistics.value?.jellyfinMediaTypeBreakdown?.length ?? 0) > 0,
+  )
+
+  const hasDayOfWeekActivity = computed(
+    () =>
+      (statistics.value?.dayOfWeekActivity?.length ?? 0) > 0 ||
+      (statistics.value?.jellyfinDayOfWeekActivity?.length ?? 0) > 0,
   )
   const hasDistribution = computed(
     () =>
       (statistics.value?.ratingDistributionByInteger?.length ?? 0) > 0 ||
       (statistics.value?.ratingDistribution?.length ?? 0) > 0,
+  )
+
+  const hasDecadePreferences = computed(
+    () =>
+      (statistics.value?.decadePreferences?.length ?? 0) > 0 ||
+      (statistics.value?.jellyfinDecadePreferences?.length ?? 0) > 0,
+  )
+
+  const hasRecentTrends = computed(
+    () =>
+      (statistics.value?.recentTrends?.length ?? 0) > 0 ||
+      (statistics.value?.jellyfinRecentTrends?.length ?? 0) > 0,
   )
 </script>
 
@@ -146,6 +177,7 @@
         v-if="statistics.overallStats"
         :overall-stats="statistics.overallStats"
         :runtime-stats="statistics.runtimeStats ?? undefined"
+        :jellyfin-runtime-stats="statistics.jellyfinRuntimeStats ?? undefined"
         :rating-consistency="statistics.ratingConsistency ?? undefined"
       />
 
@@ -206,8 +238,12 @@
       </div>
 
       <!-- Row 4: Decade Preferences (full width) -->
-      <div v-if="statistics.decadePreferences?.length" class="dashboard-row full-width">
-        <DecadePreferences :decades="statistics.decadePreferences" class="stretch" />
+      <div v-if="hasDecadePreferences" class="dashboard-row full-width">
+        <DecadePreferences
+          :decades="statistics.decadePreferences ?? []"
+          :jellyfin-decades="statistics.jellyfinDecadePreferences ?? []"
+          class="stretch"
+        />
       </div>
 
       <!-- Row 5: Actors / Directors / Producers (3 columns) -->
@@ -247,33 +283,41 @@
           v-if="hasGenres"
           :by-count="statistics.topGenresByCount ?? []"
           :by-score="statistics.topGenresByScore ?? []"
+          :jellyfin-by-count="statistics.jellyfinTopGenresByCount ?? []"
           class="stretch"
         />
       </div>
 
       <!-- Row 7: Genre Over Time (full width) -->
-      <div v-if="statistics.genreOverTime?.length" class="dashboard-row full-width">
-        <GenreOverTimeChart :data="statistics.genreOverTime" class="stretch" />
+      <div v-if="hasGenreOverTime" class="dashboard-row full-width">
+        <GenreOverTimeChart
+          :data="statistics.genreOverTime ?? []"
+          :jellyfin-data="statistics.jellyfinGenreOverTime ?? []"
+          class="stretch"
+        />
       </div>
 
       <!-- Row 8: Media Type Breakdown (full width) -->
-      <div v-if="statistics.mediaTypeBreakdown?.length" class="dashboard-row full-width">
-        <MediaTypeBreakdown :breakdown="statistics.mediaTypeBreakdown" class="stretch" />
+      <div v-if="hasMediaTypeBreakdown" class="dashboard-row full-width">
+        <MediaTypeBreakdown
+          :breakdown="statistics.mediaTypeBreakdown ?? []"
+          :jellyfin-breakdown="statistics.jellyfinMediaTypeBreakdown ?? []"
+          class="stretch"
+        />
       </div>
 
       <!-- Row 9: Recent Trends + Day of Week (two columns) -->
-      <div
-        v-if="statistics.recentTrends?.length || statistics.dayOfWeekActivity?.length"
-        class="dashboard-row two-col"
-      >
+      <div v-if="hasRecentTrends || hasDayOfWeekActivity" class="dashboard-row two-col">
         <RecentTrends
-          v-if="statistics.recentTrends?.length"
-          :trends="statistics.recentTrends"
+          v-if="hasRecentTrends"
+          :trends="statistics.recentTrends ?? []"
+          :jellyfin-trends="statistics.jellyfinRecentTrends ?? []"
           class="stretch"
         />
         <DayOfWeekActivity
-          v-if="statistics.dayOfWeekActivity?.length"
-          :activity="statistics.dayOfWeekActivity"
+          v-if="hasDayOfWeekActivity"
+          :activity="statistics.dayOfWeekActivity ?? []"
+          :jellyfin-activity="statistics.jellyfinDayOfWeekActivity ?? []"
           class="stretch"
         />
       </div>

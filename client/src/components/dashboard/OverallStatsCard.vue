@@ -5,6 +5,7 @@
   interface Props {
     overallStats: OverallStats
     runtimeStats?: RuntimeStats
+    jellyfinRuntimeStats?: RuntimeStats
     ratingConsistency?: RatingConsistency
   }
 
@@ -72,10 +73,23 @@
       </template>
     </Card>
 
+    <Card v-if="jellyfinRuntimeStats" class="stat-card">
+      <template #content>
+        <div class="stat-content">
+          <span class="stat-label">Jellyfin Total Watch Time</span>
+          <span class="stat-value">{{
+            jellyfinRuntimeStats.totalRuntime != null
+              ? `${Math.round(jellyfinRuntimeStats.totalRuntime / 60).toLocaleString()}h`
+              : '—'
+          }}</span>
+        </div>
+      </template>
+    </Card>
+
     <Card v-if="runtimeStats" class="stat-card">
       <template #content>
         <div class="stat-content">
-          <span class="stat-label">Total Watch Time</span>
+          <span class="stat-label">Rated Total Watch Time</span>
           <span class="stat-value">{{
             runtimeStats.totalRuntime != null
               ? `${Math.round(runtimeStats.totalRuntime / 60).toLocaleString()}h`

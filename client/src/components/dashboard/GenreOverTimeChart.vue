@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
+  import { ref, computed, watchEffect } from 'vue'
   import Card from 'primevue/card'
   import Button from 'primevue/button'
   import Chart from 'primevue/chart'
@@ -10,12 +10,31 @@
 
   interface Props {
     data: GenreOverTimeYear[]
+    jellyfinData?: GenreOverTimeYear[]
   }
 
   const props = defineProps<Props>()
 
-  type ViewMode = 'count' | 'score'
+  type ViewMode = 'count' | 'score' | 'jellyfin'
   const viewMode = ref<ViewMode>('count')
+
+  const hasPrimaryData = computed(() => props.data.length > 0)
+  const hasJellyfinData = computed(() => (props.jellyfinData?.length ?? 0) > 0)
+
+  watchEffect(() => {
+    if (!hasPrimaryData.value && hasJellyfinData.value) {
+      viewMode.value = 'jellyfin'
+      return
+    }
+
+    if (viewMode.value === 'jellyfin' && !hasJellyfinData.value) {
+      viewMode.value = 'count'
+    }
+  })
+
+  const activeData = computed(() =>
+    viewMode.value === 'jellyfin' ? (props.jellyfinData ?? []) : props.data,
+  )
 
   const PALETTE = [
     '#6366f1', // indigo
@@ -30,12 +49,14 @@
     '#84cc16', // lime
   ]
 
-  const sortedYears = computed(() => [...props.data].sort((a, b) => (a.year ?? 0) - (b.year ?? 0)))
+  const sortedYears = computed(() =>
+    [...activeData.value].sort((a, b) => (a.year ?? 0) - (b.year ?? 0)),
+  )
 
   // Collect all unique genres sorted by total count descending
   const allGenres = computed<string[]>(() => {
     const totals = new Map<string, number>()
-    for (const yearData of props.data) {
+    for (const yearData of activeData.value) {
       for (const g of yearData.genres ?? []) {
         if (g.genreName) {
           totals.set(g.genreName, (totals.get(g.genreName) ?? 0) + (g.count ?? 0))
@@ -53,7 +74,7 @@
       label: genre,
       data: years.map((yearData) => {
         const entry = (yearData.genres ?? []).find((g) => g.genreName === genre)
-        return viewMode.value === 'count' ? (entry?.count ?? 0) : (entry?.averageRating ?? 0)
+        return viewMode.value === 'score' ? (entry?.averageRating ?? 0) : (entry?.count ?? 0)
       }),
       backgroundColor: PALETTE[i % PALETTE.length] ?? '#94a3b8',
       borderRadius: 2,
@@ -81,8 +102,9 @@
       tooltip: {
         callbacks: {
           label: (ctx: { dataset: { label?: string }; raw: number }) => {
-            if (viewMode.value === 'count') {
-              return ` ${ctx.dataset.label}: ${(ctx.raw as number).toLocaleString()} ratings`
+            if (viewMode.value !== 'score') {
+              const unit = viewMode.value === 'jellyfin' ? 'titles' : 'ratings'
+              return ` ${ctx.dataset.label}: ${(ctx.raw as number).toLocaleString()} ${unit}`
             }
             return ` ${ctx.dataset.label}: avg ${(ctx.raw as number).toFixed(2)}`
           },
@@ -126,6 +148,13 @@
             size="small"
             :severity="viewMode === 'score' ? 'primary' : 'secondary'"
             @click="viewMode = 'score'"
+          />
+          <Button
+            label="Jellyfin"
+            size="small"
+            :severity="viewMode === 'jellyfin' ? 'primary' : 'secondary'"
+            :disabled="!jellyfinData?.length"
+            @click="viewMode = 'jellyfin'"
           />
         </div>
       </div>

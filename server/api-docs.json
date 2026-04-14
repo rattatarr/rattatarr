@@ -2199,6 +2199,12 @@
               "$ref": "#/components/schemas/MediaTypeBreakdownDTO"
             }
           },
+          "jellyfinMediaTypeBreakdown": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaTypeBreakdownDTO"
+            }
+          },
           "topGenresByCount": {
             "type": "array",
             "items": {
@@ -2206,6 +2212,12 @@
             }
           },
           "topGenresByScore": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenreStatDTO"
+            }
+          },
+          "jellyfinTopGenresByCount": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/GenreStatDTO"
@@ -2253,7 +2265,19 @@
               "$ref": "#/components/schemas/DecadeStatDTO"
             }
           },
+          "jellyfinDecadePreferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecadeStatDTO"
+            }
+          },
           "recentTrends": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentTrendsDTO"
+            }
+          },
+          "jellyfinRecentTrends": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RecentTrendsDTO"
@@ -2268,10 +2292,19 @@
           "runtimeStats": {
             "$ref": "#/components/schemas/RuntimeStatsDTO"
           },
+          "jellyfinRuntimeStats": {
+            "$ref": "#/components/schemas/RuntimeStatsDTO"
+          },
           "ratingConsistency": {
             "$ref": "#/components/schemas/RatingConsistencyDTO"
           },
           "dayOfWeekActivity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayOfWeekActivityDTO"
+            }
+          },
+          "jellyfinDayOfWeekActivity": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DayOfWeekActivityDTO"
@@ -2290,6 +2323,12 @@
             }
           },
           "genreOverTime": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenreOverTimeYearDTO"
+            }
+          },
+          "jellyfinGenreOverTime": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/GenreOverTimeYearDTO"

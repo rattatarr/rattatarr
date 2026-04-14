@@ -74,10 +74,14 @@ public class ProfileStatisticsService {
                 query("ratingDistributionByInteger", em -> getRatingDistributionByInteger(em, profileId));
         CompletableFuture<List<MediaTypeBreakdownDTO>> mediaTypeFuture =
                 query("mediaTypeBreakdown", em -> getMediaTypeBreakdown(em, profileId));
+        CompletableFuture<List<MediaTypeBreakdownDTO>> jellyfinMediaTypeFuture =
+                query("jellyfinMediaTypeBreakdown", em -> getJellyfinMediaTypeBreakdown(em, profileId));
         CompletableFuture<List<GenreStatDTO>> genresByCountFuture =
                 query("topGenresByCount", em -> getTopGenresByCount(em, profileId, genresLimit));
         CompletableFuture<List<GenreStatDTO>> genresByScoreFuture =
                 query("topGenresByScore", em -> getTopGenresByScore(em, profileId, ratingThreshold, genresLimit));
+        CompletableFuture<List<GenreStatDTO>> jellyfinGenresByCountFuture =
+                query("jellyfinTopGenresByCount", em -> getJellyfinTopGenresByCount(em, profileId, genresLimit));
         CompletableFuture<List<PersonStatDTO>> directorsByCountFuture =
                 query("favoriteDirectorsCount", em -> getFavoriteDirectors(em, profileId, minCount, directorsLimit, profileImageSize, StatisticsSpecifications.SortBy.COUNT));
         CompletableFuture<List<PersonStatDTO>> directorsByScoreFuture =
@@ -92,22 +96,32 @@ public class ProfileStatisticsService {
                 query("favoriteActorsScore", em -> getFavoriteActors(em, profileId, minCount, actorsLimit, profileImageSize, StatisticsSpecifications.SortBy.SCORE));
         CompletableFuture<List<DecadeStatDTO>> decadesFuture =
                 query("decadePreferences", em -> getDecadePreferences(em, profileId));
+        CompletableFuture<List<DecadeStatDTO>> jellyfinDecadesFuture =
+                query("jellyfinDecadePreferences", em -> getJellyfinDecadePreferences(em, profileId));
         CompletableFuture<List<RecentTrendsDTO>> trendsFuture =
                 query("recentTrends", em -> getRecentTrends(em, profileId));
+        CompletableFuture<List<RecentTrendsDTO>> jellyfinTrendsFuture =
+                query("jellyfinRecentTrends", em -> getJellyfinRecentTrends(em, profileId));
         CompletableFuture<List<RatingActivityDTO>> monthlyFuture =
                 query("monthlyActivity", em -> getMonthlyActivity(em, profileId));
         CompletableFuture<RuntimeStatsDTO> runtimeFuture =
                 query("runtimeStats", em -> getRuntimeStats(em, profileId));
+        CompletableFuture<RuntimeStatsDTO> jellyfinRuntimeFuture =
+                query("jellyfinRuntimeStats", em -> getJellyfinRuntimeStats(em, profileId));
         CompletableFuture<RatingConsistencyDTO> consistencyFuture =
                 query("ratingConsistency", em -> getRatingConsistency(em, profileId));
         CompletableFuture<List<DayOfWeekActivityDTO>> dayOfWeekFuture =
                 query("dayOfWeekActivity", em -> getDayOfWeekActivity(em, profileId));
+        CompletableFuture<List<DayOfWeekActivityDTO>> jellyfinDayOfWeekFuture =
+                query("jellyfinDayOfWeekActivity", em -> getJellyfinDayOfWeekActivity(em, profileId));
         CompletableFuture<List<RatingHeatmapYearDTO>> heatmapFuture =
                 query("ratingHeatmap", em -> getRatingHeatmap(em, profileId));
         CompletableFuture<List<RatingHeatmapYearDTO>> uniqueMediaPlayedHeatmapFuture =
                 query("uniqueMediaPlayedHeatmap", em -> getUniqueMediaPlayedHeatmap(em, profileId));
         CompletableFuture<List<GenreOverTimeYearDTO>> genreOverTimeFuture =
                 query("genreOverTime", em -> getGenreOverTime(em, profileId, genreOverTimeLimit));
+        CompletableFuture<List<GenreOverTimeYearDTO>> jellyfinGenreOverTimeFuture =
+                query("jellyfinGenreOverTime", em -> getJellyfinGenreOverTime(em, profileId, genreOverTimeLimit));
 
 
         return new ProfileStatisticsResponseDTO(
@@ -115,8 +129,11 @@ public class ProfileStatisticsService {
                 distributionFuture.join(),
                 distributionByIntegerFuture.join(),
                 mediaTypeFuture.join(),
+                jellyfinMediaTypeFuture.join(),
                 genresByCountFuture.join(),
                 genresByScoreFuture.join(),
+                jellyfinGenresByCountFuture.join(),
+                java.util.Collections.emptyList(),
                 directorsByCountFuture.join(),
                 directorsByScoreFuture.join(),
                 producersByCountFuture.join(),
@@ -124,14 +141,19 @@ public class ProfileStatisticsService {
                 actorsByCountFuture.join(),
                 actorsByScoreFuture.join(),
                 decadesFuture.join(),
+                jellyfinDecadesFuture.join(),
                 trendsFuture.join(),
+                jellyfinTrendsFuture.join(),
                 monthlyFuture.join(),
                 runtimeFuture.join(),
+                jellyfinRuntimeFuture.join(),
                 consistencyFuture.join(),
                 dayOfWeekFuture.join(),
+                jellyfinDayOfWeekFuture.join(),
                 heatmapFuture.join(),
                 uniqueMediaPlayedHeatmapFuture.join(),
-                genreOverTimeFuture.join());
+                genreOverTimeFuture.join(),
+                jellyfinGenreOverTimeFuture.join());
     }
 
     /**
@@ -247,6 +269,28 @@ public class ProfileStatisticsService {
         return breakdown;
     }
 
+    private List<MediaTypeBreakdownDTO> getJellyfinMediaTypeBreakdown(EntityManager em, UUID profileId) {
+        List<Tuple> results = StatisticsSpecifications.queryJellyfinMediaTypeBreakdown(em, profileId);
+
+        long totalWatched = results.stream().mapToLong(t -> t.get("count", Long.class)).sum();
+
+        List<MediaTypeBreakdownDTO> breakdown = new ArrayList<>();
+        for (Tuple tuple : results) {
+            Long count = tuple.get("count", Long.class);
+            String mediaType = String.valueOf(tuple.get("mediaType"));
+            double percentage = totalWatched > 0 ? (count * 100.0 / totalWatched) : 0.0;
+            breakdown.add(new MediaTypeBreakdownDTO(
+                            mediaType,
+                            count,
+                            count,
+                            ValueResolver.round2(percentage),
+                            ValueResolver.round2(tuple.get("averageRating", Double.class))
+                    )
+            );
+        }
+        return breakdown;
+    }
+
     private List<GenreStatDTO> getTopGenresByCount(EntityManager em, UUID profileId, int limit) {
         List<Tuple> results = StatisticsSpecifications.queryTopGenresByCount(em, profileId, limit);
         return mapGenreTuples(results);
@@ -254,6 +298,11 @@ public class ProfileStatisticsService {
 
     private List<GenreStatDTO> getTopGenresByScore(EntityManager em, UUID profileId, float ratingThreshold, int limit) {
         List<Tuple> results = StatisticsSpecifications.queryTopGenresByScore(em, profileId, ratingThreshold, limit);
+        return mapGenreTuples(results);
+    }
+
+    private List<GenreStatDTO> getJellyfinTopGenresByCount(EntityManager em, UUID profileId, int limit) {
+        List<Tuple> results = StatisticsSpecifications.queryJellyfinTopGenresByCount(em, profileId, limit);
         return mapGenreTuples(results);
     }
 
@@ -313,6 +362,19 @@ public class ProfileStatisticsService {
         return decadeStats;
     }
 
+    private List<DecadeStatDTO> getJellyfinDecadePreferences(EntityManager em, UUID profileId) {
+        List<Tuple> results = StatisticsSpecifications.queryJellyfinDecadePreferences(em, profileId);
+
+        List<DecadeStatDTO> decadeStats = new ArrayList<>();
+        for (Tuple tuple : results) {
+            decadeStats.add(new DecadeStatDTO(
+                    tuple.get("decade", Integer.class),
+                    tuple.get("count", Long.class),
+                    ValueResolver.round2(tuple.get("averageRating", Double.class))));
+        }
+        return decadeStats;
+    }
+
     private List<RecentTrendsDTO> getRecentTrends(EntityManager em, UUID profileId) {
         Instant now = Instant.now();
         return List.of(
@@ -321,8 +383,23 @@ public class ProfileStatisticsService {
                 buildTrend(em, profileId, now.minus(365, ChronoUnit.DAYS), now, "365_DAYS"));
     }
 
+    private List<RecentTrendsDTO> getJellyfinRecentTrends(EntityManager em, UUID profileId) {
+        Instant now = Instant.now();
+        return List.of(
+                buildJellyfinTrend(em, profileId, now.minus(30, ChronoUnit.DAYS), now, "30_DAYS"),
+                buildJellyfinTrend(em, profileId, now.minus(90, ChronoUnit.DAYS), now, "90_DAYS"),
+                buildJellyfinTrend(em, profileId, now.minus(365, ChronoUnit.DAYS), now, "365_DAYS"));
+    }
+
     private RecentTrendsDTO buildTrend(EntityManager em, UUID profileId, Instant start, Instant end, String label) {
         Tuple result = StatisticsSpecifications.queryTrendForPeriod(em, profileId, start, end);
+        Long count = result.get("count", Long.class);
+        Double avg = result.get("averageRating", Double.class);
+        return new RecentTrendsDTO(label, count != null ? count : 0L, ValueResolver.round2(avg));
+    }
+
+    private RecentTrendsDTO buildJellyfinTrend(EntityManager em, UUID profileId, Instant start, Instant end, String label) {
+        Tuple result = StatisticsSpecifications.queryJellyfinTrendForPeriod(em, profileId, start, end);
         Long count = result.get("count", Long.class);
         Double avg = result.get("averageRating", Double.class);
         return new RecentTrendsDTO(label, count != null ? count : 0L, ValueResolver.round2(avg));
@@ -342,6 +419,23 @@ public class ProfileStatisticsService {
     }
 
     private RuntimeStatsDTO getRuntimeStats(EntityManager em, UUID profileId) {
+        Tuple result = StatisticsSpecifications.queryRatingRuntimeStats(em, profileId);
+
+        Double avg = result.get("averageRuntime", Double.class);
+        Integer longest = result.get("longestRuntime", Integer.class);
+        Integer shortest = result.get("shortestRuntime", Integer.class);
+
+        long movieTotal = StatisticsSpecifications.queryRatedMoviesTotalRuntime(em, profileId);
+        long seriesTotal = StatisticsSpecifications.queryRatedSeriesRuntimeTotal(em, profileId);
+
+        return new RuntimeStatsDTO(
+                avg != null ? (int) Math.round(avg) : 0,
+                movieTotal + seriesTotal,
+                longest != null ? longest : 0,
+                shortest != null ? shortest : 0);
+    }
+
+    private RuntimeStatsDTO getJellyfinRuntimeStats(EntityManager em, UUID profileId) {
         Tuple result = StatisticsSpecifications.queryRuntimeStats(em, profileId);
 
         Double avg = result.get("averageRuntime", Double.class);
@@ -403,6 +497,22 @@ public class ProfileStatisticsService {
         return activity;
     }
 
+    private List<DayOfWeekActivityDTO> getJellyfinDayOfWeekActivity(EntityManager em, UUID profileId) {
+        List<Tuple> results = StatisticsSpecifications.queryJellyfinDayOfWeekActivity(em, profileId);
+
+        String[] dayNames = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+
+        List<DayOfWeekActivityDTO> activity = new ArrayList<>();
+        for (Tuple tuple : results) {
+            String dayNum = tuple.get("dayOfWeek", String.class);
+            if (dayNum != null) {
+                activity.add(new DayOfWeekActivityDTO(dayNames[Integer.parseInt(dayNum)],
+                        tuple.get("count", Long.class)));
+            }
+        }
+        return activity;
+    }
+
     private List<RatingHeatmapYearDTO> getRatingHeatmap(EntityManager em, UUID profileId) {
         List<Tuple> results = StatisticsSpecifications.queryRatingHeatmap(em, profileId);
 
@@ -445,6 +555,28 @@ public class ProfileStatisticsService {
 
         // Group rows by year, keeping the top-limit genres per year (query already orders by
         // year ASC, count DESC so insertion order gives us the ranked genres).
+        Map<Integer, List<GenreYearStatDTO>> byYear = new LinkedHashMap<>();
+        for (Tuple tuple : results) {
+            String yearStr = tuple.get("year", String.class);
+            if (yearStr == null) continue;
+            int year = Integer.parseInt(yearStr);
+            List<GenreYearStatDTO> genres = byYear.computeIfAbsent(year, y -> new ArrayList<>());
+            if (genres.size() < limit) {
+                genres.add(new GenreYearStatDTO(
+                        tuple.get("genreName", String.class),
+                        tuple.get("count", Long.class),
+                        ValueResolver.round2(tuple.get("averageRating", Double.class))));
+            }
+        }
+
+        List<GenreOverTimeYearDTO> overTime = new ArrayList<>();
+        byYear.forEach((year, genres) -> overTime.add(new GenreOverTimeYearDTO(year, genres)));
+        return overTime;
+    }
+
+    private List<GenreOverTimeYearDTO> getJellyfinGenreOverTime(EntityManager em, UUID profileId, int limit) {
+        List<Tuple> results = StatisticsSpecifications.queryJellyfinGenreOverTime(em, profileId, limit);
+
         Map<Integer, List<GenreYearStatDTO>> byYear = new LinkedHashMap<>();
         for (Tuple tuple : results) {
             String yearStr = tuple.get("year", String.class);
