@@ -57,8 +57,8 @@ public class JellyfinActivityPollingService {
     }
 
     @Scheduled(
-            fixedDelayString = "${rattatarr.sync.jellyfin-activity-poll-interval:PT10S}",
-            initialDelayString = "${rattatarr.sync.jellyfin-activity-poll-initial-delay:PT10S}"
+            fixedDelayString = "${rattatarr.sync.jellyfin-activity-poll-interval:PT10M}",
+            initialDelayString = "${rattatarr.sync.jellyfin-activity-poll-initial-delay:PT10M}"
     )
     @Transactional
     public void pollJellyfinActivity() {

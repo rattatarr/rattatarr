@@ -24,4 +24,8 @@ public interface MediaItemRatingsRepository extends BaseRepository<MediaItemRati
             @Param("profileId") UUID profileId,
             @Param("mediaItemIds") List<UUID> mediaItemIds
     );
+
+    List<MediaItemRating> findTop15ByProfileOrderByRatingDesc(Profile profile);
+
+    List<MediaItemRating> findAllByProfileOrderByRatedAtDesc(Profile profile);
 }

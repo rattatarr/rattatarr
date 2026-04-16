@@ -30,6 +30,10 @@ public class SettingsService extends BaseService<Setting, SettingsRepository> {
     public static final String SYNC_STALE_THRESHOLD = "sync.stale_threshold";
     public static final String SYNC_AUTO_REFRESH_ON_READ = "sync.auto_refresh_on_read";
 
+    public static final String AGENTS_OLLAMA_BASE_URL = "agents.ollama.base_url";
+    public static final String AGENTS_OLLAMA_API_KEY = "agents.ollama.api_key";
+    public static final String AGENTS_OLLAMA_MODEL = "agents.ollama.model";
+
     private final Map<String, SettingValue> settingsCache = new ConcurrentHashMap<>();
 
     public SettingsService(SettingsRepository repository) {
@@ -71,6 +75,11 @@ public class SettingsService extends BaseService<Setting, SettingsRepository> {
         createSettingIfNotExists(SYNC_JELLYFIN_ACTIVITY_BACKFILL_COMPLETE, "false", "Whether initial Jellyfin activity log backfill has completed");
         createSettingIfNotExists(SYNC_STALE_THRESHOLD, "P2D", "Staleness threshold for TMDb items (ISO-8601 duration)");
         createSettingIfNotExists(SYNC_AUTO_REFRESH_ON_READ, "false", "Auto-refresh stale series when viewing them");
+
+        // Ollama agent settings
+        createSettingIfNotExists(AGENTS_OLLAMA_BASE_URL, null, "Ollama base URL (e.g. http://localhost:11434)");
+        createSettingIfNotExists(AGENTS_OLLAMA_API_KEY, null, "Ollama API key / bearer token (optional)");
+        createSettingIfNotExists(AGENTS_OLLAMA_MODEL, "llama3.2", "Ollama model name");
     }
 
     protected void createSettingIfNotExists(String key, @Nullable String value, String description) {
