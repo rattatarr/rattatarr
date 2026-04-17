@@ -123,6 +123,9 @@ export enum Icon {
   BOOK = 'pi pi-book',
   FILE_EXPORT = 'pi pi-file-export',
   FILE_EXCEL = 'pi pi-file-excel',
+  COMMENTS = 'pi pi-comments',
+  SEND = 'pi pi-send',
+  COPY = 'pi pi-copy',
 }
 
 /**

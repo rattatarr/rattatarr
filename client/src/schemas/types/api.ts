@@ -120,6 +120,14 @@ export type RatingHeatmapDay = Schemas['RatingHeatmapDayDTO']
 export type GenreOverTimeYear = Schemas['GenreOverTimeYearDTO']
 export type GenreYearStat = Schemas['GenreYearStatDTO']
 
+// --- Agent ---
+export type AgentChatRequest = Schemas['AgentChatRequestDTO']
+export type AgentChatResponse = Schemas['AgentChatResponseDTO']
+export type AgentSuggestionsResponse = Schemas['AgentSuggestionsResponseDTO']
+export type AgentPromptResponse = Schemas['AgentPromptResponseDTO']
+export type AgentConversationMessage = Schemas['AgentConversationMessageResponseDTO']
+export type AgentConversationWrapper = Schemas['AgentConversationWrapper']
+
 // =============================================================================
 // Common Type Utilities
 // =============================================================================

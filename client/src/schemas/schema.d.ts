@@ -180,6 +180,22 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/agent/chat': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: operations['chat']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/library/broken-media-items/{id}/resolve': {
     parameters: {
       query?: never
@@ -548,6 +564,54 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/agent/suggestions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['getSuggestions']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/agent/prompt/{profileId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['getPrompt']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/agent/conversation/{profileId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['getConversation']
+    put?: never
+    post?: never
+    delete: operations['clearConversation']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -709,6 +773,15 @@ export interface components {
       /** Format: uuid */
       resolvedMediaItemId?: string
       resolved?: boolean
+    }
+    AgentChatRequestDTO: {
+      /** Format: uuid */
+      profileId: string
+      message: string
+    }
+    AgentChatResponseDTO: {
+      reply?: string
+      agent?: string
     }
     ResolveBrokenMediaItemRequestDTO: {
       /** Format: uuid */
@@ -965,6 +1038,7 @@ export interface components {
       topGenresByCount?: components['schemas']['GenreStatDTO'][]
       topGenresByScore?: components['schemas']['GenreStatDTO'][]
       jellyfinTopGenresByCount?: components['schemas']['GenreStatDTO'][]
+      jellyfinTopGenresByScore?: components['schemas']['GenreStatDTO'][]
       directorsByCount?: components['schemas']['PersonStatDTO'][]
       directorsByScore?: components['schemas']['PersonStatDTO'][]
       producersByCount?: components['schemas']['PersonStatDTO'][]
@@ -1222,6 +1296,25 @@ export interface components {
     GenresWrapper: {
       genres?: components['schemas']['GenreResponseDTO'][]
       pagination?: components['schemas']['PaginationMetadata']
+    }
+    AgentSuggestionsResponseDTO: {
+      suggestions?: string[]
+    }
+    AgentPromptResponseDTO: {
+      prompt?: string
+      agent?: string
+    }
+    AgentConversationMessageResponseDTO: {
+      /** Format: uuid */
+      id?: string
+      /** @enum {string} */
+      role?: 'USER' | 'ASSISTANT'
+      content?: string
+      /** Format: date-time */
+      sentAt?: string
+    }
+    AgentConversationWrapper: {
+      conversation?: components['schemas']['AgentConversationMessageResponseDTO'][]
     }
     DeleteRateRequestDTO: {
       /** Format: uuid */
@@ -1554,6 +1647,32 @@ export interface operations {
         }
         content: {
           '*/*': components['schemas']['BrokenMediaItemResponseDTO'][]
+        }
+      }
+    }
+  }
+  chat: {
+    parameters: {
+      query?: {
+        agent?: string
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AgentChatRequestDTO']
+      }
+    }
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['AgentChatResponseDTO']
         }
       }
     }
@@ -2081,6 +2200,96 @@ export interface operations {
         content: {
           '*/*': components['schemas']['GenericResponseDTO']
         }
+      }
+    }
+  }
+  getSuggestions: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['AgentSuggestionsResponseDTO']
+        }
+      }
+    }
+  }
+  getPrompt: {
+    parameters: {
+      query?: {
+        agent?: string
+      }
+      header?: never
+      path: {
+        profileId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['AgentPromptResponseDTO']
+        }
+      }
+    }
+  }
+  getConversation: {
+    parameters: {
+      query?: {
+        agent?: string
+      }
+      header?: never
+      path: {
+        profileId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['AgentConversationWrapper']
+        }
+      }
+    }
+  }
+  clearConversation: {
+    parameters: {
+      query?: {
+        agent?: string
+      }
+      header?: never
+      path: {
+        profileId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
     }
   }

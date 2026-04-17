@@ -41,3 +41,6 @@ export * from './useBrokenMedia'
 
 // Statistics Queries
 export * from './useStatistics'
+
+// Agent Queries
+export * from './useAgent'
