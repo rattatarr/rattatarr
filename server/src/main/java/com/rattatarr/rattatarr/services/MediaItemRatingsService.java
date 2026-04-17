@@ -129,6 +129,13 @@ public class MediaItemRatingsService extends BaseService<MediaItemRating, MediaI
     }
 
     @Transactional(readOnly = true)
+    public List<Tuple> findJellyfinTopGenresByCount(UUID profileId, int limit) {
+        try (EntityManager em = entityManagerFactory.createEntityManager()) {
+            return StatisticsSpecifications.queryJellyfinTopGenresByCount(em, profileId, limit);
+        }
+    }
+
+    @Transactional(readOnly = true)
     public List<Tuple> findTopActors(UUID profileId, int minCount, int limit, StatisticsSpecifications.SortBy sortBy) {
         try (EntityManager em = entityManagerFactory.createEntityManager()) {
             return StatisticsSpecifications.queryFavoriteActors(em, profileId, minCount, limit, sortBy);

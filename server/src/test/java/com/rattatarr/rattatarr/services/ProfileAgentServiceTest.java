@@ -6,7 +6,6 @@ import com.rattatarr.rattatarr.exceptions.AgentExceptions;
 import com.rattatarr.rattatarr.exceptions.ProfilesExceptions;
 import com.rattatarr.rattatarr.models.entities.Profile;
 import com.rattatarr.rattatarr.repositories.ProfilesRepository;
-import com.rattatarr.rattatarr.specifications.StatisticsSpecifications;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,7 +26,7 @@ class ProfileAgentServiceTest {
     @Mock
     private ProfilesRepository profilesRepository;
     @Mock
-    private MediaItemRatingsService mediaItemRatingsService;
+    private AgentPromptService agentPromptService;
     @Mock
     private AgentConversationService conversationService;
     @Mock
@@ -44,19 +43,9 @@ class ProfileAgentServiceTest {
         when(ollamaClient.name()).thenReturn("ollama");
         service = new ProfileAgentService(
                 profilesRepository,
-                mediaItemRatingsService,
+                agentPromptService,
                 conversationService,
                 List.of(ollamaClient));
-    }
-
-    private void stubEmptyRatingContext(Profile p, UUID id) {
-        when(mediaItemRatingsService.findAllRatedByProfileRecentFirst(p)).thenReturn(List.of());
-        when(mediaItemRatingsService.findTop15ByProfileOrderByRatingDesc(p)).thenReturn(List.of());
-        when(mediaItemRatingsService.findTopGenresByWatchCount(eq(id), anyInt())).thenReturn(List.of());
-        when(mediaItemRatingsService.findTopGenresByAverageRating(eq(id), anyFloat(), anyInt())).thenReturn(List.of());
-        when(mediaItemRatingsService.findTopActors(eq(id), anyInt(), anyInt(), any(StatisticsSpecifications.SortBy.class))).thenReturn(List.of());
-        when(mediaItemRatingsService.findTopDirectors(eq(id), anyInt(), anyInt(), any(StatisticsSpecifications.SortBy.class))).thenReturn(List.of());
-        when(mediaItemRatingsService.findTopProducers(eq(id), anyInt(), anyInt(), any(StatisticsSpecifications.SortBy.class))).thenReturn(List.of());
     }
 
     @Test
@@ -64,8 +53,8 @@ class ProfileAgentServiceTest {
         when(profilesRepository.findById(profileId)).thenReturn(Optional.of(profile));
         when(ollamaClient.isConfigured()).thenReturn(true);
         when(conversationService.loadHistory(profileId, "ollama")).thenReturn(List.of());
-        stubEmptyRatingContext(profile, profileId);
-        when(ollamaClient.chat(anyString(), anyList(), eq("Recommend something"))).thenReturn("Watch Parasite.");
+        when(agentPromptService.buildSystemPrompt(profile, profileId)).thenReturn("system-prompt");
+        when(ollamaClient.chat(eq("system-prompt"), anyList(), eq("Recommend something"))).thenReturn("Watch Parasite.");
         doNothing().when(conversationService).saveExchange(any(), eq("ollama"), anyString(), anyString());
 
         String result = service.chat(profileId, "ollama", "Recommend something");
@@ -107,14 +96,14 @@ class ProfileAgentServiceTest {
         when(profilesRepository.findById(profileId)).thenReturn(Optional.of(profile));
         when(ollamaClient.isConfigured()).thenReturn(true);
         when(conversationService.loadHistory(profileId, "ollama")).thenReturn(history);
-        stubEmptyRatingContext(profile, profileId);
-        when(ollamaClient.chat(anyString(), eq(history), eq("New question"))).thenReturn("An answer.");
+        when(agentPromptService.buildSystemPrompt(profile, profileId)).thenReturn("system-prompt");
+        when(ollamaClient.chat(eq("system-prompt"), eq(history), eq("New question"))).thenReturn("An answer.");
         doNothing().when(conversationService).saveExchange(any(), anyString(), anyString(), anyString());
 
         String result = service.chat(profileId, "ollama", "New question");
 
         assertEquals("An answer.", result);
-        verify(ollamaClient).chat(anyString(), eq(history), eq("New question"));
+        verify(ollamaClient).chat(eq("system-prompt"), eq(history), eq("New question"));
     }
 
     @Test

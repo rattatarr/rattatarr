@@ -419,6 +419,47 @@
         }
       }
     },
+    "/api/v1/agent/chat": {
+      "post": {
+        "tags": [
+          "agent-controller"
+        ],
+        "operationId": "chat",
+        "parameters": [
+          {
+            "name": "agent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "ollama"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentChatResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/library/broken-media-items/{id}/resolve": {
       "patch": {
         "tags": [
@@ -1187,6 +1228,137 @@
           }
         }
       }
+    },
+    "/api/v1/agent/suggestions": {
+      "get": {
+        "tags": [
+          "agent-controller"
+        ],
+        "operationId": "getSuggestions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSuggestionsResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agent/prompt/{profileId}": {
+      "get": {
+        "tags": [
+          "agent-controller"
+        ],
+        "operationId": "getPrompt",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "agent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "ollama"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPromptResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agent/conversation/{profileId}": {
+      "get": {
+        "tags": [
+          "agent-controller"
+        ],
+        "operationId": "getConversation",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "agent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "ollama"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentConversationWrapper"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "agent-controller"
+        ],
+        "operationId": "clearConversation",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "agent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "ollama"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1524,6 +1696,35 @@
           },
           "resolved": {
             "type": "boolean"
+          }
+        }
+      },
+      "AgentChatRequestDTO": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "message",
+          "profileId"
+        ]
+      },
+      "AgentChatResponseDTO": {
+        "type": "object",
+        "properties": {
+          "reply": {
+            "type": "string"
+          },
+          "agent": {
+            "type": "string"
           }
         }
       },
@@ -2218,6 +2419,12 @@
             }
           },
           "jellyfinTopGenresByCount": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenreStatDTO"
+            }
+          },
+          "jellyfinTopGenresByScore": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/GenreStatDTO"
@@ -2985,6 +3192,62 @@
           },
           "pagination": {
             "$ref": "#/components/schemas/PaginationMetadata"
+          }
+        }
+      },
+      "AgentSuggestionsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "suggestions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AgentPromptResponseDTO": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string"
+          },
+          "agent": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentConversationMessageResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "ASSISTANT"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AgentConversationWrapper": {
+        "type": "object",
+        "properties": {
+          "conversation": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentConversationMessageResponseDTO"
+            }
           }
         }
       },
