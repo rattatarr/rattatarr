@@ -1,11 +1,11 @@
 name: Publish
 
-# Runs automatically after CI passes on master, or manually via workflow_dispatch.
+# Triggered when release-please merges a Release PR and creates a version tag.
+# Can also be triggered manually for one-off builds.
 on:
-  workflow_run:
-    workflows: [CI]
-    branches: [master]
-    types: [completed]
+  push:
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
 
 # Required to push to GHCR and to read repo contents.
@@ -18,18 +18,15 @@ jobs:
     name: Build & push Docker image to GHCR
     runs-on: ubuntu-latest
 
-    # For the automated trigger: skip if CI failed or was cancelled.
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       # Extracts metadata (tags, labels) for the image.
       # Produces:
-      #   latest          → pushed on every run against master
+      #   latest          → always points to the newest release
+      #   v1.2.3          → exact semver tag
+      #   v1.2, v1        → floating major/minor convenience tags
       #   sha-<short-sha> → immutable per-commit tag for rollbacks
       - name: Extract Docker metadata
         id: meta
@@ -38,6 +35,8 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-,format=short
 
       - name: Log in to GHCR
