@@ -2,6 +2,8 @@
   import { computed, ref, watch } from 'vue'
   import Card from 'primevue/card'
   import Button from 'primevue/button'
+  import Chart from 'primevue/chart'
+  import { useCssColor } from '@/utils/cssColor'
   import type { RatingHeatmapYear } from '@/types'
 
   interface Props {
@@ -186,6 +188,61 @@
   function dayY(dow: number): number {
     return MONTH_ROW + dow * STEP
   }
+
+  // --- Mobile bar chart (monthly aggregation) ---
+  const cssColor = useCssColor('--p-primary-color', '--p-surface-200', '--p-text-muted-color')
+
+  const monthlyTotals = computed<number[]>(() => {
+    const grid = selectedYearGrid.value
+    if (!grid) return Array(12).fill(0) as number[]
+    const totals = Array(12).fill(0) as number[]
+    for (const week of grid.weeks) {
+      for (const cell of week.days) {
+        if (!cell || cell.count === 0) continue
+        const month = new Date(cell.date).getMonth()
+        totals[month] = (totals[month] ?? 0) + cell.count
+      }
+    }
+    return totals
+  })
+
+  const mobileChartData = computed(() => ({
+    labels: MONTH_NAMES,
+    datasets: [
+      {
+        data: monthlyTotals.value,
+        backgroundColor: cssColor['--p-primary-color'] || '#4ade80',
+        borderRadius: 4,
+      },
+    ],
+  }))
+
+  const mobileChartOptions = computed(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx: { raw: unknown }) => {
+            const noun = props.mode === 'activity' ? 'activity' : 'rating'
+            const count = Number(ctx.raw)
+            return `${count} ${noun}${count !== 1 ? 's' : ''}`
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: cssColor['--p-text-muted-color'] || '#888' },
+        grid: { color: cssColor['--p-surface-200'] || '#333' },
+      },
+      y: {
+        ticks: { color: cssColor['--p-text-muted-color'] || '#888', precision: 0 },
+        grid: { color: cssColor['--p-surface-200'] || '#333' },
+      },
+    },
+  }))
 </script>
 
 <template>
@@ -208,70 +265,83 @@
 
     <template #content>
       <div v-if="selectedYearGrid" class="heatmap-container">
-        <!-- SVG scales to container width via width="100%", height auto via viewBox -->
-        <svg
-          :viewBox="viewBox"
-          width="100%"
-          :height="undefined"
-          class="heatmap-svg"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <!-- Day-of-week labels (every other row) -->
-          <text
-            v-for="(name, i) in DAY_NAMES"
-            :key="`dow-${i}`"
-            :x="DOW_COL - 4"
-            :y="dayY(i) + CELL / 2 + 3"
-            class="svg-label dow-label"
-            text-anchor="end"
-            :visibility="i % 2 === 0 ? 'hidden' : 'visible'"
-          >
-            {{ name }}
-          </text>
+        <!-- Mobile: monthly bar chart (shown only on small screens) -->
+        <div class="heatmap-mobile">
+          <Chart
+            type="bar"
+            :data="mobileChartData"
+            :options="mobileChartOptions"
+            class="mobile-chart"
+          />
+        </div>
 
-          <!-- Month labels -->
-          <text
-            v-for="week in selectedYearGrid.weeks"
-            :key="`ml-${week.weekIndex}`"
-            :x="weekX(week.weekIndex)"
-            :y="MONTH_ROW - 4"
-            class="svg-label"
-            text-anchor="start"
-          >
-            {{ week.monthLabel ?? '' }}
-          </text>
-
-          <!-- Day cells -->
-          <template v-for="week in selectedYearGrid.weeks" :key="`wk-${week.weekIndex}`">
-            <rect
-              v-for="(cell, di) in week.days"
-              :key="di"
-              :x="weekX(week.weekIndex)"
-              :y="dayY(di)"
-              :width="CELL"
-              :height="CELL"
-              rx="2"
-              :fill="cell ? heatColor(cell.count, selectedYearGrid.maxCount) : 'transparent'"
-              :class="cell ? heatClass(cell.count, selectedYearGrid.maxCount) : ''"
-              v-tooltip.top="cell ? tooltipText(cell) : undefined"
-              style="cursor: default"
-            />
-          </template>
-        </svg>
-
-        <!-- Legend -->
-        <div class="legend">
-          <span class="legend-text">Less</span>
+        <!-- Desktop: SVG calendar heatmap (hidden on small screens) -->
+        <div class="heatmap-desktop">
+          <!-- SVG scales to container width via width="100%", height auto via viewBox -->
           <svg
-            v-for="cls in ['heat-0', 'heat-1', 'heat-2', 'heat-3', 'heat-4']"
-            :key="cls"
-            width="12"
-            height="12"
-            class="legend-swatch"
+            :viewBox="viewBox"
+            width="100%"
+            :height="undefined"
+            class="heatmap-svg"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            <rect width="12" height="12" rx="2" :class="cls" />
+            <!-- Day-of-week labels (every other row) -->
+            <text
+              v-for="(name, i) in DAY_NAMES"
+              :key="`dow-${i}`"
+              :x="DOW_COL - 4"
+              :y="dayY(i) + CELL / 2 + 3"
+              class="svg-label dow-label"
+              text-anchor="end"
+              :visibility="i % 2 === 0 ? 'hidden' : 'visible'"
+            >
+              {{ name }}
+            </text>
+
+            <!-- Month labels -->
+            <text
+              v-for="week in selectedYearGrid.weeks"
+              :key="`ml-${week.weekIndex}`"
+              :x="weekX(week.weekIndex)"
+              :y="MONTH_ROW - 4"
+              class="svg-label"
+              text-anchor="start"
+            >
+              {{ week.monthLabel ?? '' }}
+            </text>
+
+            <!-- Day cells -->
+            <template v-for="week in selectedYearGrid.weeks" :key="`wk-${week.weekIndex}`">
+              <rect
+                v-for="(cell, di) in week.days"
+                :key="di"
+                :x="weekX(week.weekIndex)"
+                :y="dayY(di)"
+                :width="CELL"
+                :height="CELL"
+                rx="2"
+                :fill="cell ? heatColor(cell.count, selectedYearGrid.maxCount) : 'transparent'"
+                :class="cell ? heatClass(cell.count, selectedYearGrid.maxCount) : ''"
+                v-tooltip.top="cell ? tooltipText(cell) : undefined"
+                style="cursor: default"
+              />
+            </template>
           </svg>
-          <span class="legend-text">More</span>
+
+          <!-- Legend -->
+          <div class="legend">
+            <span class="legend-text">Less</span>
+            <svg
+              v-for="cls in ['heat-0', 'heat-1', 'heat-2', 'heat-3', 'heat-4']"
+              :key="cls"
+              width="12"
+              height="12"
+              class="legend-swatch"
+            >
+              <rect width="12" height="12" rx="2" :class="cls" />
+            </svg>
+            <span class="legend-text">More</span>
+          </div>
         </div>
       </div>
     </template>
@@ -281,6 +351,29 @@
 <style scoped>
   .heatmap-card {
     width: 100%;
+  }
+
+  /* Responsive visibility */
+  .heatmap-mobile {
+    display: none;
+  }
+
+  .heatmap-desktop {
+    display: block;
+  }
+
+  .mobile-chart {
+    height: 220px;
+  }
+
+  @media (max-width: 640px) {
+    .heatmap-mobile {
+      display: block;
+    }
+
+    .heatmap-desktop {
+      display: none;
+    }
   }
 
   .heatmap-title-row {
