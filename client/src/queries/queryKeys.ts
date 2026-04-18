@@ -147,6 +147,20 @@ export const searchKeys = {
 }
 
 /**
+ * Query key factory for AI agent
+ */
+export const agentKeys = {
+  all: ['agent'] as const,
+  suggestions: () => [...agentKeys.all, 'suggestions'] as const,
+  prompts: () => [...agentKeys.all, 'prompt'] as const,
+  prompt: (profileId: string, agent?: string) =>
+    [...agentKeys.prompts(), profileId, { agent }] as const,
+  conversations: () => [...agentKeys.all, 'conversation'] as const,
+  conversation: (profileId: string, agent?: string) =>
+    [...agentKeys.conversations(), profileId, { agent }] as const,
+}
+
+/**
  * Query key factory for profile statistics
  */
 export const statisticsKeys = {

@@ -292,17 +292,17 @@ public class ProfileStatisticsService {
     }
 
     private List<GenreStatDTO> getTopGenresByCount(EntityManager em, UUID profileId, int limit) {
-        List<Tuple> results = StatisticsSpecifications.queryTopGenresByCount(em, profileId, limit);
+        List<Tuple> results = StatisticsSpecifications.queryTopGenresBy(em, profileId, 0f, limit, StatisticsSpecifications.SortBy.COUNT);
         return mapGenreTuples(results);
     }
 
     private List<GenreStatDTO> getTopGenresByScore(EntityManager em, UUID profileId, float ratingThreshold, int limit) {
-        List<Tuple> results = StatisticsSpecifications.queryTopGenresByScore(em, profileId, ratingThreshold, limit);
+        List<Tuple> results = StatisticsSpecifications.queryTopGenresBy(em, profileId, ratingThreshold, limit, StatisticsSpecifications.SortBy.SCORE);
         return mapGenreTuples(results);
     }
 
     private List<GenreStatDTO> getJellyfinTopGenresByCount(EntityManager em, UUID profileId, int limit) {
-        List<Tuple> results = StatisticsSpecifications.queryJellyfinTopGenresByCount(em, profileId, limit);
+        List<Tuple> results = StatisticsSpecifications.queryJellyfinTopGenresBy(em, profileId, limit, StatisticsSpecifications.SortBy.COUNT);
         return mapGenreTuples(results);
     }
 

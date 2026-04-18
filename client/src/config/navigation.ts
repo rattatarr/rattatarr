@@ -7,11 +7,6 @@ export const navigationItems: MenuItem[] = [
     icon: Icon.HOME,
     route: '/',
   },
-  // {
-  //   label: 'Ratings',
-  //   icon: Icon.STAR,
-  //   route: '/ratings',
-  // },
   {
     label: 'Movies',
     icon: Icon.FILM,
@@ -21,6 +16,11 @@ export const navigationItems: MenuItem[] = [
     label: 'Series',
     icon: Icon.TH_LARGE,
     route: '/series',
+  },
+  {
+    label: 'Recommendations',
+    icon: Icon.COMMENTS,
+    route: '/agent',
   },
   {
     label: 'Broken',

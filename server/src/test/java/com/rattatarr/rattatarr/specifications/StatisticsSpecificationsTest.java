@@ -27,19 +27,15 @@ class StatisticsSpecificationsTest {
     // ---------------------------------------------------------------------------
 
     @Test
-    void queryTopGenresByCount_methodExists() {
-        // Method must accept (EntityManager, UUID, int) — no ratingThreshold.
-        // We can't run the real query without a DB, so we just verify it compiles
-        // and throws on a null EM rather than a NoSuchMethodError.
+    void queryTopGenresBy_countSort_methodExists() {
         assertThrows(NullPointerException.class, () ->
-                StatisticsSpecifications.queryTopGenresByCount(null, UUID.randomUUID(), 10));
+                StatisticsSpecifications.queryTopGenresBy(null, UUID.randomUUID(), 0f, 10, StatisticsSpecifications.SortBy.COUNT));
     }
 
     @Test
-    void queryTopGenresByScore_methodExists() {
-        // Renamed from queryTopGenres; still accepts ratingThreshold.
+    void queryTopGenresBy_scoreSort_methodExists() {
         assertThrows(NullPointerException.class, () ->
-                StatisticsSpecifications.queryTopGenresByScore(null, UUID.randomUUID(), 7.0f, 10));
+                StatisticsSpecifications.queryTopGenresBy(null, UUID.randomUUID(), 7.0f, 10, StatisticsSpecifications.SortBy.SCORE));
     }
 
     // ---------------------------------------------------------------------------
