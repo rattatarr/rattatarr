@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import * as jellyfinApi from '@/api/jellyfin'
-import { jellyfinKeys, movieKeys, seriesKeys, profileKeys } from './queryKeys'
-import type { GenericResponse, ProfilesWrapper } from '@/types'
+import { jellyfinKeys, jobKeys, movieKeys, seriesKeys, profileKeys } from './queryKeys'
+import type { BackgroundJob, GenericResponse, ProfilesWrapper } from '@/types'
 
 /**
  * Query hook to test Jellyfin connection
@@ -23,13 +23,13 @@ export function useJellyfinTest() {
 export function useSyncJellyfinMedia() {
   const queryClient = useQueryClient()
 
-  return useMutation<GenericResponse, Error, void>({
+  return useMutation<BackgroundJob, Error, void>({
     mutationFn: () => jellyfinApi.syncJellyfinMedia(),
     onSuccess: async () => {
-      // Invalidate library queries to show newly synced media
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: movieKeys.all }),
         queryClient.invalidateQueries({ queryKey: seriesKeys.all }),
+        queryClient.invalidateQueries({ queryKey: jobKeys.all }),
       ])
     },
   })

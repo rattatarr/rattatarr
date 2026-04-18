@@ -6,6 +6,7 @@ import com.rattatarr.rattatarr.clients.jellyfin.responses.*;
 import com.rattatarr.rattatarr.exceptions.CommonExceptions;
 import com.rattatarr.rattatarr.exceptions.JellyfinTraversalExceptions;
 import com.rattatarr.rattatarr.models.JellyfinMediaType;
+import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.MediaValidationResult;
 import com.rattatarr.rattatarr.models.entities.*;
@@ -41,6 +42,7 @@ public class JellyfinTraversalService {
     private final BrokenMediaItemsService brokenMediaItemsService;
     private final MediaItemMetadataService mediaItemMetadataService;
     private final MediaItemCreditsService mediaItemCreditsService;
+    private final BackgroundJobService backgroundJobService;
 
     public JellyfinTraversalService(JellyfinClient jellyfinClient,
                                     GenresService genresService,
@@ -49,7 +51,8 @@ public class JellyfinTraversalService {
                                     MediaEpisodesService mediaEpisodesService,
                                     BrokenMediaItemsService brokenMediaItemsService,
                                     MediaItemMetadataService mediaItemMetadataService,
-                                    MediaItemCreditsService mediaItemCreditsService
+                                    MediaItemCreditsService mediaItemCreditsService,
+                                    BackgroundJobService backgroundJobService
     ) {
         this.jellyfinClient = jellyfinClient;
         this.genresService = genresService;
@@ -59,6 +62,7 @@ public class JellyfinTraversalService {
         this.brokenMediaItemsService = brokenMediaItemsService;
         this.mediaItemMetadataService = mediaItemMetadataService;
         this.mediaItemCreditsService = mediaItemCreditsService;
+        this.backgroundJobService = backgroundJobService;
     }
 
     private <T extends JellyfinClientItemResponseDTO> List<T> filterByTypes(
@@ -401,20 +405,19 @@ public class JellyfinTraversalService {
         }
     }
 
-    /**
-     * Jellyfin sync + TMDb metadata refresh + Credits update.
-     * TODO: Later we want to track this with a job id and return the job status in another endpoint.
-     */
     @Async("backgroundTaskExecutor")
-    public void syncMediaAsync() {
-        logger.info("Starting async Jellyfin media synchronization workflow");
+    public void syncMediaAsync(BackgroundJob job) {
+        logger.info("Starting async Jellyfin media synchronization workflow, jobId={}", job.id());
+        backgroundJobService.markRunning(job);
         try {
             pipelineTraverseSyncMedia();
             mediaItemMetadataService.refreshAllMetadata(false);
             mediaItemCreditsService.updateAllMediaItemCredits(false);
-            logger.info("Async Jellyfin media synchronization workflow completed successfully");
+            backgroundJobService.markCompleted(job, "Jellyfin sync completed successfully");
+            logger.info("Async Jellyfin media synchronization workflow completed, jobId={}", job.id());
         } catch (Exception e) {
-            logger.error("Async Jellyfin media synchronization workflow failed", e);
+            backgroundJobService.markFailed(job, e.getMessage());
+            logger.error("Async Jellyfin media synchronization workflow failed, jobId={}", job.id(), e);
         }
     }
 

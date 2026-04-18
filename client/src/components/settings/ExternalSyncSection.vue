@@ -9,13 +9,15 @@
   import { useToast } from '@/composables/useToast'
   import { useSettingsForm } from '@/composables/useSettingsForm'
   import { useProfileStore } from '@/stores/profileStore'
-  import type { GenericResponse, ProfilesWrapper } from '@/schemas/types/api'
+  import { useJobTrackingStore } from '@/stores/jobTrackingStore'
+  import type { BackgroundJob, ProfilesWrapper } from '@/schemas/types/api'
   import { OperationStatus, ButtonSeverity, Icon } from '@/utils/enums'
 
   const toast = useToast()
   const { savedSettings } = useSettingsForm()
   const profileStore = useProfileStore()
   const { selectedProfile } = useProfileManagement()
+  const jobTrackingStore = useJobTrackingStore()
 
   // Setting keys
   const integrationKeys = {
@@ -35,12 +37,19 @@
 
   // Jellyfin Media Sync
   const syncJellyfinMutation = useSyncJellyfinMedia()
-  const jellyfinSync = useSyncOperation<GenericResponse>({
+  const jellyfinSync = useSyncOperation<BackgroundJob>({
     mutation: syncJellyfinMutation,
     successMessage: 'Jellyfin sync started',
-    successDescription: (data) => data.message || 'Media synchronization in progress',
+    successDescription: () => 'Media synchronization is running in the background',
     errorMessage: 'Failed to sync Jellyfin media',
+    onSuccess: (job) => jobTrackingStore.startTracking(job),
+    onError: () => jobTrackingStore.unlockJob('JELLYFIN_SYNC'),
   })
+
+  function executeJellyfinSync() {
+    jobTrackingStore.lockJob('JELLYFIN_SYNC')
+    void jellyfinSync.execute()
+  }
 
   // IMDb Rating Import
   const importIMDbMutation = useImportIMDbRatings()
@@ -78,6 +87,7 @@
       return
     }
 
+    jobTrackingStore.lockJob('CSV_IMPORT')
     imdbImportStatus.value = OperationStatus.LOADING
 
     try {
@@ -87,9 +97,11 @@
       })
       imdbImportStatus.value = OperationStatus.SUCCESS
 
-      toast.success('IMDb ratings imported', {
-        description: data.message || 'Ratings import successful',
+      toast.success('IMDb import started', {
+        description: 'Rating import is running in the background',
       })
+
+      void jobTrackingStore.startTracking(data)
 
       selectedFile.value = null
 
@@ -97,6 +109,7 @@
         imdbImportStatus.value = OperationStatus.IDLE
       }, 3000)
     } catch (error) {
+      jobTrackingStore.unlockJob('CSV_IMPORT')
       imdbImportStatus.value = OperationStatus.ERROR
       toast.error(error as Error, { fallbackMessage: 'Failed to import IMDb ratings' })
 
@@ -106,7 +119,7 @@
     }
   }
 
-  const canImportIMDb = computed(() => !!selectedFile.value)
+  const canImportIMDb = computed(() => !!selectedFile.value && !!profileStore.selectedProfileId)
 
   const ratingsExportStatus = ref<OperationStatus>(OperationStatus.IDLE)
   const ratingsExportButtonProps = computed(() => {
@@ -206,9 +219,12 @@
           :status="jellyfinSync.status.value"
           :severity="jellyfinSync.buttonProps.value.severity"
           :icon="jellyfinSync.buttonProps.value.icon"
-          :loading="jellyfinSync.buttonProps.value.loading"
+          :loading="
+            jellyfinSync.buttonProps.value.loading || jobTrackingStore.isJellyfinSyncRunning
+          "
+          :disabled="jobTrackingStore.isAnyJobRunning"
           info-message="The media sync will be done in background and may take several minutes to complete depending on the size of your library. You'll be notified when this is done."
-          @click="jellyfinSync.execute"
+          @click="executeJellyfinSync"
         />
       </SettingsCard>
 
@@ -237,8 +253,8 @@
             :status="imdbImportStatus"
             :severity="imdbImportButtonProps.severity"
             :icon="imdbImportButtonProps.icon"
-            :loading="imdbImportButtonProps.loading"
-            :disabled="!canImportIMDb"
+            :loading="imdbImportButtonProps.loading || jobTrackingStore.isImdbImportRunning"
+            :disabled="!canImportIMDb || jobTrackingStore.isAnyJobRunning"
             info-message="The rating import will be processed in background and may take a few minutes to complete depending on the file size. You'll be notified when this is done."
             @click="executeImdbImport"
           />

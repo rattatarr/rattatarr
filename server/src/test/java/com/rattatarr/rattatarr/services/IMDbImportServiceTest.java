@@ -4,7 +4,9 @@ import com.rattatarr.rattatarr.clients.tmdb.TMDbClient;
 import com.rattatarr.rattatarr.clients.tmdb.responses.TMDbFindItemResponseDTO;
 import com.rattatarr.rattatarr.exceptions.ProfilesExceptions;
 import com.rattatarr.rattatarr.models.IMDbWatchlistRow;
+import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.MediaType;
+import com.rattatarr.rattatarr.models.entities.BackgroundJob;
 import com.rattatarr.rattatarr.models.entities.MediaItem;
 import com.rattatarr.rattatarr.models.entities.Profile;
 import com.rattatarr.rattatarr.utils.CSVProcessor;
@@ -42,6 +44,9 @@ class IMDbImportServiceTest {
 
     @Mock
     private MediaItemRatingsService mediaItemRatingsService;
+
+    @Mock
+    private BackgroundJobService backgroundJobService;
 
     @Mock
     private Executor tmdbApiExecutor;
@@ -155,11 +160,12 @@ class IMDbImportServiceTest {
         List<IMDbWatchlistRow> rows = List.of(
                 new IMDbWatchlistRow("tt0468569", 9.0f, "movie", Instant.now(), MediaType.MOVIE)
         );
+        BackgroundJob job = new BackgroundJob(JobType.CSV_IMPORT, profileId);
 
         when(profilesService.findByIdOrThrow(eq(profileId), any())).thenReturn(testProfile);
 
         // When
-        imdbImportService.triggerBackgroundImportRatings(rows, profileId);
+        imdbImportService.triggerBackgroundImportRatings(rows, profileId, job);
 
         // Then
         verify(profilesService).findByIdOrThrow(eq(profileId), any());
@@ -170,13 +176,14 @@ class IMDbImportServiceTest {
         // Given
         UUID profileId = UUID.randomUUID();
         List<IMDbWatchlistRow> rows = List.of();
+        BackgroundJob job = new BackgroundJob(JobType.CSV_IMPORT, profileId);
 
         when(profilesService.findByIdOrThrow(eq(profileId), any()))
                 .thenThrow(new ProfilesExceptions.ProfileNotFoundExceptions(profileId));
 
         // When/Then
         assertThrows(ProfilesExceptions.ProfileNotFoundExceptions.class, () -> {
-            imdbImportService.triggerBackgroundImportRatings(rows, profileId);
+            imdbImportService.triggerBackgroundImportRatings(rows, profileId, job);
         });
 
         verify(profilesService).findByIdOrThrow(eq(profileId), any());

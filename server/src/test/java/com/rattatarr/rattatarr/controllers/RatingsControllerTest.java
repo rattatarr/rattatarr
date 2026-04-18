@@ -1,10 +1,15 @@
 package com.rattatarr.rattatarr.controllers;
 
+import com.rattatarr.rattatarr.models.JobStatus;
+import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.RatingMediaType;
 import com.rattatarr.rattatarr.models.dtos.requests.DeleteRateRequestDTO;
 import com.rattatarr.rattatarr.models.dtos.requests.RateRequestDTO;
+import com.rattatarr.rattatarr.models.dtos.responses.BackgroundJobResponseDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.GenericResponseDTO;
+import com.rattatarr.rattatarr.models.entities.BackgroundJob;
 import com.rattatarr.rattatarr.models.entities.Profile;
+import com.rattatarr.rattatarr.services.BackgroundJobService;
 import com.rattatarr.rattatarr.services.IMDbImportService;
 import com.rattatarr.rattatarr.services.ProfilesService;
 import com.rattatarr.rattatarr.services.RatingService;
@@ -38,6 +43,9 @@ class RatingsControllerTest {
 
     @Mock
     private ProfilesService profilesService;
+
+    @Mock
+    private BackgroundJobService backgroundJobService;
 
     @InjectMocks
     private RatingsController controller;
@@ -253,8 +261,14 @@ class RatingsControllerTest {
         verify(ratingService, times(1)).rate(eq(request));
     }
 
+    private BackgroundJob stubJob(UUID profileId) {
+        BackgroundJob job = new BackgroundJob(JobType.CSV_IMPORT, profileId);
+        when(backgroundJobService.create(eq(JobType.CSV_IMPORT), eq(profileId))).thenReturn(job);
+        return job;
+    }
+
     @Test
-    void importImdbCsv_withValidFile_shouldReturnSuccessResponse() {
+    void importImdbCsv_withValidFile_shouldReturnJobResponse() {
         // Given
         UUID profileId = UUID.randomUUID();
         MockMultipartFile file = new MockMultipartFile(
@@ -265,15 +279,16 @@ class RatingsControllerTest {
         );
 
         when(imDbImportService.parseCSV(any())).thenReturn(List.of());
-        doNothing().when(imDbImportService).triggerBackgroundImportRatings(any(), any(UUID.class));
+        stubJob(profileId);
+        doNothing().when(imDbImportService).triggerBackgroundImportRatings(any(), any(UUID.class), any(BackgroundJob.class));
 
         // When
-        GenericResponseDTO response = controller.importImdbCsv(file, profileId);
+        BackgroundJobResponseDTO response = controller.importImdbCsv(file, profileId);
 
         // Then
         assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.status());
-        assertEquals("IMDb ratings import started", response.message());
+        assertEquals(JobType.CSV_IMPORT, response.type());
+        assertEquals(JobStatus.PENDING, response.status());
     }
 
     @Test
@@ -288,14 +303,15 @@ class RatingsControllerTest {
         );
 
         when(imDbImportService.parseCSV(any())).thenReturn(List.of());
-        doNothing().when(imDbImportService).triggerBackgroundImportRatings(any(), any(UUID.class));
+        stubJob(profileId);
+        doNothing().when(imDbImportService).triggerBackgroundImportRatings(any(), any(UUID.class), any(BackgroundJob.class));
 
         // When
         controller.importImdbCsv(file, profileId);
 
         // Then
         verify(imDbImportService).parseCSV(eq(file));
-        verify(imDbImportService).triggerBackgroundImportRatings(any(), eq(profileId));
+        verify(imDbImportService).triggerBackgroundImportRatings(any(), eq(profileId), any(BackgroundJob.class));
     }
 
     @Test
@@ -310,14 +326,15 @@ class RatingsControllerTest {
         );
 
         when(imDbImportService.parseCSV(any())).thenReturn(List.of());
-        doNothing().when(imDbImportService).triggerBackgroundImportRatings(any(), any(UUID.class));
+        stubJob(profileId);
+        doNothing().when(imDbImportService).triggerBackgroundImportRatings(any(), any(UUID.class), any(BackgroundJob.class));
 
         // When
         controller.importImdbCsv(file, profileId);
 
         // Then
         verify(imDbImportService).parseCSV(eq(file));
-        verify(imDbImportService, times(1)).triggerBackgroundImportRatings(any(), any(UUID.class));
+        verify(imDbImportService, times(1)).triggerBackgroundImportRatings(any(), any(UUID.class), any(BackgroundJob.class));
     }
 
     @Test

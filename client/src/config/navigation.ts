@@ -31,6 +31,11 @@ export const navigationItems: MenuItem[] = [
     separator: true,
   },
   {
+    label: 'Jobs',
+    icon: Icon.HISTORY,
+    route: '/jobs',
+  },
+  {
     label: 'Logs',
     icon: Icon.FILE,
     route: '/logs',

@@ -1,9 +1,13 @@
 package com.rattatarr.rattatarr.controllers;
 
 import com.rattatarr.rattatarr.exceptions.JellyfinClientExceptions;
+import com.rattatarr.rattatarr.models.JobType;
+import com.rattatarr.rattatarr.models.dtos.responses.BackgroundJobResponseDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.GenericResponseDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.wrappers.ProfilesWrapper;
+import com.rattatarr.rattatarr.models.entities.BackgroundJob;
 import com.rattatarr.rattatarr.models.entities.Profile;
+import com.rattatarr.rattatarr.services.BackgroundJobService;
 import com.rattatarr.rattatarr.services.JellyfinService;
 import com.rattatarr.rattatarr.services.JellyfinTraversalService;
 import com.rattatarr.rattatarr.services.MediaItemMetadataService;
@@ -20,6 +24,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +39,8 @@ class JellyfinControllerTest {
     private MediaItemMetadataService mediaItemMetadataService;
     @Mock
     private TMDbController tmDbController;
+    @Mock
+    private BackgroundJobService backgroundJobService;
 
     @InjectMocks
     private JellyfinController jellyfinController;
@@ -118,11 +126,14 @@ class JellyfinControllerTest {
 
     @Test
     void syncMedia_shouldTriggerAsyncSyncAndReturnImmediately() {
-        GenericResponseDTO result = jellyfinController.syncMedia();
+        BackgroundJob job = new BackgroundJob(JobType.JELLYFIN_SYNC, null);
+        when(backgroundJobService.create(eq(JobType.JELLYFIN_SYNC), eq(null))).thenReturn(job);
+
+        BackgroundJobResponseDTO result = jellyfinController.syncMedia();
 
         assertNotNull(result);
-        assertTrue(result.message().contains("started in background"));
-        verify(jellyfinTraversalService).syncMediaAsync();
+        assertEquals(JobType.JELLYFIN_SYNC, result.type());
+        verify(jellyfinTraversalService).syncMediaAsync(eq(job));
     }
 
     private Profile createProfileWithTimestamps(String name, String jellyfinId) {

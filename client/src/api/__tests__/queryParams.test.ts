@@ -6,6 +6,7 @@ import {
   buildProfilesQueryParams,
   buildPageableQueryParams,
   buildSearchQueryParams,
+  buildJobsQueryParams,
 } from '../queryParams'
 import type {
   Pageable,
@@ -397,6 +398,67 @@ describe('queryParams', () => {
 
       // Should pass through as-is (backend will validate)
       expect(result.page).toBe(-1)
+    })
+  })
+
+  describe('buildJobsQueryParams', () => {
+    const pageable: Pageable = { page: 0, size: 20 }
+
+    it('flattens pageable fields to top level', () => {
+      const result = buildJobsQueryParams(pageable)
+
+      expect(result.page).toBe(0)
+      expect(result.size).toBe(20)
+    })
+
+    it('includes undefined filter values when no filters passed', () => {
+      const result = buildJobsQueryParams(pageable)
+
+      expect(result.type).toBeUndefined()
+      expect(result.status).toBeUndefined()
+      expect(result.startDate).toBeUndefined()
+      expect(result.endDate).toBeUndefined()
+    })
+
+    it('passes type filter', () => {
+      const result = buildJobsQueryParams(pageable, { type: 'JELLYFIN_SYNC' })
+
+      expect(result.type).toBe('JELLYFIN_SYNC')
+    })
+
+    it('passes status filter', () => {
+      const result = buildJobsQueryParams(pageable, { status: 'FAILED' })
+
+      expect(result.status).toBe('FAILED')
+    })
+
+    it('passes date range filters', () => {
+      const result = buildJobsQueryParams(pageable, {
+        startDate: '2026-04-01T00:00:00',
+        endDate: '2026-04-18T23:59:59',
+      })
+
+      expect(result.startDate).toBe('2026-04-01T00:00:00')
+      expect(result.endDate).toBe('2026-04-18T23:59:59')
+    })
+
+    it('passes all filters together', () => {
+      const result = buildJobsQueryParams(
+        { page: 1, size: 50 },
+        {
+          type: 'CSV_IMPORT',
+          status: 'COMPLETED',
+          startDate: '2026-04-01T00:00:00',
+          endDate: '2026-04-18T23:59:59',
+        },
+      )
+
+      expect(result.page).toBe(1)
+      expect(result.size).toBe(50)
+      expect(result.type).toBe('CSV_IMPORT')
+      expect(result.status).toBe('COMPLETED')
+      expect(result.startDate).toBe('2026-04-01T00:00:00')
+      expect(result.endDate).toBe('2026-04-18T23:59:59')
     })
   })
 })

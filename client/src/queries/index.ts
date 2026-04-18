@@ -44,3 +44,6 @@ export * from './useStatistics'
 
 // Agent Queries
 export * from './useAgent'
+
+// Jobs Queries
+export * from './useJobs'

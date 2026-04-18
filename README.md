@@ -3,15 +3,13 @@
 Rattatarr lets you track, rate, and analyze your media consumption locally.
 Built for homelab setups, with a simple UI.
 
-⚠️ Status: Actively under development. Expect breaking changes.
-
 ## What this does
 
 - Syncs media from Jellyfin
-- Automatically tracks activity from Jellyfin (planned)
+- Automatically tracks activity from Jellyfin
 - Lets local profiles rate items (0.5 to 10)
 - Insights on your watch/rating activity
-- New movie recommendations from multiple sources (planned)
+- New movie recommendations
 - Stores data in SQLite
 - Serves single web UI + API on one port
 
@@ -60,9 +58,9 @@ Use same Compose content above in Portainer:
 
 ## Environment variables
 
-- `RATTATARR_JELLYFIN_BASE_URL` (required): Jellyfin URL, e.g. `http://192.168.1.10:8096`
-- `RATTATARR_JELLYFIN_API_KEY` (required): Jellyfin API key
-- `RATTATARR_CORS_ALLOWED_ORIGINS` (optional): CSV origins for direct API access
+- `RATTATARR_JELLYFIN_BASE_URL` (optional): Jellyfin URL, e.g. `http://192.168.1.10:8096`
+- `RATTATARR_JELLYFIN_API_KEY` (optional): Jellyfin API key
+- `RATTATARR_CORS_ALLOWED_ORIGINS` (depends on your setup): CSV origins for direct API access
 
 ## Persistent data
 

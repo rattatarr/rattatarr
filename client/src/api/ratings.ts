@@ -1,5 +1,5 @@
 import { APIError, apiClient, handleResponse } from './client'
-import type { RateRequest, GenericResponse } from '@/types'
+import type { BackgroundJob, RateRequest, GenericResponse } from '@/types'
 
 export interface ExportRatingsCsvResponse {
   csvData: string
@@ -26,7 +26,7 @@ export async function rateMediaItem(request: RateRequest): Promise<GenericRespon
  * Import IMDb ratings from CSV file
  * This uses multipart/form-data for file upload
  */
-export async function importIMDbRatings(file: File, profileId: string): Promise<GenericResponse> {
+export async function importIMDbRatings(file: File, profileId: string): Promise<BackgroundJob> {
   const formData = new FormData()
   formData.append('file', file)
 
@@ -36,7 +36,7 @@ export async function importIMDbRatings(file: File, profileId: string): Promise<
     body: formData,
     // Browser automatically sets Content-Type with multipart boundary
   })
-  return handleResponse<GenericResponse>(response)
+  return handleResponse<BackgroundJob>(response)
 }
 
 export async function exportRatingsCsv(profileId: string): Promise<ExportRatingsCsvResponse> {
