@@ -91,10 +91,8 @@ public final class StatisticsSpecifications {
     // Genres
     // -------------------------------------------------------------------------
 
-    /**
-     * Secondary sort: average rating descending.
-     */
-    public static List<Tuple> queryTopGenresByCount(EntityManager em, UUID profileId, int limit) {
+    public static List<Tuple> queryTopGenresBy(
+            EntityManager em, UUID profileId, float ratingThreshold, int limit, SortBy sortBy) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Tuple> q = cb.createTupleQuery();
         Root<MediaItemRating> root = q.from(MediaItemRating.class);
@@ -106,35 +104,19 @@ public final class StatisticsSpecifications {
                 cb.count(root).alias("count"),
                 cb.avg(root.get("rating")).alias("averageRating")
         ));
-        q.where(cb.equal(root.get("profile").get("id"), profileId));
+
+        if (sortBy == SortBy.SCORE) {
+            q.where(
+                    cb.equal(root.get("profile").get("id"), profileId),
+                    cb.greaterThanOrEqualTo(root.get("rating"), ratingThreshold)
+            );
+            q.orderBy(cb.desc(cb.avg(root.get("rating"))), cb.desc(cb.count(root)));
+        } else {
+            q.where(cb.equal(root.get("profile").get("id"), profileId));
+            q.orderBy(cb.desc(cb.count(root)), cb.desc(cb.avg(root.get("rating"))));
+        }
+
         q.groupBy(genreJoin.get("name"));
-        q.orderBy(cb.desc(cb.count(root)), cb.desc(cb.avg(root.get("rating"))));
-
-        return em.createQuery(q).setMaxResults(limit).getResultList();
-    }
-
-
-    /**
-     * Secondary sort: title count descending.
-     */
-    public static List<Tuple> queryTopGenresByScore(EntityManager em, UUID profileId, float ratingThreshold, int limit) {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Tuple> q = cb.createTupleQuery();
-        Root<MediaItemRating> root = q.from(MediaItemRating.class);
-        Join<MediaItemRating, MediaItem> mediaJoin = root.join("mediaItem");
-        Join<MediaItem, Genre> genreJoin = mediaJoin.join("genres");
-
-        q.select(cb.tuple(
-                genreJoin.get("name").alias("genreName"),
-                cb.count(root).alias("count"),
-                cb.avg(root.get("rating")).alias("averageRating")
-        ));
-        q.where(
-                cb.equal(root.get("profile").get("id"), profileId),
-                cb.greaterThanOrEqualTo(root.get("rating"), ratingThreshold)
-        );
-        q.groupBy(genreJoin.get("name"));
-        q.orderBy(cb.desc(cb.avg(root.get("rating"))), cb.desc(cb.count(root)));
 
         return em.createQuery(q).setMaxResults(limit).getResultList();
     }
@@ -182,6 +164,73 @@ public final class StatisticsSpecifications {
         );
         q.groupBy(year, genreJoin.get("name"));
         q.orderBy(cb.asc(year), cb.desc(cb.count(root)), cb.desc(cb.avg(root.get("rating"))));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static List<Tuple> queryJellyfinTopGenresBy(EntityManager em, UUID profileId, int limit, SortBy sortBy) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+        Join<WatchEvent, MediaItem> mediaJoin = root.join("mediaItem");
+        Join<MediaItem, Genre> genreJoin = mediaJoin.join("genres");
+        Expression<String> unitKey = watchedMediaItemKey(root);
+
+        q.select(cb.tuple(
+                genreJoin.get("name").alias("genreName"),
+                cb.countDistinct(unitKey).alias("count"),
+                cb.literal(0.0d).alias("averageRating")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                completionEquivalent(cb, root)
+        );
+        q.groupBy(genreJoin.get("name"));
+        if (sortBy == SortBy.SCORE) {
+            q.orderBy(cb.asc(genreJoin.get("name")));
+        } else {
+            q.orderBy(cb.desc(cb.countDistinct(unitKey)), cb.asc(genreJoin.get("name")));
+        }
+
+        return em.createQuery(q).setMaxResults(limit).getResultList();
+    }
+
+    public static List<Tuple> queryJellyfinGenreOverTime(EntityManager em, UUID profileId, int limit) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+        Join<WatchEvent, MediaItem> mediaJoin = root.join("mediaItem");
+        Join<MediaItem, Genre> genreJoin = mediaJoin.join("genres");
+        Expression<String> unitKey = watchedMediaItemKey(root);
+
+        Expression<Long> epochSeconds = cb.quot(
+                root.get("watchedAt").as(Long.class),
+                cb.literal(1000L)
+        ).as(Long.class);
+
+        Expression<String> year = cb.function(
+                "strftime",
+                String.class,
+                cb.literal("%Y"),
+                cb.function(
+                        "datetime",
+                        String.class,
+                        epochSeconds,
+                        cb.literal("unixepoch")));
+
+        q.select(cb.tuple(
+                year.alias("year"),
+                genreJoin.get("name").alias("genreName"),
+                cb.countDistinct(unitKey).alias("count"),
+                cb.literal(0.0d).alias("averageRating")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.isNotNull(root.get("watchedAt")),
+                completionEquivalent(cb, root)
+        );
+        q.groupBy(year, genreJoin.get("name"));
+        q.orderBy(cb.asc(year), cb.desc(cb.countDistinct(unitKey)), cb.asc(genreJoin.get("name")));
 
         return em.createQuery(q).getResultList();
     }
@@ -325,7 +374,6 @@ public final class StatisticsSpecifications {
         return em.createQuery(q).getResultList();
     }
 
-
     public static List<Tuple> queryDecadePreferences(EntityManager em, UUID profileId) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Tuple> q = cb.createTupleQuery();
@@ -363,6 +411,72 @@ public final class StatisticsSpecifications {
                 cb.equal(root.get("profile").get("id"), profileId),
                 cb.greaterThanOrEqualTo(root.get("ratedAt"), start),
                 cb.lessThanOrEqualTo(root.get("ratedAt"), end)
+        );
+
+        return em.createQuery(q).getSingleResult();
+    }
+
+    public static List<Tuple> queryJellyfinMediaTypeBreakdown(EntityManager em, UUID profileId) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+        Join<WatchEvent, MediaItem> mediaJoin = root.join("mediaItem");
+        Expression<String> unitKey = watchedMediaItemKey(root);
+
+        q.select(cb.tuple(
+                mediaJoin.get("mediaType").alias("mediaType"),
+                cb.countDistinct(unitKey).alias("count"),
+                cb.literal(0.0d).alias("averageRating")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                completionEquivalent(cb, root)
+        );
+        q.groupBy(mediaJoin.get("mediaType"));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static List<Tuple> queryJellyfinDecadePreferences(EntityManager em, UUID profileId) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+        Expression<String> mediaItemKey = watchedMediaItemKey(root);
+
+        Expression<Integer> productionYear = root.get("mediaItem").get("productionYear");
+        Expression<Number> decade = cb.prod(cb.quot(productionYear, 10), 10);
+
+        q.select(cb.tuple(
+                decade.alias("decade"),
+                cb.countDistinct(mediaItemKey).alias("count"),
+                cb.literal(0.0d).alias("averageRating")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.isNotNull(root.get("mediaItem").get("productionYear")),
+                completionEquivalent(cb, root)
+        );
+        q.groupBy(decade);
+        q.orderBy(cb.desc(decade));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static Tuple queryJellyfinTrendForPeriod(EntityManager em, UUID profileId, Instant start, Instant end) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+        Expression<String> mediaItemKey = watchedMediaItemKey(root);
+
+        q.select(cb.tuple(
+                cb.countDistinct(mediaItemKey).alias("count"),
+                cb.literal(0.0d).alias("averageRating")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), start),
+                cb.lessThanOrEqualTo(root.get("watchedAt"), end),
+                completionEquivalent(cb, root)
         );
 
         return em.createQuery(q).getSingleResult();
@@ -487,86 +601,29 @@ public final class StatisticsSpecifications {
         return em.createQuery(q).getResultList();
     }
 
-    public static List<Tuple> queryJellyfinTopGenresByCount(EntityManager em, UUID profileId, int limit) {
+    public static List<Tuple> queryDayOfWeekActivity(EntityManager em, UUID profileId) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Tuple> q = cb.createTupleQuery();
-        Root<WatchEvent> root = q.from(WatchEvent.class);
-        Join<WatchEvent, MediaItem> mediaJoin = root.join("mediaItem");
-        Join<MediaItem, Genre> genreJoin = mediaJoin.join("genres");
-        Expression<String> unitKey = watchedMediaItemKey(root);
-
-        q.select(cb.tuple(
-                genreJoin.get("name").alias("genreName"),
-                cb.countDistinct(unitKey).alias("count"),
-                cb.literal(0.0d).alias("averageRating")
-        ));
-        q.where(
-                cb.equal(root.get("profile").get("id"), profileId),
-                completionEquivalent(cb, root)
-        );
-        q.groupBy(genreJoin.get("name"));
-        q.orderBy(cb.desc(cb.countDistinct(unitKey)), cb.asc(genreJoin.get("name")));
-
-        return em.createQuery(q).setMaxResults(limit).getResultList();
-    }
-
-    public static List<Tuple> queryJellyfinGenreOverTime(EntityManager em, UUID profileId, int limit) {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Tuple> q = cb.createTupleQuery();
-        Root<WatchEvent> root = q.from(WatchEvent.class);
-        Join<WatchEvent, MediaItem> mediaJoin = root.join("mediaItem");
-        Join<MediaItem, Genre> genreJoin = mediaJoin.join("genres");
-        Expression<String> unitKey = watchedMediaItemKey(root);
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
 
         Expression<Long> epochSeconds = cb.quot(
-                root.get("watchedAt").as(Long.class),
+                root.get("ratedAt").as(Long.class),
                 cb.literal(1000L)
         ).as(Long.class);
 
-        Expression<String> year = cb.function(
-                "strftime",
-                String.class,
-                cb.literal("%Y"),
-                cb.function(
-                        "datetime",
-                        String.class,
-                        epochSeconds,
-                        cb.literal("unixepoch")));
+        Expression<String> dayOfWeek = cb.function(
+                "strftime", String.class,
+                cb.literal("%w"),
+                cb.function("datetime", String.class, epochSeconds, cb.literal("unixepoch"))
+        );
 
         q.select(cb.tuple(
-                year.alias("year"),
-                genreJoin.get("name").alias("genreName"),
-                cb.countDistinct(unitKey).alias("count"),
-                cb.literal(0.0d).alias("averageRating")
+                dayOfWeek.alias("dayOfWeek"),
+                cb.count(root).alias("count")
         ));
-        q.where(
-                cb.equal(root.get("profile").get("id"), profileId),
-                cb.isNotNull(root.get("watchedAt")),
-                completionEquivalent(cb, root)
-        );
-        q.groupBy(year, genreJoin.get("name"));
-        q.orderBy(cb.asc(year), cb.desc(cb.countDistinct(unitKey)), cb.asc(genreJoin.get("name")));
-
-        return em.createQuery(q).getResultList();
-    }
-
-    public static List<Tuple> queryJellyfinMediaTypeBreakdown(EntityManager em, UUID profileId) {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Tuple> q = cb.createTupleQuery();
-        Root<WatchEvent> root = q.from(WatchEvent.class);
-        Join<WatchEvent, MediaItem> mediaJoin = root.join("mediaItem");
-        Expression<String> unitKey = watchedMediaItemKey(root);
-
-        q.select(cb.tuple(
-                mediaJoin.get("mediaType").alias("mediaType"),
-                cb.countDistinct(unitKey).alias("count"),
-                cb.literal(0.0d).alias("averageRating")
-        ));
-        q.where(
-                cb.equal(root.get("profile").get("id"), profileId),
-                completionEquivalent(cb, root)
-        );
-        q.groupBy(mediaJoin.get("mediaType"));
+        q.where(cb.equal(root.get("profile").get("id"), profileId));
+        q.groupBy(dayOfWeek);
+        q.orderBy(cb.asc(dayOfWeek));
 
         return em.createQuery(q).getResultList();
     }
@@ -602,78 +659,6 @@ public final class StatisticsSpecifications {
                 cb.equal(root.get("profile").get("id"), profileId),
                 completionEquivalent(cb, root)
         );
-        q.groupBy(dayOfWeek);
-        q.orderBy(cb.asc(dayOfWeek));
-
-        return em.createQuery(q).getResultList();
-    }
-
-    public static List<Tuple> queryJellyfinDecadePreferences(EntityManager em, UUID profileId) {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Tuple> q = cb.createTupleQuery();
-        Root<WatchEvent> root = q.from(WatchEvent.class);
-        Expression<String> mediaItemKey = watchedMediaItemKey(root);
-
-        Expression<Integer> productionYear = root.get("mediaItem").get("productionYear");
-        Expression<Number> decade = cb.prod(cb.quot(productionYear, 10), 10);
-
-        q.select(cb.tuple(
-                decade.alias("decade"),
-                cb.countDistinct(mediaItemKey).alias("count"),
-                cb.literal(0.0d).alias("averageRating")
-        ));
-        q.where(
-                cb.equal(root.get("profile").get("id"), profileId),
-                cb.isNotNull(root.get("mediaItem").get("productionYear")),
-                completionEquivalent(cb, root)
-        );
-        q.groupBy(decade);
-        q.orderBy(cb.desc(decade));
-
-        return em.createQuery(q).getResultList();
-    }
-
-    public static Tuple queryJellyfinTrendForPeriod(EntityManager em, UUID profileId, Instant start, Instant end) {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Tuple> q = cb.createTupleQuery();
-        Root<WatchEvent> root = q.from(WatchEvent.class);
-        Expression<String> mediaItemKey = watchedMediaItemKey(root);
-
-        q.select(cb.tuple(
-                cb.countDistinct(mediaItemKey).alias("count"),
-                cb.literal(0.0d).alias("averageRating")
-        ));
-        q.where(
-                cb.equal(root.get("profile").get("id"), profileId),
-                cb.greaterThanOrEqualTo(root.get("watchedAt"), start),
-                cb.lessThanOrEqualTo(root.get("watchedAt"), end),
-                completionEquivalent(cb, root)
-        );
-
-        return em.createQuery(q).getSingleResult();
-    }
-
-    public static List<Tuple> queryDayOfWeekActivity(EntityManager em, UUID profileId) {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Tuple> q = cb.createTupleQuery();
-        Root<MediaItemRating> root = q.from(MediaItemRating.class);
-
-        Expression<Long> epochSeconds = cb.quot(
-                root.get("ratedAt").as(Long.class),
-                cb.literal(1000L)
-        ).as(Long.class);
-
-        Expression<String> dayOfWeek = cb.function(
-                "strftime", String.class,
-                cb.literal("%w"),
-                cb.function("datetime", String.class, epochSeconds, cb.literal("unixepoch"))
-        );
-
-        q.select(cb.tuple(
-                dayOfWeek.alias("dayOfWeek"),
-                cb.count(root).alias("count")
-        ));
-        q.where(cb.equal(root.get("profile").get("id"), profileId));
         q.groupBy(dayOfWeek);
         q.orderBy(cb.asc(dayOfWeek));
 
