@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "packages": {
+    ".": {
+      "extra-files": [
+        {
+          "type": "xml",
+          "path": "server/pom.xml",
+          "xpath": "/project/version"
+        },
+        {
+          "type": "json",
+          "path": "client/package.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    }
+  }
+}

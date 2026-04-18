@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# Validate commit messages against Conventional Commits spec before pushing.
+# Only checks commits that don't exist on origin/master yet.
+if git rev-parse --verify origin/master > /dev/null 2>&1; then
+  convco check origin/master..HEAD
+else
+  convco check HEAD
+fi
