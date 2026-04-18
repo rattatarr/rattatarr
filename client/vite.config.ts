@@ -46,6 +46,8 @@ export default defineConfig(({ mode }: ConfigEnv) => {
     define: {
       // Inject version at build time
       'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
+      // sockjs-client uses Node.js `global` — polyfill for browser
+      global: 'globalThis',
     },
     resolve: {
       alias: {
@@ -58,6 +60,11 @@ export default defineConfig(({ mode }: ConfigEnv) => {
         '/api': {
           target: `http://${baseServerURL}`,
           changeOrigin: true,
+        },
+        '/ws': {
+          target: `http://${baseServerURL}`,
+          changeOrigin: true,
+          ws: true,
         },
       },
       host: '0.0.0.0',

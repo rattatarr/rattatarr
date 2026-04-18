@@ -40,6 +40,9 @@ vi.mock('../queryKeys', () => ({
   profileKeys: {
     all: ['profiles'],
   },
+  jobKeys: {
+    all: ['jobs'],
+  },
 }))
 
 describe('useJellyfinTest', () => {
@@ -116,9 +119,10 @@ describe('useSyncJellyfinMedia', () => {
     const call = mockUseMutation.mock.calls[0]![0]!
     await call.onSuccess()
 
-    expect(mockInvalidateQueries).toHaveBeenCalledTimes(2)
+    expect(mockInvalidateQueries).toHaveBeenCalledTimes(3)
     expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['movies'] })
     expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['series'] })
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['jobs'] })
   })
 
   it('handles successful sync response', async () => {

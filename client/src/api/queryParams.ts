@@ -6,6 +6,7 @@
  * - Wrong: ?pageable[page]=1&filters[genres][]=action
  */
 
+import type { JobsFilters } from '@/api/jobs'
 import type {
   Pageable,
   MovieFilters,
@@ -176,5 +177,17 @@ export function buildPeopleQueryParams(pageable: Pageable, filters: PeopleFilter
 
     // Filter fields (flat at top level)
     name: filters.name || undefined,
+  }
+}
+
+export function buildJobsQueryParams(pageable: Pageable, filters?: JobsFilters) {
+  return {
+    page: pageable.page,
+    size: pageable.size,
+    sort: pageable.sort,
+    type: filters?.type,
+    status: filters?.status,
+    startDate: filters?.startDate,
+    endDate: filters?.endDate,
   }
 }

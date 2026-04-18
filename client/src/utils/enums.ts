@@ -126,6 +126,8 @@ export enum Icon {
   COMMENTS = 'pi pi-comments',
   SEND = 'pi pi-send',
   COPY = 'pi pi-copy',
+  BRIEFCASE = 'pi pi-briefcase',
+  HISTORY = 'pi pi-history',
 }
 
 /**

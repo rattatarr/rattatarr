@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import * as ratingsApi from '@/api/ratings'
 import type { ExportRatingsCsvResponse } from '@/api/ratings'
-import { movieKeys, seriesKeys } from './queryKeys'
-import type { RateRequest, GenericResponse } from '@/types'
+import { jobKeys, movieKeys, seriesKeys } from './queryKeys'
+import type { BackgroundJob, RateRequest, GenericResponse } from '@/types'
 
 /**
  * Mutation hook to rate a movie or series
@@ -28,13 +28,13 @@ export function useRateMediaItem() {
 export function useImportIMDbRatings() {
   const queryClient = useQueryClient()
 
-  return useMutation<GenericResponse, Error, { file: File; profileId: string }>({
+  return useMutation<BackgroundJob, Error, { file: File; profileId: string }>({
     mutationFn: ({ file, profileId }) => ratingsApi.importIMDbRatings(file, profileId),
     onSuccess: async () => {
-      // Invalidate all library queries as ratings have been imported
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: movieKeys.all }),
         queryClient.invalidateQueries({ queryKey: seriesKeys.all }),
+        queryClient.invalidateQueries({ queryKey: jobKeys.all }),
       ])
     },
   })

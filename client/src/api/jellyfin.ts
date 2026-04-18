@@ -1,9 +1,9 @@
 import { apiClient, handleResponse } from './client'
-import type { GenericResponse, ProfilesWrapper } from '@/types'
+import type { BackgroundJob, GenericResponse, ProfilesWrapper } from '@/types'
 
-export async function syncJellyfinMedia(): Promise<GenericResponse> {
+export async function syncJellyfinMedia(): Promise<BackgroundJob> {
   const response = await apiClient.PUT('/api/v1/jellyfin/sync-media')
-  return handleResponse<GenericResponse>(response)
+  return handleResponse<BackgroundJob>(response)
 }
 
 export async function syncJellyfinProfiles(): Promise<ProfilesWrapper> {

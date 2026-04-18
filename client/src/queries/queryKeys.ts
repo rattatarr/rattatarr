@@ -169,6 +169,18 @@ export const statisticsKeys = {
 }
 
 /**
+ * Query key factory for background jobs
+ */
+export const jobKeys = {
+  all: ['jobs'] as const,
+  lists: () => [...jobKeys.all, 'list'] as const,
+  list: (pageable: Pageable, filters?: import('@/api/jobs').JobsFilters) =>
+    [...jobKeys.lists(), { pageable, filters }] as const,
+  details: () => [...jobKeys.all, 'detail'] as const,
+  detail: (id: string) => [...jobKeys.details(), id] as const,
+}
+
+/**
  * Utility to invalidate all queries for a specific domain
  */
 export const invalidateAll = {
@@ -183,4 +195,5 @@ export const invalidateAll = {
   logs: logKeys.all,
   search: searchKeys.all,
   statistics: statisticsKeys.all,
+  jobs: jobKeys.all,
 }

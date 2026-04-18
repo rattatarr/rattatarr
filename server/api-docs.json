@@ -256,12 +256,12 @@
         ],
         "operationId": "syncMedia",
         "responses": {
-          "200": {
-            "description": "OK",
+          "202": {
+            "description": "Accepted",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/GenericResponseDTO"
+                  "$ref": "#/components/schemas/BackgroundJobResponseDTO"
                 }
               }
             }
@@ -305,12 +305,12 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "202": {
+            "description": "Accepted",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/GenericResponseDTO"
+                  "$ref": "#/components/schemas/BackgroundJobResponseDTO"
                 }
               }
             }
@@ -1209,6 +1209,115 @@
         }
       }
     },
+    "/api/v1/jobs": {
+      "get": {
+        "tags": [
+          "jobs-controller"
+        ],
+        "operationId": "getJobs",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Filter by job type (JELLYFIN_SYNC, CSV_IMPORT)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "JELLYFIN_SYNC",
+                "CSV_IMPORT"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by job status (PENDING, RUNNING, COMPLETED, FAILED)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "RUNNING",
+                "COMPLETED",
+                "FAILED"
+              ]
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Start date-time in ISO-8601 format",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2024-02-14T10:30:00"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "End date-time in ISO-8601 format",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2024-02-14T15:30:00"
+          },
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackgroundJobsWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{id}": {
+      "get": {
+        "tags": [
+          "jobs-controller"
+        ],
+        "operationId": "getJob",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackgroundJobResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/jellyfin/test": {
       "get": {
         "tags": [
@@ -1637,6 +1746,54 @@
           },
           "pagination": {
             "$ref": "#/components/schemas/PaginationMetadata"
+          }
+        }
+      },
+      "BackgroundJobResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "JELLYFIN_SYNC",
+              "CSV_IMPORT"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -3188,6 +3345,20 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/GenreResponseDTO"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationMetadata"
+          }
+        }
+      },
+      "BackgroundJobsWrapper": {
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackgroundJobResponseDTO"
             }
           },
           "pagination": {

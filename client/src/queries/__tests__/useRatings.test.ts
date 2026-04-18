@@ -31,6 +31,9 @@ vi.mock('../queryKeys', () => ({
   seriesKeys: {
     all: ['series'],
   },
+  jobKeys: {
+    all: ['jobs'],
+  },
 }))
 
 describe('useRateMediaItem', () => {
@@ -112,9 +115,10 @@ describe('useImportIMDbRatings', () => {
     const call = mockUseMutation.mock.calls[0]![0]!
     await call.onSuccess()
 
-    expect(mockInvalidateQueries).toHaveBeenCalledTimes(2)
+    expect(mockInvalidateQueries).toHaveBeenCalledTimes(3)
     expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['movies'] })
     expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['series'] })
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['jobs'] })
   })
 
   it('accepts File object with profileId', async () => {

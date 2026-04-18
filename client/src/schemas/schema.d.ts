@@ -548,6 +548,38 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/jobs': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['getJobs']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/jobs/{id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['getJob']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/jellyfin/test': {
     parameters: {
       query?: never
@@ -752,6 +784,25 @@ export interface components {
     ProfilesWrapper: {
       profiles?: components['schemas']['ProfileResponseDTO'][]
       pagination?: components['schemas']['PaginationMetadata']
+    }
+    BackgroundJobResponseDTO: {
+      /** Format: uuid */
+      id?: string
+      /** @enum {string} */
+      type?: 'JELLYFIN_SYNC' | 'CSV_IMPORT'
+      /** @enum {string} */
+      status?: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
+      message?: string
+      /** Format: uuid */
+      profileId?: string
+      /** Format: date-time */
+      startedAt?: string
+      /** Format: date-time */
+      finishedAt?: string
+      /** Format: date-time */
+      createdAt?: string
+      /** Format: date-time */
+      updatedAt?: string
     }
     CreateProfileRequestDTO: {
       name: string
@@ -1297,6 +1348,10 @@ export interface components {
       genres?: components['schemas']['GenreResponseDTO'][]
       pagination?: components['schemas']['PaginationMetadata']
     }
+    BackgroundJobsWrapper: {
+      jobs?: components['schemas']['BackgroundJobResponseDTO'][]
+      pagination?: components['schemas']['PaginationMetadata']
+    }
     AgentSuggestionsResponseDTO: {
       suggestions?: string[]
     }
@@ -1542,13 +1597,13 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description OK */
-      200: {
+      /** @description Accepted */
+      202: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          '*/*': components['schemas']['GenericResponseDTO']
+          '*/*': components['schemas']['BackgroundJobResponseDTO']
         }
       }
     }
@@ -1571,13 +1626,13 @@ export interface operations {
       }
     }
     responses: {
-      /** @description OK */
-      200: {
+      /** @description Accepted */
+      202: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          '*/*': components['schemas']['GenericResponseDTO']
+          '*/*': components['schemas']['BackgroundJobResponseDTO']
         }
       }
     }
@@ -2179,6 +2234,64 @@ export interface operations {
         }
         content: {
           '*/*': components['schemas']['GenresWrapper']
+        }
+      }
+    }
+  }
+  getJobs: {
+    parameters: {
+      query: {
+        /** @description Filter by job type (JELLYFIN_SYNC, CSV_IMPORT) */
+        type?: 'JELLYFIN_SYNC' | 'CSV_IMPORT'
+        /** @description Filter by job status (PENDING, RUNNING, COMPLETED, FAILED) */
+        status?: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
+        /**
+         * @description Start date-time in ISO-8601 format
+         * @example 2024-02-14T10:30:00
+         */
+        startDate?: string
+        /**
+         * @description End date-time in ISO-8601 format
+         * @example 2024-02-14T15:30:00
+         */
+        endDate?: string
+        pageable: components['schemas']['Pageable']
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['BackgroundJobsWrapper']
+        }
+      }
+    }
+  }
+  getJob: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['BackgroundJobResponseDTO']
         }
       }
     }

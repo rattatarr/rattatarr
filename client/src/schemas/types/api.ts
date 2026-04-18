@@ -128,6 +128,12 @@ export type AgentPromptResponse = Schemas['AgentPromptResponseDTO']
 export type AgentConversationMessage = Schemas['AgentConversationMessageResponseDTO']
 export type AgentConversationWrapper = Schemas['AgentConversationWrapper']
 
+// --- Background Jobs ---
+export type BackgroundJob = Schemas['BackgroundJobResponseDTO']
+export type BackgroundJobsWrapper = Schemas['BackgroundJobsWrapper']
+export type JobType = NonNullable<BackgroundJob['type']>
+export type JobStatus = NonNullable<BackgroundJob['status']>
+
 // =============================================================================
 // Common Type Utilities
 // =============================================================================

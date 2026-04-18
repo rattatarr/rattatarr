@@ -51,4 +51,10 @@ public final class TimeConverter {
     public static String toIsoDateTime(long timestamp) {
         return Instant.ofEpochMilli(timestamp).toString();
     }
+
+    @Nullable
+    public static Instant parseToInstant(@Nullable String dateTimeString) {
+        Long millis = parseDateTime(dateTimeString);
+        return millis != null ? Instant.ofEpochMilli(millis) : null;
+    }
 }
