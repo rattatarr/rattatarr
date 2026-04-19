@@ -81,6 +81,7 @@ export enum Icon {
 
   // Media
   STAR = 'pi pi-star',
+  STAR_FILL = 'pi pi-star-fill',
   FILM = 'pi pi-video',
   TV = 'pi pi-desktop',
   IMAGE = 'pi pi-image',

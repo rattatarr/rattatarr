@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -36,6 +37,10 @@ public record ShowResponseDTO(
     }
 
     public static ShowResponseDTO fromEntity(MediaItem mediaItem, @Nullable MediaItemRating rating, boolean includeCredits) {
+        return fromEntity(mediaItem, rating, includeCredits, Map.of());
+    }
+
+    public static ShowResponseDTO fromEntity(MediaItem mediaItem, @Nullable MediaItemRating rating, boolean includeCredits, Map<UUID, Float> seasonRatings) {
         return new ShowResponseDTO(
                 mediaItem.id(),
                 mediaItem.jellyfinId(),
@@ -47,7 +52,7 @@ public record ShowResponseDTO(
                 Hibernate.isInitialized(mediaItem.metadata()) ? MediaItemMetadataResponseDTO.fromEntity(mediaItem.metadata()) : null,
                 GenreResponseDTO.fromEntities(mediaItem.genres()),
                 Hibernate.isInitialized(mediaItem.seasons()) && !mediaItem.seasons().isEmpty()
-                        ? SeasonResponseDTO.fromEntities(mediaItem.seasons())
+                        ? SeasonResponseDTO.fromEntities(mediaItem.seasons(), seasonRatings)
                         : null,
                 includeCredits && Hibernate.isInitialized(mediaItem.cast()) && mediaItem.cast() != null && !mediaItem.cast().isEmpty()
                         ? CastMemberResponseDTO.fromEntities(mediaItem.cast())

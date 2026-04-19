@@ -12,8 +12,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -256,6 +259,46 @@ class MediaSeasonRatingsServiceTest {
         assertEquals(9.0f, existing.rating());
         assertEquals(profile, existing.profile());
         assertEquals(mediaSeason, existing.mediaSeason());
+    }
+
+    @Test
+    void batchFetchRatingsMap_withProfileAndSeasonIds_shouldReturnMap() {
+        // Given
+        UUID profileId = UUID.randomUUID();
+        UUID seasonId1 = UUID.randomUUID();
+        UUID seasonId2 = UUID.randomUUID();
+
+        when(repository.findAllByProfileIdAndMediaSeasonIdIn(eq(profileId), any()))
+                .thenReturn(List.of());
+
+        // When
+        Map<UUID, Float> result = service.batchFetchRatingsMap(List.of(seasonId1, seasonId2), profileId);
+
+        // Then
+        assertNotNull(result);
+        verify(repository).findAllByProfileIdAndMediaSeasonIdIn(eq(profileId), any());
+    }
+
+    @Test
+    void batchFetchRatingsMap_withNullProfileId_shouldReturnEmptyMap() {
+        // When
+        Map<UUID, Float> result = service.batchFetchRatingsMap(List.of(UUID.randomUUID()), null);
+
+        // Then
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void batchFetchRatingsMap_withEmptySeasonIds_shouldReturnEmptyMap() {
+        // When
+        Map<UUID, Float> result = service.batchFetchRatingsMap(List.of(), UUID.randomUUID());
+
+        // Then
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verifyNoInteractions(repository);
     }
 
     @Test
