@@ -17,7 +17,7 @@ spring:
       # For development purpose until a proper model is established and migrations are in place we use 'create'
       # Use 'update' for preserving data between restarts
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     open-in-view: false
 
 springdoc:
@@ -27,7 +27,7 @@ springdoc:
 rattatarr:
   version: "@project.version@"
   debug:
-    stacktrace: true
+    stacktrace: false
   jellyfin:
     api-key: your-jellyfin-api-key
     base-url: http://localhost:8096
@@ -53,9 +53,8 @@ rattatarr:
 
 logging:
   level:
-    root: INFO
-    com.rattatarr: DEBUG
-    com.rattatarr.rattatarr.services: TRACE
+    root: WARN
+    com.rattatarr: INFO
     org.springframework: WARN
 
 rest-client:
