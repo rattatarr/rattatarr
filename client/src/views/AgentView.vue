@@ -9,6 +9,7 @@
     useSendAgentChat,
     useClearAgentConversation,
   } from '@/queries'
+  import { APIError } from '@/api/client'
   import AgentPromptPanel from '@/components/agent/AgentPromptPanel.vue'
   import AgentSuggestions from '@/components/agent/AgentSuggestions.vue'
   import AgentChat from '@/components/agent/AgentChat.vue'
@@ -31,7 +32,20 @@
 
   const messageText = ref('')
 
-  const { mutate: sendMessage, isPending: isSending } = useSendAgentChat()
+  const { mutate: sendMessage, isPending: isSending, error: sendError } = useSendAgentChat()
+
+  const isAgentNotConfigured = computed(
+    () =>
+      sendError.value instanceof APIError &&
+      (sendError.value.body as Record<string, unknown>)?.error === 'AgentNotConfiguredException',
+  )
+
+  const agentCallError = computed(() => {
+    if (!(sendError.value instanceof APIError)) return null
+    const body = sendError.value.body as Record<string, unknown>
+    if (body?.error === 'AgentCallFailedException') return sendError.value.getUserMessage()
+    return null
+  })
   const { mutate: clearConversation, isPending: isClearing } = useClearAgentConversation()
 
   function handleSend(message: string) {
@@ -74,6 +88,8 @@
         :is-error="isConversationError"
         :is-sending="isSending"
         :is-clearing="isClearing"
+        :agent-not-configured="isAgentNotConfigured"
+        :agent-call-error="agentCallError"
         @send="handleSend"
         @clear="handleClear"
       />

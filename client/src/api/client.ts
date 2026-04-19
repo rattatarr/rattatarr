@@ -102,15 +102,21 @@ export async function handleResponse<T>(response: {
   response?: Response
 }): Promise<T> {
   if (response.error) {
-    const status = response.error.status ?? response.response?.status ?? 500
-    const statusText = response.error.statusText ?? response.response?.statusText ?? 'Unknown Error'
-    const body = response.error.body
-    const url = response.error.url ?? response.response?.url
+    // openapi-fetch puts the parsed JSON response body directly in response.error,
+    // not in response.error.body — fall back to the whole error object as body.
+    const rawError = response.error as Record<string, unknown>
+    const body: unknown = rawError['body'] !== undefined ? rawError['body'] : response.error
+    const status =
+      response.response?.status ??
+      (typeof rawError['status'] === 'number' ? rawError['status'] : 500)
+    const statusText =
+      response.response?.statusText ?? String(rawError['statusText'] ?? 'Unknown Error')
+    const url = response.response?.url ?? String(rawError['url'] ?? '')
 
     // Extract message from error body or use status text
     let message = statusText
     if (body && typeof body === 'object' && 'message' in body) {
-      message = String(body.message)
+      message = String((body as Record<string, unknown>)['message'])
     }
 
     throw new APIError({
