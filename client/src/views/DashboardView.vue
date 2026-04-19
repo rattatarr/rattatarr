@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { computed, onMounted, ref } from 'vue'
+  import { useRouter } from 'vue-router'
   import Card from 'primevue/card'
   import Message from 'primevue/message'
   import SelectButton from 'primevue/selectbutton'
@@ -22,6 +23,8 @@
   import RatingHeatmap from '@/components/dashboard/RatingHeatmap.vue'
   import GenreOverTimeChart from '@/components/dashboard/GenreOverTimeChart.vue'
   import { MediaType } from '@/utils/enums'
+
+  const router = useRouter()
 
   const profileStore = useProfileStore()
   const { preloadMainRoutes } = useRoutePreload()
@@ -148,6 +151,14 @@
       (statistics.value?.recentTrends?.length ?? 0) > 0 ||
       (statistics.value?.jellyfinRecentTrends?.length ?? 0) > 0,
   )
+
+  function onHeatmapDayClick(date: string) {
+    router.push({ name: 'activity', query: { startDate: date, endDate: date } })
+  }
+
+  function onHeatmapMonthClick(startDate: string, endDate: string) {
+    router.push({ name: 'activity', query: { startDate, endDate } })
+  }
 </script>
 
 <template>
@@ -231,6 +242,8 @@
           :heatmap="selectedHeatmap"
           :mode="heatmapMode"
           class="stretch"
+          @day-click="onHeatmapDayClick"
+          @month-click="onHeatmapMonthClick"
         />
         <Message v-else severity="info" :closable="false">
           No {{ heatmapMode }} heatmap data available.
