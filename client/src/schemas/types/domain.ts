@@ -34,6 +34,7 @@ export interface DomainEpisode {
 }
 
 export interface DomainSeason {
+  id?: string
   seasonNumber: number
   title: string
   episodeCount?: number
@@ -41,6 +42,7 @@ export interface DomainSeason {
   posterUrl?: string
   episodes: DomainEpisode[]
   initiallyExpanded: boolean
+  myRating?: number
 }
 
 /**

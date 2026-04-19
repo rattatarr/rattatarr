@@ -2,12 +2,15 @@ package com.rattatarr.rattatarr.models.dtos.responses;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.rattatarr.rattatarr.models.entities.MediaSeason;
-import com.rattatarr.rattatarr.models.entities.MediaSeasonRating;
 import org.hibernate.Hibernate;
+import org.jspecify.annotations.Nullable;
 import org.springframework.util.ObjectUtils;
 
 import java.io.Serializable;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -21,7 +24,7 @@ public record SeasonResponseDTO(
         List<EpisodeResponseDTO> episodes,
         Float myRating
 ) implements Serializable {
-    public static SeasonResponseDTO fromEntity(MediaSeason mediaSeason) {
+    public static SeasonResponseDTO fromEntity(MediaSeason mediaSeason, @Nullable Float rating) {
         return new SeasonResponseDTO(
                 mediaSeason.id(),
                 mediaSeason.jellyfinId(),
@@ -31,15 +34,22 @@ public record SeasonResponseDTO(
                 Hibernate.isInitialized(mediaSeason.episodes()) && !ObjectUtils.isEmpty(mediaSeason.episodes())
                         ? EpisodeResponseDTO.fromEntities(mediaSeason.episodes())
                         : null,
-                Hibernate.isInitialized(mediaSeason.ratings()) && !mediaSeason.ratings().isEmpty()
-                        ? mediaSeason.ratings().stream().findFirst().map(MediaSeasonRating::rating).orElse(null)
-                        : null
+                rating
         );
     }
 
-    public static List<SeasonResponseDTO> fromEntities(Set<MediaSeason> mediaSeasons) {
+    public static SeasonResponseDTO fromEntity(MediaSeason mediaSeason) {
+        return fromEntity(mediaSeason, null);
+    }
+
+    public static List<SeasonResponseDTO> fromEntities(Set<MediaSeason> mediaSeasons, Map<UUID, Float> seasonRatings) {
         return mediaSeasons.stream()
-                .map(SeasonResponseDTO::fromEntity)
+                .sorted(Comparator.comparing(MediaSeason::season))
+                .map(season -> fromEntity(season, seasonRatings.get(season.id())))
                 .toList();
+    }
+
+    public static List<SeasonResponseDTO> fromEntities(Set<MediaSeason> mediaSeasons) {
+        return fromEntities(mediaSeasons, new HashMap<>());
     }
 }

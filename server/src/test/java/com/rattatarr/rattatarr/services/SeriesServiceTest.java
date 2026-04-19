@@ -53,6 +53,9 @@ class SeriesServiceTest {
     @Mock
     private MediaItemRatingsService mediaItemRatingsService;
 
+    @Mock
+    private MediaSeasonRatingsService mediaSeasonRatingsService;
+
     @InjectMocks
     private SeriesService service;
 
@@ -82,6 +85,8 @@ class SeriesServiceTest {
                 eq(SettingsService.SYNC_AUTO_REFRESH_ON_READ),
                 eq(false)
         )).thenReturn(false);
+
+        when(mediaSeasonRatingsService.batchFetchRatingsMap(any(), nullable(UUID.class))).thenReturn(new java.util.HashMap<>());
     }
 
     @Test
