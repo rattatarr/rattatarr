@@ -36,6 +36,11 @@ public class MediaItemSpecifications {
 
     }
 
+    public static Specification<MediaItem> hasAnyId(List<UUID> ids) {
+        return (root, query, cb) -> ids.isEmpty() ? cb.disjunction() :
+                root.get("id").in(ids);
+    }
+
     public static Specification<MediaItem> titleLike(@Nullable String title) {
         return (root, query, cb) -> title == null ? null :
                 cb.like(cb.lower(root.get("title")),

@@ -1,13 +1,6 @@
 import { apiClient, handleResponse } from './client'
 import { buildJobsQueryParams } from './queryParams'
-import type { BackgroundJob, BackgroundJobsWrapper, JobStatus, JobType, Pageable } from '@/types'
-
-export interface JobsFilters {
-  type?: JobType
-  status?: JobStatus
-  startDate?: string
-  endDate?: string
-}
+import type { BackgroundJob, BackgroundJobsWrapper, JobsFilters, Pageable } from '@/types'
 
 export async function getJobs(
   pageable: Pageable,

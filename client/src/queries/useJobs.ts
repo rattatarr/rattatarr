@@ -2,9 +2,8 @@ import { useQuery } from '@tanstack/vue-query'
 import type { MaybeRefOrGetter } from 'vue'
 import { toValue, computed } from 'vue'
 import * as jobsApi from '@/api/jobs'
-import type { JobsFilters } from '@/api/jobs'
 import { jobKeys } from './queryKeys'
-import type { BackgroundJob, BackgroundJobsWrapper, Pageable } from '@/types'
+import type { BackgroundJob, BackgroundJobsWrapper, JobsFilters, Pageable } from '@/types'
 
 export function useJobs(
   pageable: MaybeRefOrGetter<Pageable>,

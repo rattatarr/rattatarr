@@ -501,6 +501,44 @@
         }
       }
     },
+    "/api/v1/watch-activity": {
+      "get": {
+        "tags": [
+          "watch-activity-controller"
+        ],
+        "operationId": "getActivity",
+        "parameters": [
+          {
+            "name": "filters",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/WatchActivityFiltersDTO"
+            }
+          },
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchActivityWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tmdb/test": {
       "get": {
         "tags": [
@@ -1897,6 +1935,375 @@
           "mediaItemId"
         ]
       },
+      "WatchActivityFiltersDTO": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "mediaType": {
+            "type": "string",
+            "enum": [
+              "MOVIE",
+              "SERIES"
+            ]
+          }
+        }
+      },
+      "Pageable": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CastMemberResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "person": {
+            "$ref": "#/components/schemas/PersonResponseDTO"
+          },
+          "character": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CrewMemberResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "person": {
+            "$ref": "#/components/schemas/PersonResponseDTO"
+          },
+          "job": {
+            "type": "string"
+          },
+          "department": {
+            "type": "string"
+          },
+          "profilePathUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "EpisodeResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jellyfinId": {
+            "type": "string"
+          },
+          "episode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "runtimeMinutes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "GenreResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "MediaItemMetadataResponseDTO": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "posterImageUrl": {
+            "type": "string"
+          },
+          "backdropImageUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "MediaSeasonMetadataResponseDTO": {
+        "type": "object",
+        "properties": {
+          "episodeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "posterImageUrl": {
+            "type": "string"
+          },
+          "airDate": {
+            "type": "string"
+          }
+        }
+      },
+      "MovieResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jellyfinId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "TMDbId": {
+            "type": "string"
+          },
+          "IMDbId": {
+            "type": "string"
+          },
+          "productionYear": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "runtimeMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MediaItemMetadataResponseDTO"
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenreResponseDTO"
+            },
+            "uniqueItems": true
+          },
+          "cast": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CastMemberResponseDTO"
+            }
+          },
+          "crew": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CrewMemberResponseDTO"
+            }
+          },
+          "myRating": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "PersonResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "TMDbId": {
+            "type": "string"
+          },
+          "profilePathUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "SeasonResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jellyfinId": {
+            "type": "string"
+          },
+          "season": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MediaSeasonMetadataResponseDTO"
+          },
+          "episodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EpisodeResponseDTO"
+            }
+          },
+          "myRating": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "ShowResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jellyfinId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "TMDbId": {
+            "type": "string"
+          },
+          "IMDbId": {
+            "type": "string"
+          },
+          "productionYear": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "runtimeMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MediaItemMetadataResponseDTO"
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenreResponseDTO"
+            },
+            "uniqueItems": true
+          },
+          "seasons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeasonResponseDTO"
+            }
+          },
+          "cast": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CastMemberResponseDTO"
+            }
+          },
+          "crew": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CrewMemberResponseDTO"
+            }
+          },
+          "myRating": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "WatchActivityWrapper": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchEventResponseDTO"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationMetadata"
+          }
+        }
+      },
+      "WatchEventResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "watchedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "START",
+              "PROGRESS",
+              "COMPLETE"
+            ]
+          },
+          "positionSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "movie": {
+            "$ref": "#/components/schemas/MovieResponseDTO"
+          },
+          "show": {
+            "$ref": "#/components/schemas/ShowResponseDTO"
+          },
+          "seasonNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "episodeNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "episodeTitle": {
+            "type": "string"
+          }
+        }
+      },
       "TMDbCreditCastMemberResponseDTO": {
         "type": "object",
         "properties": {
@@ -2283,27 +2690,6 @@
         "properties": {
           "setting": {
             "$ref": "#/components/schemas/SettingResponseDTO"
-          }
-        }
-      },
-      "Pageable": {
-        "type": "object",
-        "properties": {
-          "page": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "size": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 1
-          },
-          "sort": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         }
       },
@@ -2926,160 +3312,6 @@
           "title"
         ]
       },
-      "CastMemberResponseDTO": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "person": {
-            "$ref": "#/components/schemas/PersonResponseDTO"
-          },
-          "character": {
-            "type": "string"
-          },
-          "order": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "CrewMemberResponseDTO": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "person": {
-            "$ref": "#/components/schemas/PersonResponseDTO"
-          },
-          "job": {
-            "type": "string"
-          },
-          "department": {
-            "type": "string"
-          },
-          "profilePathUrl": {
-            "type": "string"
-          }
-        }
-      },
-      "EpisodeResponseDTO": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "jellyfinId": {
-            "type": "string"
-          },
-          "episode": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "title": {
-            "type": "string"
-          },
-          "runtimeMinutes": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "GenreResponseDTO": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          }
-        }
-      },
-      "MediaItemMetadataResponseDTO": {
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string"
-          },
-          "posterImageUrl": {
-            "type": "string"
-          },
-          "backdropImageUrl": {
-            "type": "string"
-          }
-        }
-      },
-      "MediaSeasonMetadataResponseDTO": {
-        "type": "object",
-        "properties": {
-          "episodeCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "posterImageUrl": {
-            "type": "string"
-          },
-          "airDate": {
-            "type": "string"
-          }
-        }
-      },
-      "PersonResponseDTO": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "TMDbId": {
-            "type": "string"
-          },
-          "profilePathUrl": {
-            "type": "string"
-          }
-        }
-      },
-      "SeasonResponseDTO": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "jellyfinId": {
-            "type": "string"
-          },
-          "season": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "title": {
-            "type": "string"
-          },
-          "metadata": {
-            "$ref": "#/components/schemas/MediaSeasonMetadataResponseDTO"
-          },
-          "episodes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EpisodeResponseDTO"
-            }
-          },
-          "myRating": {
-            "type": "number",
-            "format": "float"
-          }
-        }
-      },
       "SeriesResponseWrapper": {
         "type": "object",
         "properties": {
@@ -3091,67 +3323,6 @@
           },
           "pagination": {
             "$ref": "#/components/schemas/PaginationMetadata"
-          }
-        }
-      },
-      "ShowResponseDTO": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "jellyfinId": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "TMDbId": {
-            "type": "string"
-          },
-          "IMDbId": {
-            "type": "string"
-          },
-          "productionYear": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "runtimeMinutes": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "metadata": {
-            "$ref": "#/components/schemas/MediaItemMetadataResponseDTO"
-          },
-          "genres": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GenreResponseDTO"
-            },
-            "uniqueItems": true
-          },
-          "seasons": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SeasonResponseDTO"
-            }
-          },
-          "cast": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CastMemberResponseDTO"
-            }
-          },
-          "crew": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CrewMemberResponseDTO"
-            }
-          },
-          "myRating": {
-            "type": "number",
-            "format": "float"
           }
         }
       },
@@ -3256,61 +3427,6 @@
         "required": [
           "title"
         ]
-      },
-      "MovieResponseDTO": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "jellyfinId": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "TMDbId": {
-            "type": "string"
-          },
-          "IMDbId": {
-            "type": "string"
-          },
-          "productionYear": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "runtimeMinutes": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "metadata": {
-            "$ref": "#/components/schemas/MediaItemMetadataResponseDTO"
-          },
-          "genres": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GenreResponseDTO"
-            },
-            "uniqueItems": true
-          },
-          "cast": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CastMemberResponseDTO"
-            }
-          },
-          "crew": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CrewMemberResponseDTO"
-            }
-          },
-          "myRating": {
-            "type": "number",
-            "format": "float"
-          }
-        }
       },
       "MoviesResponseWrapper": {
         "type": "object",

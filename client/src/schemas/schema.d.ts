@@ -212,6 +212,22 @@ export interface paths {
     patch: operations['resolveItem']
     trace?: never
   }
+  '/api/v1/watch-activity': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['getActivity']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/tmdb/test': {
     parameters: {
       query?: never
@@ -838,6 +854,140 @@ export interface components {
       /** Format: uuid */
       mediaItemId: string
     }
+    WatchActivityFiltersDTO: {
+      /** Format: uuid */
+      profileId?: string
+      startDate?: string
+      endDate?: string
+      /** @enum {string} */
+      mediaType?: 'MOVIE' | 'SERIES'
+    }
+    Pageable: {
+      /** Format: int32 */
+      page?: number
+      /** Format: int32 */
+      size?: number
+      sort?: string[]
+    }
+    CastMemberResponseDTO: {
+      /** Format: uuid */
+      id?: string
+      person?: components['schemas']['PersonResponseDTO']
+      character?: string
+      /** Format: int32 */
+      order?: number
+    }
+    CrewMemberResponseDTO: {
+      /** Format: uuid */
+      id?: string
+      person?: components['schemas']['PersonResponseDTO']
+      job?: string
+      department?: string
+      profilePathUrl?: string
+    }
+    EpisodeResponseDTO: {
+      /** Format: uuid */
+      id?: string
+      jellyfinId?: string
+      /** Format: int32 */
+      episode?: number
+      title?: string
+      /** Format: int32 */
+      runtimeMinutes?: number
+    }
+    GenreResponseDTO: {
+      /** Format: uuid */
+      id?: string
+      name?: string
+    }
+    MediaItemMetadataResponseDTO: {
+      description?: string
+      posterImageUrl?: string
+      backdropImageUrl?: string
+    }
+    MediaSeasonMetadataResponseDTO: {
+      /** Format: int32 */
+      episodeCount?: number
+      posterImageUrl?: string
+      airDate?: string
+    }
+    MovieResponseDTO: {
+      /** Format: uuid */
+      id?: string
+      jellyfinId?: string
+      title?: string
+      TMDbId?: string
+      IMDbId?: string
+      /** Format: int32 */
+      productionYear?: number
+      /** Format: int32 */
+      runtimeMinutes?: number
+      metadata?: components['schemas']['MediaItemMetadataResponseDTO']
+      genres?: components['schemas']['GenreResponseDTO'][]
+      cast?: components['schemas']['CastMemberResponseDTO'][]
+      crew?: components['schemas']['CrewMemberResponseDTO'][]
+      /** Format: float */
+      myRating?: number
+    }
+    PersonResponseDTO: {
+      /** Format: uuid */
+      id?: string
+      name?: string
+      TMDbId?: string
+      profilePathUrl?: string
+    }
+    SeasonResponseDTO: {
+      /** Format: uuid */
+      id?: string
+      jellyfinId?: string
+      /** Format: int32 */
+      season?: number
+      title?: string
+      metadata?: components['schemas']['MediaSeasonMetadataResponseDTO']
+      episodes?: components['schemas']['EpisodeResponseDTO'][]
+      /** Format: float */
+      myRating?: number
+    }
+    ShowResponseDTO: {
+      /** Format: uuid */
+      id?: string
+      jellyfinId?: string
+      title?: string
+      TMDbId?: string
+      IMDbId?: string
+      /** Format: int32 */
+      productionYear?: number
+      /** Format: int32 */
+      runtimeMinutes?: number
+      metadata?: components['schemas']['MediaItemMetadataResponseDTO']
+      genres?: components['schemas']['GenreResponseDTO'][]
+      seasons?: components['schemas']['SeasonResponseDTO'][]
+      cast?: components['schemas']['CastMemberResponseDTO'][]
+      crew?: components['schemas']['CrewMemberResponseDTO'][]
+      /** Format: float */
+      myRating?: number
+    }
+    WatchActivityWrapper: {
+      events?: components['schemas']['WatchEventResponseDTO'][]
+      pagination?: components['schemas']['PaginationMetadata']
+    }
+    WatchEventResponseDTO: {
+      /** Format: uuid */
+      id?: string
+      /** Format: date-time */
+      watchedAt?: string
+      /** @enum {string} */
+      eventType?: 'START' | 'PROGRESS' | 'COMPLETE'
+      /** Format: int32 */
+      positionSeconds?: number
+      movie?: components['schemas']['MovieResponseDTO']
+      show?: components['schemas']['ShowResponseDTO']
+      /** Format: int32 */
+      seasonNumber?: number
+      /** Format: int32 */
+      episodeNumber?: number
+      episodeTitle?: string
+    }
     TMDbCreditCastMemberResponseDTO: {
       name?: string
       character?: string
@@ -977,13 +1127,6 @@ export interface components {
     }
     SettingWrapper: {
       setting?: components['schemas']['SettingResponseDTO']
-    }
-    Pageable: {
-      /** Format: int32 */
-      page?: number
-      /** Format: int32 */
-      size?: number
-      sort?: string[]
     }
     ProfilesFiltersDTO: {
       name: string
@@ -1201,89 +1344,9 @@ export interface components {
       personId?: string
       unrated?: boolean
     }
-    CastMemberResponseDTO: {
-      /** Format: uuid */
-      id?: string
-      person?: components['schemas']['PersonResponseDTO']
-      character?: string
-      /** Format: int32 */
-      order?: number
-    }
-    CrewMemberResponseDTO: {
-      /** Format: uuid */
-      id?: string
-      person?: components['schemas']['PersonResponseDTO']
-      job?: string
-      department?: string
-      profilePathUrl?: string
-    }
-    EpisodeResponseDTO: {
-      /** Format: uuid */
-      id?: string
-      jellyfinId?: string
-      /** Format: int32 */
-      episode?: number
-      title?: string
-      /** Format: int32 */
-      runtimeMinutes?: number
-    }
-    GenreResponseDTO: {
-      /** Format: uuid */
-      id?: string
-      name?: string
-    }
-    MediaItemMetadataResponseDTO: {
-      description?: string
-      posterImageUrl?: string
-      backdropImageUrl?: string
-    }
-    MediaSeasonMetadataResponseDTO: {
-      /** Format: int32 */
-      episodeCount?: number
-      posterImageUrl?: string
-      airDate?: string
-    }
-    PersonResponseDTO: {
-      /** Format: uuid */
-      id?: string
-      name?: string
-      TMDbId?: string
-      profilePathUrl?: string
-    }
-    SeasonResponseDTO: {
-      /** Format: uuid */
-      id?: string
-      jellyfinId?: string
-      /** Format: int32 */
-      season?: number
-      title?: string
-      metadata?: components['schemas']['MediaSeasonMetadataResponseDTO']
-      episodes?: components['schemas']['EpisodeResponseDTO'][]
-      /** Format: float */
-      myRating?: number
-    }
     SeriesResponseWrapper: {
       series?: components['schemas']['ShowResponseDTO'][]
       pagination?: components['schemas']['PaginationMetadata']
-    }
-    ShowResponseDTO: {
-      /** Format: uuid */
-      id?: string
-      jellyfinId?: string
-      title?: string
-      TMDbId?: string
-      IMDbId?: string
-      /** Format: int32 */
-      productionYear?: number
-      /** Format: int32 */
-      runtimeMinutes?: number
-      metadata?: components['schemas']['MediaItemMetadataResponseDTO']
-      genres?: components['schemas']['GenreResponseDTO'][]
-      seasons?: components['schemas']['SeasonResponseDTO'][]
-      cast?: components['schemas']['CastMemberResponseDTO'][]
-      crew?: components['schemas']['CrewMemberResponseDTO'][]
-      /** Format: float */
-      myRating?: number
     }
     BrokenMediaItemResponseWrapper: {
       movies?: components['schemas']['BrokenMediaItemResponseDTO'][]
@@ -1318,24 +1381,6 @@ export interface components {
       /** Format: uuid */
       personId?: string
       unrated?: boolean
-    }
-    MovieResponseDTO: {
-      /** Format: uuid */
-      id?: string
-      jellyfinId?: string
-      title?: string
-      TMDbId?: string
-      IMDbId?: string
-      /** Format: int32 */
-      productionYear?: number
-      /** Format: int32 */
-      runtimeMinutes?: number
-      metadata?: components['schemas']['MediaItemMetadataResponseDTO']
-      genres?: components['schemas']['GenreResponseDTO'][]
-      cast?: components['schemas']['CastMemberResponseDTO'][]
-      crew?: components['schemas']['CrewMemberResponseDTO'][]
-      /** Format: float */
-      myRating?: number
     }
     MoviesResponseWrapper: {
       movies?: components['schemas']['MovieResponseDTO'][]
@@ -1754,6 +1799,29 @@ export interface operations {
         }
         content: {
           '*/*': components['schemas']['BrokenMediaItemResponseDTO']
+        }
+      }
+    }
+  }
+  getActivity: {
+    parameters: {
+      query: {
+        filters: components['schemas']['WatchActivityFiltersDTO']
+        pageable: components['schemas']['Pageable']
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['WatchActivityWrapper']
         }
       }
     }

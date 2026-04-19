@@ -6,13 +6,13 @@
  * - Wrong: ?pageable[page]=1&filters[genres][]=action
  */
 
-import type { JobsFilters } from '@/api/jobs'
 import type {
   Pageable,
   MovieFilters,
   SeriesFilters,
   GenresFilters,
   ProfilesFilters,
+  JobsFilters,
   PeopleFilters,
   ProfileStatisticsRequest,
   SearchFilters,

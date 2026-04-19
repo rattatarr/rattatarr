@@ -214,8 +214,8 @@ class TimeConverterTest {
         // When
         Long result = TimeConverter.parseDateTime(partialDateTime);
 
-        // Then
-        assertNull(result); // Should fail to parse, expecting full date-time
+        // Then — date-only strings parse as start of day UTC
+        assertEquals(Instant.parse("2024-02-14T00:00:00Z").toEpochMilli(), result);
     }
 
     @Test

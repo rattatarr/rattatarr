@@ -8,9 +8,16 @@ import {
   settingsKeys,
   jellyfinKeys,
   logKeys,
+  watchActivityKeys,
   invalidateAll,
 } from '@/queries'
-import type { Pageable, ProfilesFilters, MovieFilters, SearchFilters } from '@/types'
+import type {
+  Pageable,
+  ProfilesFilters,
+  MovieFilters,
+  SearchFilters,
+  WatchActivityFilters,
+} from '@/types'
 
 describe('profileKeys', () => {
   it('should generate base key', () => {
@@ -201,6 +208,47 @@ describe('logKeys', () => {
         },
       ])
     })
+  })
+})
+
+describe('watchActivityKeys', () => {
+  it('all returns base key', () => {
+    expect(watchActivityKeys.all).toEqual(['watch-activity'])
+  })
+
+  it('lists returns list namespace key', () => {
+    expect(watchActivityKeys.lists()).toEqual(['watch-activity', 'list'])
+  })
+
+  it('list includes pageable and filters', () => {
+    const pageable: Pageable = { page: 0, size: 20 }
+    const filters: WatchActivityFilters = { profileId: 'profile-1', mediaType: 'MOVIE' }
+
+    const key = watchActivityKeys.list(pageable, filters)
+
+    expect(key).toEqual(['watch-activity', 'list', { pageable, filters }])
+  })
+
+  it('list produces different keys for different filters', () => {
+    const pageable: Pageable = { page: 0, size: 20 }
+    const key1 = watchActivityKeys.list(pageable, { profileId: 'p1' })
+    const key2 = watchActivityKeys.list(pageable, { profileId: 'p2' })
+
+    expect(key1).not.toEqual(key2)
+  })
+
+  it('list produces different keys for different date ranges', () => {
+    const pageable: Pageable = { page: 0, size: 20 }
+    const key1 = watchActivityKeys.list(pageable, {
+      startDate: '2024-01-01',
+      endDate: '2024-01-31',
+    })
+    const key2 = watchActivityKeys.list(pageable, {
+      startDate: '2024-02-01',
+      endDate: '2024-02-28',
+    })
+
+    expect(key1).not.toEqual(key2)
   })
 })
 

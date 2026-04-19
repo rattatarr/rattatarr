@@ -41,6 +41,11 @@ const router = createRouter({
       meta: { scrollToTop: true },
     },
     {
+      path: '/activity',
+      name: 'activity',
+      component: () => import('@/views/ActivityView.vue'),
+    },
+    {
       path: '/broken',
       name: 'broken',
       component: () => import('@/views/BrokenView.vue'),
