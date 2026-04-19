@@ -254,12 +254,16 @@
             <SeasonDropdown
               v-for="season in sortedSeasons"
               :key="season.seasonNumber"
+              :id="season.id"
               :title="season.title"
               :episode-count="season.episodeCount"
               :air-date="season.airDate"
               :poster-url="season.posterUrl"
               :episodes="season.episodes"
               :initially-expanded="season.initiallyExpanded"
+              :my-rating="season.myRating"
+              :show-rating="series.source === MediaSource.INTERNAL && !!selectedProfileId"
+              @rating-updated="refetch"
             />
           </div>
         </div>

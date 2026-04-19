@@ -3,25 +3,49 @@
   import Button from 'primevue/button'
   import { Icon } from '@/utils/enums'
   import type { Episode } from '@/types'
+  import RatingDialog from '@/components/common/RatingDialog.vue'
+  import { useRateMediaItem } from '@/queries/useRatings'
+  import { useProfileStore } from '@/stores/profileStore'
+  import { useToast } from '@/composables/useToast'
 
   interface Props {
+    id?: string
     title?: string
     episodeCount?: number
     airDate?: string
     posterUrl?: string
     episodes?: Episode[]
     initiallyExpanded?: boolean
+    myRating?: number
+    showRating?: boolean
   }
 
   const props = withDefaults(defineProps<Props>(), {
     initiallyExpanded: false,
+    showRating: false,
   })
 
+  const emit = defineEmits<{
+    ratingUpdated: [rating: number]
+  }>()
+
+  const profileStore = useProfileStore()
+  const { success, error: showError } = useToast()
+  const ratingMutation = useRateMediaItem()
+
   const isExpanded = ref(props.initiallyExpanded)
+  const showRatingDialog = ref(false)
 
   const toggleExpanded = () => {
     isExpanded.value = !isExpanded.value
   }
+
+  const openRatingDialog = (event: Event) => {
+    event.stopPropagation()
+    showRatingDialog.value = true
+  }
+
+  const formatRating = (rating: number): string => rating.toFixed(1)
 
   const formatDate = (date: string): string => {
     try {
@@ -31,6 +55,33 @@
       })
     } catch {
       return date
+    }
+  }
+
+  const handleRatingSubmit = async (rating: number) => {
+    if (!profileStore.selectedProfileId) {
+      showError('No profile selected', 'Please select a profile to rate media')
+      showRatingDialog.value = false
+      return
+    }
+    if (!props.id) {
+      showError('Invalid season', 'This season has no ID')
+      showRatingDialog.value = false
+      return
+    }
+    try {
+      await ratingMutation.mutateAsync({
+        profileId: profileStore.selectedProfileId,
+        entityId: props.id,
+        ratingMediaType: 'MEDIA_SEASON',
+        rating,
+      })
+      success('Rating saved', `Rated "${props.title}" ${formatRating(rating)}/10.0`)
+      emit('ratingUpdated', rating)
+      showRatingDialog.value = false
+    } catch (error) {
+      showError(error, 'Failed to save rating')
+      showRatingDialog.value = false
     }
   }
 </script>
@@ -48,12 +99,29 @@
           <span v-if="episodeCount" class="episode-count">{{ episodeCount }} episodes</span>
           <span v-if="airDate" class="air-date">{{ formatDate(airDate) }}</span>
         </div>
-        <Button
-          :icon="isExpanded ? Icon.CHEVRON_UP : Icon.CHEVRON_DOWN"
-          text
-          rounded
-          severity="secondary"
-        />
+        <div class="season-actions">
+          <div v-if="showRating && id" class="season-rating" @click="openRatingDialog">
+            <span v-if="myRating" class="rating-badge">
+              <i class="pi pi-star-fill" />
+              {{ formatRating(myRating) }}
+            </span>
+            <Button
+              :icon="myRating ? Icon.STAR_FILL : Icon.STAR"
+              text
+              rounded
+              size="small"
+              :severity="myRating ? 'warn' : 'secondary'"
+              :aria-label="myRating ? 'Update season rating' : 'Rate this season'"
+              @click="openRatingDialog"
+            />
+          </div>
+          <Button
+            :icon="isExpanded ? Icon.CHEVRON_UP : Icon.CHEVRON_DOWN"
+            text
+            rounded
+            severity="secondary"
+          />
+        </div>
       </div>
     </div>
 
@@ -70,6 +138,16 @@
         </div>
       </div>
     </Transition>
+
+    <RatingDialog
+      v-if="showRating && id"
+      v-model:visible="showRatingDialog"
+      :title="title"
+      :my-rating="myRating"
+      :backdrop-url="posterUrl"
+      :is-pending="ratingMutation.isPending.value"
+      @submit="handleRatingSubmit"
+    />
   </div>
 </template>
 
@@ -138,6 +216,38 @@
     font-size: 0.875rem;
     color: rgba(255, 255, 255, 0.9);
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  }
+
+  .season-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .season-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+  }
+
+  .rating-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: rgba(255, 193, 7, 0.25);
+    border: 1px solid rgba(255, 193, 7, 0.5);
+    border-radius: 999px;
+    color: #ffc107;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .rating-badge .pi {
+    font-size: 0.75rem;
   }
 
   .episodes-list {

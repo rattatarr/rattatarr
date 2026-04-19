@@ -4,6 +4,7 @@ import com.rattatarr.rattatarr.models.dtos.requests.SeriesFiltersDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.ShowResponseDTO;
 import com.rattatarr.rattatarr.models.entities.MediaItem;
 import com.rattatarr.rattatarr.models.entities.MediaItemRating;
+import com.rattatarr.rattatarr.models.entities.MediaSeason;
 import com.rattatarr.rattatarr.repositories.MediaItemsRepository;
 import com.rattatarr.rattatarr.services.helpers.MediaItemViewHelper;
 import com.rattatarr.rattatarr.specifications.GenericSpecifications;
@@ -31,19 +32,22 @@ public class SeriesService extends BaseService<MediaItem, MediaItemsRepository> 
     private final MediaItemRefreshService mediaItemRefreshService;
     private final SettingsService settingsService;
     private final MediaItemRatingsService mediaItemRatingsService;
+    private final MediaSeasonRatingsService mediaSeasonRatingsService;
 
     public SeriesService(
             MediaItemsRepository repository,
             MediaItemViewHelper mediaItemViewHelper,
             MediaItemRefreshService mediaItemRefreshService,
             SettingsService settingsService,
-            MediaItemRatingsService mediaItemRatingsService
+            MediaItemRatingsService mediaItemRatingsService,
+            MediaSeasonRatingsService mediaSeasonRatingsService
     ) {
         super(repository);
         this.mediaItemViewHelper = mediaItemViewHelper;
         this.mediaItemRefreshService = mediaItemRefreshService;
         this.settingsService = settingsService;
         this.mediaItemRatingsService = mediaItemRatingsService;
+        this.mediaSeasonRatingsService = mediaSeasonRatingsService;
     }
 
     @Override
@@ -104,7 +108,6 @@ public class SeriesService extends BaseService<MediaItem, MediaItemsRepository> 
                 Hibernate.initialize(mediaItem.seasons());
                 mediaItem.seasons().forEach(season -> {
                     Hibernate.initialize(season.metadata());
-                    Hibernate.initialize(season.ratings());
                     if (loadEpisodes) {
                         Hibernate.initialize(season.episodes());
                     }
@@ -120,8 +123,17 @@ public class SeriesService extends BaseService<MediaItem, MediaItemsRepository> 
                 .toList();
         Map<UUID, MediaItemRating> ratingsMap = mediaItemRatingsService.batchFetchRatingsMap(mediaItemIds, filters.profileId());
 
+        List<UUID> seasonIds = loadSeasons
+                ? page.getContent().stream()
+                        .filter(item -> Hibernate.isInitialized(item.seasons()))
+                        .flatMap(item -> item.seasons().stream())
+                        .map(MediaSeason::id)
+                        .toList()
+                : List.of();
+        Map<UUID, Float> seasonRatingsMap = mediaSeasonRatingsService.batchFetchRatingsMap(seasonIds, filters.profileId());
+
         List<ShowResponseDTO> series = page.getContent().stream()
-                .map(item -> ShowResponseDTO.fromEntity(item, ratingsMap.get(item.id()), loadCredits))
+                .map(item -> ShowResponseDTO.fromEntity(item, ratingsMap.get(item.id()), loadCredits, seasonRatingsMap))
                 .toList();
 
         return new PageImpl<>(series, ratingSort.pageable(), page.getTotalElements());

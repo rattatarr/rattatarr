@@ -75,6 +75,7 @@ export function useUnifiedSeriesDetail(
       })
       .sort((a, b) => (a.season || 0) - (b.season || 0))
       .map((season) => ({
+        id: season.id ?? undefined,
         seasonNumber: season.season ?? 0,
         title: season.title ?? `Season ${season.season}`,
         episodeCount: season.metadata?.episodeCount,
@@ -88,6 +89,7 @@ export function useUnifiedSeriesDetail(
             runtimeMinutes: ep.runtimeMinutes,
           })) || [],
         initiallyExpanded: season.season === 1,
+        myRating: season.myRating ?? undefined,
       }))
   }
 
