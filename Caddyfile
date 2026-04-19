@@ -6,6 +6,11 @@
         reverse_proxy localhost:8080
     }
 
+    # ── WebSocket (SockJS/STOMP) ──────────────────────────────────────────────
+    handle /ws/* {
+        reverse_proxy localhost:8080
+    }
+
     # Swagger UI (served by Spring Boot at /docs and /swagger-ui)
     handle /docs* {
         reverse_proxy localhost:8080
