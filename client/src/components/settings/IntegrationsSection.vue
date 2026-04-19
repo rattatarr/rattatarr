@@ -19,6 +19,9 @@
     sonarrKey: 'sonarr.api_key',
     radarrUrl: 'radarr.base_url',
     radarrKey: 'radarr.api_key',
+    ollamaUrl: 'agents.ollama.base_url',
+    ollamaModel: 'agents.ollama.model',
+    ollamaApiKey: 'agents.ollama.api_key',
   }
 
   // Connection test configurations
@@ -183,6 +186,32 @@
           type="password"
           placeholder="Your Radarr API key"
           @update:model-value="(v) => updateSetting(integrationKeys.radarrKey, v)"
+        />
+      </SettingsCard>
+
+      <!-- Ollama -->
+      <SettingsCard title="Ollama" description="Local AI agent for recommendations via Ollama">
+        <SettingUrlInput
+          :model-value="getSetting(integrationKeys.ollamaUrl)"
+          label="Base URL"
+          :setting-key="integrationKeys.ollamaUrl"
+          placeholder="http://localhost:11434"
+          @update:model-value="(v) => updateSetting(integrationKeys.ollamaUrl, v)"
+        />
+        <SettingInput
+          :model-value="getSetting(integrationKeys.ollamaModel)"
+          label="Model"
+          :setting-key="integrationKeys.ollamaModel"
+          placeholder="e.g. gemma3:4b"
+          @update:model-value="(v) => updateSetting(integrationKeys.ollamaModel, v)"
+        />
+        <SettingInput
+          :model-value="getSetting(integrationKeys.ollamaApiKey)"
+          label="API Key (optional)"
+          :setting-key="integrationKeys.ollamaApiKey"
+          type="password"
+          placeholder="Only if your Ollama instance requires auth"
+          @update:model-value="(v) => updateSetting(integrationKeys.ollamaApiKey, v)"
         />
       </SettingsCard>
     </div>

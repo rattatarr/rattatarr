@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { watch, nextTick } from 'vue'
   import { useTemplateRef } from 'vue'
+  import { useRouter } from 'vue-router'
   import Button from 'primevue/button'
   import Card from 'primevue/card'
   import Message from 'primevue/message'
@@ -15,7 +16,11 @@
     isError: boolean
     isSending: boolean
     isClearing: boolean
+    agentNotConfigured?: boolean
+    agentCallError?: string | null
   }>()
+
+  const router = useRouter()
 
   const emit = defineEmits<{
     send: [message: string]
@@ -42,9 +47,13 @@
 
   function handleSend() {
     const text = messageText.value.trim()
-    if (!text || props.isSending) return
+    if (!text || props.isSending || props.agentNotConfigured) return
     emit('send', text)
     messageText.value = ''
+  }
+
+  function goToSettings() {
+    router.push('/settings')
   }
 
   function handleKeyDown(event: KeyboardEvent) {
@@ -99,6 +108,41 @@
           <ChatMessage v-for="msg in conversation" :key="msg.id" :message="msg" />
         </div>
 
+        <!-- Agent call failed (transient — keep input enabled) -->
+        <Message
+          v-if="agentCallError && !agentNotConfigured"
+          severity="error"
+          :closable="false"
+          class="config-warning"
+        >
+          <div class="config-warning-content">
+            <span>{{ agentCallError }}</span>
+            <Button
+              label="Go to Settings"
+              icon="pi pi-cog"
+              severity="danger"
+              size="small"
+              text
+              @click="goToSettings"
+            />
+          </div>
+        </Message>
+
+        <!-- Agent not configured -->
+        <Message v-if="agentNotConfigured" severity="warn" :closable="false" class="config-warning">
+          <div class="config-warning-content">
+            <span>AI agent is not configured. Set up a provider in Settings to use chat.</span>
+            <Button
+              label="Go to Settings"
+              icon="pi pi-cog"
+              severity="warn"
+              size="small"
+              text
+              @click="goToSettings"
+            />
+          </div>
+        </Message>
+
         <!-- Input area -->
         <div class="input-area">
           <Textarea
@@ -107,12 +151,13 @@
             :auto-resize="true"
             rows="2"
             class="message-input"
+            :disabled="agentNotConfigured"
             @keydown="handleKeyDown"
           />
           <Button
             icon="pi pi-send"
             :loading="isSending"
-            :disabled="!messageText.trim() || isSending"
+            :disabled="!messageText.trim() || isSending || agentNotConfigured"
             aria-label="Send message"
             class="send-button"
             @click="handleSend"
@@ -200,6 +245,19 @@
     flex-direction: column;
     gap: 0.75rem;
     padding: 0.5rem 0.75rem 1rem 0;
+  }
+
+  /* Agent not configured warning */
+  .config-warning {
+    margin-bottom: 0.75rem;
+  }
+
+  .config-warning-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
   }
 
   /* Input */
