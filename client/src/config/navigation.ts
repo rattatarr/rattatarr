@@ -18,6 +18,11 @@ export const navigationItems: MenuItem[] = [
     route: '/series',
   },
   {
+    label: 'Activity',
+    icon: Icon.CALENDAR,
+    route: '/activity',
+  },
+  {
     label: 'Recommendations',
     icon: Icon.COMMENTS,
     route: '/agent',

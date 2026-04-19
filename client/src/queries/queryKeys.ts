@@ -13,6 +13,8 @@ import type {
   GenresFilters,
   PeopleFilters,
   SearchFilters,
+  WatchActivityFilters,
+  JobsFilters,
 } from '@/types'
 
 /**
@@ -174,10 +176,20 @@ export const statisticsKeys = {
 export const jobKeys = {
   all: ['jobs'] as const,
   lists: () => [...jobKeys.all, 'list'] as const,
-  list: (pageable: Pageable, filters?: import('@/api/jobs').JobsFilters) =>
+  list: (pageable: Pageable, filters?: JobsFilters) =>
     [...jobKeys.lists(), { pageable, filters }] as const,
   details: () => [...jobKeys.all, 'detail'] as const,
   detail: (id: string) => [...jobKeys.details(), id] as const,
+}
+
+/**
+ * Query key factory for watch activity
+ */
+export const watchActivityKeys = {
+  all: ['watch-activity'] as const,
+  lists: () => [...watchActivityKeys.all, 'list'] as const,
+  list: (pageable: Pageable, filters: WatchActivityFilters) =>
+    [...watchActivityKeys.lists(), { pageable, filters }] as const,
 }
 
 /**

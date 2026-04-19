@@ -120,6 +120,12 @@ export type RatingHeatmapDay = Schemas['RatingHeatmapDayDTO']
 export type GenreOverTimeYear = Schemas['GenreOverTimeYearDTO']
 export type GenreYearStat = Schemas['GenreYearStatDTO']
 
+// --- Watch Activity ---
+export type WatchActivityFilters = Schemas['WatchActivityFiltersDTO']
+export type WatchActivityWrapper = Schemas['WatchActivityWrapper']
+export type WatchEventResponse = Schemas['WatchEventResponseDTO']
+export type WatchEventType = NonNullable<WatchEventResponse['eventType']>
+
 // --- Agent ---
 export type AgentChatRequest = Schemas['AgentChatRequestDTO']
 export type AgentChatResponse = Schemas['AgentChatResponseDTO']
@@ -133,6 +139,13 @@ export type BackgroundJob = Schemas['BackgroundJobResponseDTO']
 export type BackgroundJobsWrapper = Schemas['BackgroundJobsWrapper']
 export type JobType = NonNullable<BackgroundJob['type']>
 export type JobStatus = NonNullable<BackgroundJob['status']>
+
+export type JobsFilters = {
+  type?: JobType
+  status?: JobStatus
+  startDate?: string
+  endDate?: string
+}
 
 // =============================================================================
 // Common Type Utilities

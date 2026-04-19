@@ -15,6 +15,11 @@
     mode: 'rating',
   })
 
+  const emit = defineEmits<{
+    dayClick: [date: string]
+    monthClick: [startDate: string, endDate: string]
+  }>()
+
   // SVG cell geometry (fixed logical pixels — viewBox handles scaling)
   const CELL = 11
   const GAP = 2
@@ -171,6 +176,27 @@
       : `${cell.date}: ${cell.count} ${noun}${cell.count !== 1 ? 's' : ''}`
   }
 
+  function handleDayClick(cell: DayCell) {
+    if (props.mode !== 'activity') return
+    emit('dayClick', cell.date)
+  }
+
+  function onChartSelect(event: { element: { index: number } }) {
+    handleMonthBarClick(event.element.index)
+  }
+
+  function handleMonthBarClick(monthIndex: number) {
+    if (props.mode !== 'activity') return
+    const year = selectedYearGrid.value?.year
+    if (year == null) return
+    const now = new Date()
+    const isCurrentMonth = year === now.getFullYear() && monthIndex === now.getMonth()
+    const firstDay = new Date(year, monthIndex, 1)
+    const startDate = isoDate(firstDay)
+    const endDate = isCurrentMonth ? isoDate(now) : isoDate(new Date(year, monthIndex + 1, 0))
+    emit('monthClick', startDate, endDate)
+  }
+
   // SVG viewBox width = DOW column + all week columns
   const svgWidth = computed(() => {
     const cols = selectedYearGrid.value?.weeks.length ?? 53
@@ -272,6 +298,7 @@
             :data="mobileChartData"
             :options="mobileChartOptions"
             class="mobile-chart"
+            @select="onChartSelect"
           />
         </div>
 
@@ -323,7 +350,8 @@
                 :fill="cell ? heatColor(cell.count, selectedYearGrid.maxCount) : 'transparent'"
                 :class="cell ? heatClass(cell.count, selectedYearGrid.maxCount) : ''"
                 v-tooltip.top="cell ? tooltipText(cell) : undefined"
-                style="cursor: default"
+                :style="{ cursor: cell && props.mode === 'activity' ? 'pointer' : 'default' }"
+                @click="cell ? handleDayClick(cell) : undefined"
               />
             </template>
           </svg>

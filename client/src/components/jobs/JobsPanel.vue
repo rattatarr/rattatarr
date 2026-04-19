@@ -8,9 +8,8 @@
   import { useQueryClient } from '@tanstack/vue-query'
   import { jobKeys } from '@/queries/queryKeys'
   import { Icon } from '@/utils/enums'
-  import type { Pageable } from '@/types'
+  import type { JobsFilters as JobsFiltersDTO, Pageable } from '@/types'
   import type { JobsFilterState } from './JobsFilters.vue'
-  import type { JobsFilters as JobsFiltersDTO } from '@/api/jobs'
 
   const queryClient = useQueryClient()
 
