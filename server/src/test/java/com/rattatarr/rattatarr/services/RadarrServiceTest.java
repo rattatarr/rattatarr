@@ -262,6 +262,7 @@ class RadarrServiceTest {
     @Test
     void triggerBackgroundImport_onSuccess_shouldMarkCompleted() {
         BackgroundJob job = new BackgroundJob(JobType.RADARR_IMPORT, null);
+        when(radarrClient.isConfigured()).thenReturn(true);
         when(radarrClient.getMovies(null)).thenReturn(List.of(radarrMovieWithRatings));
         when(tmDbService.importMediaItem("27205", MediaType.MOVIE)).thenReturn(movieItem);
 
@@ -275,6 +276,7 @@ class RadarrServiceTest {
     @Test
     void triggerBackgroundImport_onFailure_shouldMarkFailed() {
         BackgroundJob job = new BackgroundJob(JobType.RADARR_IMPORT, null);
+        when(radarrClient.isConfigured()).thenReturn(true);
         when(radarrClient.getMovies(null)).thenThrow(new RuntimeException("Connection refused"));
 
         radarrService.triggerBackgroundImport(job);
@@ -282,5 +284,28 @@ class RadarrServiceTest {
         verify(backgroundJobService).markRunning(job);
         verify(backgroundJobService).markFailed(eq(job), anyString());
         verify(backgroundJobService, never()).markCompleted(any(), any());
+    }
+
+    // --- runImport ---
+
+    @Test
+    void runImport_whenNotConfigured_shouldSkip() {
+        when(radarrClient.isConfigured()).thenReturn(false);
+
+        radarrService.runImport();
+
+        verify(radarrClient, never()).getMovies(any());
+    }
+
+    @Test
+    void runImport_whenConfigured_shouldFetchAndImport() {
+        when(radarrClient.isConfigured()).thenReturn(true);
+        when(radarrClient.getMovies(null)).thenReturn(List.of(radarrMovieWithRatings));
+        when(tmDbService.importMediaItem("27205", MediaType.MOVIE)).thenReturn(movieItem);
+
+        radarrService.runImport();
+
+        verify(radarrClient).getMovies(null);
+        verify(tmDbService).importMediaItem("27205", MediaType.MOVIE);
     }
 }

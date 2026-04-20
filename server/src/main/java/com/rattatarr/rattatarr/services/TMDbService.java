@@ -85,7 +85,6 @@ public class TMDbService {
         if (dto.releaseDate() == null || dto.releaseDate().length() < 4) {
             logger.warn("Skipping TMDb movie id={} title='{}': missing or invalid release date '{}'",
                     dto.id(), dto.title(), dto.releaseDate());
-            throw new IllegalArgumentException("Missing release date for TMDb movie id=" + dto.id());
         }
         return new MediaItem(
                 MediaType.MOVIE,

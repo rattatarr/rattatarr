@@ -111,13 +111,21 @@ public class RadarrService {
         );
     }
 
+    public void runImport() {
+        if (!radarrClient.isConfigured()) {
+            logger.debug("Radarr not configured, skipping import");
+            return;
+        }
+        List<RadarrMovieResponseDTO> movies = radarrClient.getMovies(null);
+        importAllMovies(movies);
+    }
+
     @Async("backgroundTaskExecutor")
     public void triggerBackgroundImport(BackgroundJob job) {
         logger.info("Radarr import started, jobId={}", job.id());
         backgroundJobService.markRunning(job);
         try {
-            List<RadarrMovieResponseDTO> movies = radarrClient.getMovies(null);
-            importAllMovies(movies);
+            runImport();
             backgroundJobService.markCompleted(job, "Radarr import completed successfully");
             logger.info("Radarr import completed, jobId={}", job.id());
         } catch (Exception error) {

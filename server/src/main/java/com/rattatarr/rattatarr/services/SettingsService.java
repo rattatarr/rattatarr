@@ -32,6 +32,7 @@ public class SettingsService extends BaseService<Setting, SettingsRepository> {
 
     public static final String RADARR_BASE_URL = "radarr.base_url";
     public static final String RADARR_API_KEY = "radarr.api_key";
+    public static final String SYNC_RADARR_ENABLED = "sync.radarr_enabled";
 
     public static final String AGENTS_OLLAMA_BASE_URL = "agents.ollama.base_url";
     public static final String AGENTS_OLLAMA_API_KEY = "agents.ollama.api_key";
@@ -82,6 +83,7 @@ public class SettingsService extends BaseService<Setting, SettingsRepository> {
         // Radarr settings
         createSettingIfNotExists(RADARR_BASE_URL, null, "Radarr server base URL (e.g. http://radarr:7878)");
         createSettingIfNotExists(RADARR_API_KEY, null, "Radarr API key");
+        createSettingIfNotExists(SYNC_RADARR_ENABLED, "true", "Enable scheduled Radarr import synchronization");
 
         // Ollama agent settings
         createSettingIfNotExists(AGENTS_OLLAMA_BASE_URL, null, "Ollama base URL (e.g. http://localhost:11434)");
