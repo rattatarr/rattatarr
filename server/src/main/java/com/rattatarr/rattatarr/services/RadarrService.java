@@ -14,6 +14,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 
 @Service
@@ -24,6 +25,7 @@ public class RadarrService {
     private final RadarrClient radarrClient;
     private final TMDbService tmDbService;
     private final MediaItemMetadataService mediaItemMetadataService;
+    private final MediaItemsService mediaItemsService;
     private final BackgroundJobService backgroundJobService;
     private final Executor tmdbApiExecutor;
 
@@ -31,11 +33,13 @@ public class RadarrService {
             RadarrClient radarrClient,
             TMDbService tmDbService,
             MediaItemMetadataService mediaItemMetadataService,
+            MediaItemsService mediaItemsService,
             BackgroundJobService backgroundJobService,
             @Qualifier("tmdbApiExecutor") Executor tmdbApiExecutor) {
         this.radarrClient = radarrClient;
         this.tmDbService = tmDbService;
         this.mediaItemMetadataService = mediaItemMetadataService;
+        this.mediaItemsService = mediaItemsService;
         this.backgroundJobService = backgroundJobService;
         this.tmdbApiExecutor = tmdbApiExecutor;
     }
@@ -44,8 +48,33 @@ public class RadarrService {
         return radarrClient.getMovies(tmdbId);
     }
 
+    public void enrichMovieFromRadarrIfStale(UUID mediaItemId) {
+        if (!radarrClient.isConfigured()) return;
+
+        var mediaItemOpt = mediaItemsService.findById(mediaItemId);
+        if (mediaItemOpt.isEmpty()) return;
+        var mediaItem = mediaItemOpt.get();
+
+        if (mediaItem.TMDbId() == null) return;
+        if (mediaItemMetadataService.isRatingFresh(mediaItemId)) return;
+
+        try {
+            int tmdbId = Integer.parseInt(mediaItem.TMDbId());
+            List<RadarrMovieResponseDTO> movies = getTrackedMovies(tmdbId);
+            if (movies.isEmpty()) return;
+
+            RadarrImportItem item = buildRadarrImportItem(movies.getFirst());
+            if (item == null) return;
+
+            mediaItemMetadataService.updateExternalRatings(mediaItem, item.imdbRating(), item.rottenTomatoesRating());
+            logger.info("Radarr ratings refreshed for MediaItem ID: {}", mediaItemId);
+        } catch (Exception e) {
+            logger.warn("Failed to enrich movie {} from Radarr: {}", mediaItemId, e.getMessage());
+        }
+    }
+
     @Nullable
-    private RadarrImportItem buildImportItem(RadarrMovieResponseDTO movie) {
+    private RadarrImportItem buildRadarrImportItem(RadarrMovieResponseDTO movie) {
         if (movie.tmdbId() == null) {
             logger.warn("Radarr movie '{}' (id={}) has no TMDb ID, skipping", movie.title(), movie.id());
             return null;
@@ -74,7 +103,7 @@ public class RadarrService {
     public void importAllMovies(List<RadarrMovieResponseDTO> movies) {
         ParallelAPIProcessor.processInParallel(
                 movies,
-                this::buildImportItem,
+                this::buildRadarrImportItem,
                 this::importAndUpdateRatings,
                 tmdbApiExecutor,
                 logger,

@@ -14,7 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 
 @Service
@@ -59,6 +62,17 @@ public class MediaItemMetadataService extends BaseService<MediaItemMetadata, Med
                 .orElseGet(() -> repository.save(metadata));
 
         return metadata;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isRatingFresh(UUID mediaItemId) {
+        return repository.findByMediaItemId(mediaItemId)
+                .map(metadata -> {
+                    boolean hasRating = metadata.imdbRating() != null || metadata.rottenTomatoesRating() != null;
+                    if (!hasRating) return false;
+                    return metadata.updatedAt().isAfter(Instant.now().minus(7, ChronoUnit.DAYS));
+                })
+                .orElse(false);
     }
 
     @Transactional
