@@ -1,6 +1,10 @@
 spring:
   application:
     name: rattatarr
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
   datasource:
     url: jdbc:sqlite:./rattatarr.db?journal_mode=WAL
     driver-class-name: org.sqlite.JDBC
@@ -14,9 +18,7 @@ spring:
         order_updates: true
         batch_versioned_data: true
     hibernate:
-      # For development purpose until a proper model is established and migrations are in place we use 'create'
-      # Use 'update' for preserving data between restarts
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     open-in-view: false
 

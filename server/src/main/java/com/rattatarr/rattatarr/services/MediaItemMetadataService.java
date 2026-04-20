@@ -11,6 +11,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
 import java.util.List;
@@ -52,11 +53,21 @@ public class MediaItemMetadataService extends BaseService<MediaItemMetadata, Med
                     existingMetadata.setDescription(metadata.description());
                     existingMetadata.setPosterImageUrl(metadata.posterImageUrl());
                     existingMetadata.setBackdropImageUrl(metadata.backdropImageUrl());
+                    // Preserve Radarr-sourced ratings — not overwritten by TMDb refresh
                     return repository.save(existingMetadata);
                 })
                 .orElseGet(() -> repository.save(metadata));
 
         return metadata;
+    }
+
+    @Transactional
+    public void updateExternalRatings(MediaItem mediaItem, @Nullable Float imdbRating, @Nullable Integer rottenTomatoesRating) {
+        repository.findByMediaItemId(mediaItem.id()).ifPresent(metadata -> {
+            metadata.setImdbRating(imdbRating);
+            metadata.setRottenTomatoesRating(rottenTomatoesRating);
+            repository.save(metadata);
+        });
     }
 
     private TMDbFetchResult fetchMetadataFromTMDb(MediaItem mediaItem) {
