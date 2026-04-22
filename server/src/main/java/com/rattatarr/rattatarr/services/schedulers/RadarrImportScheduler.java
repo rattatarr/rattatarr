@@ -52,4 +52,33 @@ public class RadarrImportScheduler {
             logger.error("Scheduled Radarr import failed", e);
         }
     }
+
+    @Scheduled(
+            fixedDelayString = "${rattatarr.sync.radarr-ratings-interval:PT6H}",
+            initialDelayString = "${rattatarr.sync.radarr-ratings-initial-delay:PT15M}"
+    )
+    public void scheduledRadarrRatingsRefresh() {
+        boolean enabled = settingsService.getBooleanSetting(
+                SettingsService.SYNC_RADARR_ENABLED,
+                false
+        );
+
+        if (!enabled) {
+            logger.debug("Radarr ratings refresh is disabled via settings");
+            return;
+        }
+
+        Instant startTime = Instant.now();
+        logger.info("Starting scheduled Radarr ratings refresh");
+
+        try {
+            radarrService.runRatingsRefresh();
+
+            Duration duration = Duration.between(startTime, Instant.now());
+            logger.info("Scheduled Radarr ratings refresh completed successfully in {} seconds",
+                    duration.getSeconds());
+        } catch (Exception e) {
+            logger.error("Scheduled Radarr ratings refresh failed", e);
+        }
+    }
 }

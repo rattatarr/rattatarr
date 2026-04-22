@@ -61,6 +61,8 @@ export interface UnifiedMovieBase {
   description?: string
   imdbId?: string
   tmdbId?: string
+  imdbRating?: number
+  rottenTomatoesRating?: number
 }
 
 /**
@@ -110,6 +112,8 @@ export interface UnifiedSeriesBase {
   description?: string
   imdbId?: string
   tmdbId?: string
+  imdbRating?: number
+  rottenTomatoesRating?: number
   seasons: DomainSeason[]
 }
 

@@ -1,14 +1,14 @@
 package com.rattatarr.rattatarr.controllers;
 
+import com.rattatarr.rattatarr.clients.radarr.responses.RadarrMovieLookupResponseDTO;
 import com.rattatarr.rattatarr.configs.ApiVersion;
 import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.dtos.responses.BackgroundJobResponseDTO;
-import com.rattatarr.rattatarr.models.dtos.responses.wrappers.RadarrMoviesWrapper;
 import com.rattatarr.rattatarr.services.BackgroundJobService;
 import com.rattatarr.rattatarr.services.RadarrService;
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -25,9 +25,9 @@ public class RadarrController extends BaseController {
     }
 
     @GetMapping("/movies")
-    public RadarrMoviesWrapper getMovies(@RequestParam(required = false) @Nullable Integer tmdbId) {
-        logger.info("Fetching movies tracked by Radarr, tmdbId={}", tmdbId);
-        return RadarrMoviesWrapper.fromList(radarrService.getTrackedMovies(tmdbId));
+    public ResponseEntity<RadarrMovieLookupResponseDTO> lookupMovieByTmdbId(@RequestParam int tmdbId) {
+        logger.info("Looking up Radarr movie by TMDb ID: {}", tmdbId);
+        return ResponseEntity.ok(radarrService.lookupByTmdbId(tmdbId));
     }
 
     @PostMapping("/import")
@@ -36,6 +36,15 @@ public class RadarrController extends BaseController {
         logger.info("Starting Radarr movie import");
         var job = backgroundJobService.create(JobType.RADARR_IMPORT, null);
         radarrService.triggerBackgroundImport(job);
+        return BackgroundJobResponseDTO.fromEntity(job);
+    }
+
+    @PostMapping("/refresh-ratings")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public BackgroundJobResponseDTO refreshRatings() {
+        logger.info("Starting Radarr ratings refresh");
+        var job = backgroundJobService.create(JobType.RADARR_RATINGS_REFRESH, null);
+        radarrService.triggerBackgroundRatingsRefresh(job);
         return BackgroundJobResponseDTO.fromEntity(job);
     }
 }

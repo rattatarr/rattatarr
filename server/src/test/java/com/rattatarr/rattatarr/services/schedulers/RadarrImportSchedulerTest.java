@@ -62,4 +62,33 @@ class RadarrImportSchedulerTest {
 
         verify(radarrService).runImport();
     }
+
+    @Test
+    void scheduledRadarrRatingsRefresh_shouldRunRefreshWhenEnabled() {
+        scheduler.scheduledRadarrRatingsRefresh();
+
+        verify(settingsService).getBooleanSetting(eq(SettingsService.SYNC_RADARR_ENABLED), eq(false));
+        verify(radarrService).runRatingsRefresh();
+    }
+
+    @Test
+    void scheduledRadarrRatingsRefresh_shouldSkipWhenDisabled() {
+        when(settingsService.getBooleanSetting(
+                eq(SettingsService.SYNC_RADARR_ENABLED), eq(false)
+        )).thenReturn(false);
+
+        scheduler.scheduledRadarrRatingsRefresh();
+
+        verify(radarrService, never()).runRatingsRefresh();
+    }
+
+    @Test
+    void scheduledRadarrRatingsRefresh_shouldHandleRefreshError() {
+        doThrow(new RuntimeException("Radarr unreachable")).when(radarrService).runRatingsRefresh();
+
+        // Should not propagate — caught internally
+        scheduler.scheduledRadarrRatingsRefresh();
+
+        verify(radarrService).runRatingsRefresh();
+    }
 }

@@ -1,9 +1,12 @@
 package com.rattatarr.rattatarr.services;
 
 import com.rattatarr.rattatarr.clients.radarr.RadarrClient;
-import com.rattatarr.rattatarr.clients.radarr.responses.RadarrMovieResponseDTO;
+import com.rattatarr.rattatarr.clients.radarr.responses.RadarrInternalMovieResponseDTO;
+import com.rattatarr.rattatarr.clients.radarr.responses.RadarrMovieLookupResponseDTO;
+import com.rattatarr.rattatarr.clients.radarr.responses.RadarrRatings;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.entities.BackgroundJob;
+import com.rattatarr.rattatarr.models.entities.MediaItem;
 import com.rattatarr.rattatarr.utils.ParallelAPIProcessor;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -44,8 +47,8 @@ public class RadarrService {
         this.tmdbApiExecutor = tmdbApiExecutor;
     }
 
-    public List<RadarrMovieResponseDTO> getTrackedMovies(@Nullable Integer tmdbId) {
-        return radarrClient.getMovies(tmdbId);
+    public RadarrMovieLookupResponseDTO lookupByTmdbId(int tmdbId) {
+        return radarrClient.lookupByTmdbId(tmdbId);
     }
 
     public void enrichMovieFromRadarrIfStale(UUID mediaItemId) {
@@ -60,13 +63,20 @@ public class RadarrService {
 
         try {
             int tmdbId = Integer.parseInt(mediaItem.TMDbId());
-            List<RadarrMovieResponseDTO> movies = getTrackedMovies(tmdbId);
-            if (movies.isEmpty()) return;
+            var movie = lookupByTmdbId(tmdbId);
 
-            RadarrImportItem item = buildRadarrImportItem(movies.getFirst());
-            if (item == null) return;
+            if (movie == null) {
+                logger.warn("No Radarr movie found for TMDb ID {}, cannot enrich MediaItem ID {}", tmdbId, mediaItemId);
+                return;
+            }
 
-            mediaItemMetadataService.updateExternalRatings(mediaItem, item.imdbRating(), item.rottenTomatoesRating());
+            if (movie.tmdbId() == null) {
+                logger.warn("Radarr lookup for TMDb ID {} returned movie '{}' with no TMDb ID, skipping", tmdbId, movie.title());
+                return;
+            }
+
+            var ratings = extractRatings(movie.ratings());
+            mediaItemMetadataService.updateExternalRatings(mediaItem, ratings.imdbRating(), ratings.rottenTomatoesRating());
             logger.info("Radarr ratings refreshed for MediaItem ID: {}", mediaItemId);
         } catch (Exception e) {
             logger.warn("Failed to enrich movie {} from Radarr: {}", mediaItemId, e.getMessage());
@@ -74,25 +84,26 @@ public class RadarrService {
     }
 
     @Nullable
-    private RadarrImportItem buildRadarrImportItem(RadarrMovieResponseDTO movie) {
+    private RadarrImportItem buildRadarrImportItem(RadarrInternalMovieResponseDTO movie) {
         if (movie.tmdbId() == null) {
             logger.warn("Radarr movie '{}' (id={}) has no TMDb ID, skipping", movie.title(), movie.id());
             return null;
         }
+        var ratings = extractRatings(movie.ratings());
+        return new RadarrImportItem(movie.tmdbId().toString(), ratings.imdbRating(), ratings.rottenTomatoesRating());
+    }
 
+    private ExtractedRatings extractRatings(@Nullable RadarrRatings ratings) {
+        if (ratings == null) return new ExtractedRatings(null, null);
         Float imdbRating = null;
         Integer rottenTomatoesRating = null;
-
-        if (movie.ratings() != null) {
-            if (movie.ratings().imdb() != null) {
-                imdbRating = Math.round((float) movie.ratings().imdb().value() * 100f) / 100f;
-            }
-            if (movie.ratings().rottenTomatoes() != null) {
-                rottenTomatoesRating = (int) movie.ratings().rottenTomatoes().value();
-            }
+        if (ratings.imdb() != null) {
+            imdbRating = Math.round((float) ratings.imdb().value() * 100f) / 100f;
         }
-
-        return new RadarrImportItem(movie.tmdbId().toString(), imdbRating, rottenTomatoesRating);
+        if (ratings.rottenTomatoes() != null) {
+            rottenTomatoesRating = (int) ratings.rottenTomatoes().value();
+        }
+        return new ExtractedRatings(imdbRating, rottenTomatoesRating);
     }
 
     private void importAndUpdateRatings(RadarrImportItem item) {
@@ -100,7 +111,7 @@ public class RadarrService {
         mediaItemMetadataService.updateExternalRatings(mediaItem, item.imdbRating(), item.rottenTomatoesRating());
     }
 
-    public void importAllMovies(List<RadarrMovieResponseDTO> movies) {
+    public void importAllMovies(List<RadarrInternalMovieResponseDTO> movies) {
         ParallelAPIProcessor.processInParallel(
                 movies,
                 this::buildRadarrImportItem,
@@ -111,13 +122,54 @@ public class RadarrService {
         );
     }
 
+    public void enrichAllMoviesWithRadarrRatings() {
+        var movies = mediaItemsService.findAllMoviesWithTmdbId();
+        ParallelAPIProcessor.processInParallel(
+                movies,
+                this::fetchRadarrRatings,
+                this::applyRadarrRatings,
+                tmdbApiExecutor,
+                logger,
+                "Radarr ratings refresh"
+        );
+    }
+
+    @Nullable
+    private MovieEnrichmentResult fetchRadarrRatings(MediaItem movie) {
+        UUID mediaItemId = movie.id();
+        if (mediaItemId == null) return null;
+        if (mediaItemMetadataService.isRatingFresh(mediaItemId)) return null;
+        try {
+            int tmdbId = Integer.parseInt(movie.TMDbId());
+            var lookup = radarrClient.lookupByTmdbId(tmdbId);
+            if (lookup == null || lookup.tmdbId() == null) return null;
+            return new MovieEnrichmentResult(movie, lookup);
+        } catch (Exception e) {
+            logger.warn("Radarr lookup failed for MediaItem {}: {}", mediaItemId, e.getMessage());
+            return null;
+        }
+    }
+
+    private void applyRadarrRatings(MovieEnrichmentResult result) {
+        var ratings = extractRatings(result.lookup().ratings());
+        mediaItemMetadataService.updateExternalRatings(result.movie(), ratings.imdbRating(), ratings.rottenTomatoesRating());
+        logger.info("Radarr ratings refreshed for MediaItem ID: {}", result.movie().id());
+    }
+
+    public void runRatingsRefresh() {
+        if (!radarrClient.isConfigured()) {
+            logger.debug("Radarr not configured, skipping ratings refresh");
+            return;
+        }
+        enrichAllMoviesWithRadarrRatings();
+    }
+
     public void runImport() {
         if (!radarrClient.isConfigured()) {
             logger.debug("Radarr not configured, skipping import");
             return;
         }
-        List<RadarrMovieResponseDTO> movies = radarrClient.getMovies(null);
-        importAllMovies(movies);
+        importAllMovies(getTrackedMovies());
     }
 
     @Async("backgroundTaskExecutor")
@@ -134,8 +186,38 @@ public class RadarrService {
         }
     }
 
+    @Async("backgroundTaskExecutor")
+    public void triggerBackgroundRatingsRefresh(BackgroundJob job) {
+        logger.info("Radarr ratings refresh started, jobId={}", job.id());
+        backgroundJobService.markRunning(job);
+        try {
+            runRatingsRefresh();
+            backgroundJobService.markCompleted(job, "Radarr ratings refresh completed successfully");
+            logger.info("Radarr ratings refresh completed, jobId={}", job.id());
+        } catch (Exception error) {
+            backgroundJobService.markFailed(job, error.getMessage());
+            logger.error("Radarr ratings refresh failed, jobId={}", job.id(), error);
+        }
+    }
+
+    private List<RadarrInternalMovieResponseDTO> getTrackedMovies() {
+        return radarrClient.getMonitoredInternalMovies(null);
+    }
+
+    private record MovieEnrichmentResult(
+            MediaItem movie,
+            RadarrMovieLookupResponseDTO lookup
+    ) {
+    }
+
     private record RadarrImportItem(
             String tmdbId,
+            @Nullable Float imdbRating,
+            @Nullable Integer rottenTomatoesRating
+    ) {
+    }
+
+    private record ExtractedRatings(
             @Nullable Float imdbRating,
             @Nullable Integer rottenTomatoesRating
     ) {

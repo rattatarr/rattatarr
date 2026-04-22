@@ -2,7 +2,8 @@ package com.rattatarr.rattatarr.clients.radarr;
 
 import com.rattatarr.rattatarr.clients.BaseClient;
 import com.rattatarr.rattatarr.clients.Warmable;
-import com.rattatarr.rattatarr.clients.radarr.responses.RadarrMovieResponseDTO;
+import com.rattatarr.rattatarr.clients.radarr.responses.RadarrInternalMovieResponseDTO;
+import com.rattatarr.rattatarr.clients.radarr.responses.RadarrMovieLookupResponseDTO;
 import com.rattatarr.rattatarr.configs.RestClientProperties;
 import com.rattatarr.rattatarr.exceptions.RadarrClientExceptions;
 import org.jspecify.annotations.NullMarked;
@@ -14,6 +15,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 @Component
@@ -49,29 +51,31 @@ public class RadarrClient extends BaseClient<RadarrClientExceptions> implements 
 
     public boolean testConnection() {
         try {
-            getMovies(120);
+            lookupByTmdbId(120);
             return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    public List<RadarrMovieResponseDTO> getMovies() {
-        return getMovies(null);
-    }
-
-    public List<RadarrMovieResponseDTO> getMovies(@Nullable Integer tmdbId) {
-        // Not sure yet if we can set /api/v3 at top level or if there will be cases where we need an old version.
-        // Looking at seer that uses v1
-        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(config.buildUrl("/api/v3/movie"));
+    public List<RadarrInternalMovieResponseDTO> getMonitoredInternalMovies(@Nullable Integer tmdbId) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(config.buildUrl("/movie"));
         if (tmdbId != null) {
             builder = builder.queryParam("tmdbId", tmdbId);
         }
         return executeGet(
                 builder.build().toUri(),
-                new ParameterizedTypeReference<List<RadarrMovieResponseDTO>>() {
+                new ParameterizedTypeReference<List<RadarrInternalMovieResponseDTO>>() {
                 },
                 headers -> headers.set("X-Api-Key", config.getAuthHeader())
         );
+    }
+
+    public RadarrMovieLookupResponseDTO lookupByTmdbId(Integer tmdbId) {
+        URI uri = UriComponentsBuilder.fromUriString(config.buildUrl("/movie/lookup/tmdb"))
+                .queryParam("tmdbId", tmdbId)
+                .build().toUri();
+        return executeGet(uri, RadarrMovieLookupResponseDTO.class,
+                headers -> headers.set("X-Api-Key", config.getAuthHeader()));
     }
 }

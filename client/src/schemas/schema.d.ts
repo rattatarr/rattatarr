@@ -148,6 +148,38 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/radarr/refresh-ratings': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: operations['refreshRatings']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/radarr/import': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: operations['importMovies']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/profiles': {
     parameters: {
       query?: never
@@ -364,6 +396,22 @@ export interface paths {
       cookie?: never
     }
     get: operations['exportRatingsCsv']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/radarr/movies': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['lookupMovieByTmdbId']
     put?: never
     post?: never
     delete?: never
@@ -805,7 +853,7 @@ export interface components {
       /** Format: uuid */
       id?: string
       /** @enum {string} */
-      type?: 'JELLYFIN_SYNC' | 'CSV_IMPORT'
+      type?: 'JELLYFIN_SYNC' | 'CSV_IMPORT' | 'RADARR_IMPORT' | 'RADARR_RATINGS_REFRESH'
       /** @enum {string} */
       status?: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
       message?: string
@@ -861,6 +909,8 @@ export interface components {
       endDate?: string
       /** @enum {string} */
       mediaType?: 'MOVIE' | 'SERIES'
+      posterSize?: string
+      backdropSize?: string
     }
     Pageable: {
       /** Format: int32 */
@@ -904,6 +954,10 @@ export interface components {
       description?: string
       posterImageUrl?: string
       backdropImageUrl?: string
+      /** Format: float */
+      imdbRating?: number
+      /** Format: int32 */
+      rottenTomatoesRating?: number
     }
     MediaSeasonMetadataResponseDTO: {
       /** Format: int32 */
@@ -1127,6 +1181,27 @@ export interface components {
     }
     SettingWrapper: {
       setting?: components['schemas']['SettingResponseDTO']
+    }
+    RadarrMovieLookupResponseDTO: {
+      title?: string
+      /** Format: int32 */
+      year?: number
+      /** Format: int32 */
+      tmdbId?: number
+      imdbId?: string
+      monitored?: boolean
+      ratings?: components['schemas']['RadarrRatings']
+    }
+    RadarrRatingEntry: {
+      /** Format: int32 */
+      votes?: number
+      /** Format: double */
+      value?: number
+      type?: string
+    }
+    RadarrRatings: {
+      imdb?: components['schemas']['RadarrRatingEntry']
+      rottenTomatoes?: components['schemas']['RadarrRatingEntry']
     }
     ProfilesFiltersDTO: {
       name: string
@@ -1682,6 +1757,46 @@ export interface operations {
       }
     }
   }
+  refreshRatings: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Accepted */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['BackgroundJobResponseDTO']
+        }
+      }
+    }
+  }
+  importMovies: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Accepted */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['BackgroundJobResponseDTO']
+        }
+      }
+    }
+  }
   getAllProfiles: {
     parameters: {
       query: {
@@ -2020,6 +2135,28 @@ export interface operations {
       }
     }
   }
+  lookupMovieByTmdbId: {
+    parameters: {
+      query: {
+        tmdbId: number
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['RadarrMovieLookupResponseDTO']
+        }
+      }
+    }
+  }
   getProfileById: {
     parameters: {
       query?: never
@@ -2310,7 +2447,7 @@ export interface operations {
     parameters: {
       query: {
         /** @description Filter by job type (JELLYFIN_SYNC, CSV_IMPORT) */
-        type?: 'JELLYFIN_SYNC' | 'CSV_IMPORT'
+        type?: 'JELLYFIN_SYNC' | 'CSV_IMPORT' | 'RADARR_IMPORT' | 'RADARR_RATINGS_REFRESH'
         /** @description Filter by job status (PENDING, RUNNING, COMPLETED, FAILED) */
         status?: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
         /**

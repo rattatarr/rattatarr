@@ -1,11 +1,31 @@
 import { describe, it, expect } from 'vitest'
 import {
+  JOB_TYPE,
   OperationStatus,
   ButtonSeverity,
   Icon,
   isOperationStatus,
   isButtonSeverity,
 } from '../enums'
+
+describe('JOB_TYPE', () => {
+  it('values match schema string literals', () => {
+    expect(JOB_TYPE.JELLYFIN_SYNC).toBe('JELLYFIN_SYNC')
+    expect(JOB_TYPE.CSV_IMPORT).toBe('CSV_IMPORT')
+    expect(JOB_TYPE.RADARR_IMPORT).toBe('RADARR_IMPORT')
+    expect(JOB_TYPE.RADARR_RATINGS_REFRESH).toBe('RADARR_RATINGS_REFRESH')
+  })
+
+  it('has exactly 4 entries', () => {
+    expect(Object.keys(JOB_TYPE)).toHaveLength(4)
+  })
+
+  it('all values are uppercase strings', () => {
+    for (const value of Object.values(JOB_TYPE)) {
+      expect(value).toBe(value.toUpperCase())
+    }
+  })
+})
 
 describe('OperationStatus enum', () => {
   it('should have all expected values', () => {

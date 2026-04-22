@@ -42,7 +42,7 @@ public class RadarrConfig extends BaseClientConfig {
 
     public String buildUrl(String path) {
         throwIfNotConfigured();
-        return getBaseUrl() + URISanitizer.pathEnsureLeadingSlash(path);
+        return getBaseUrl() + "/api/v3" + URISanitizer.pathEnsureLeadingSlash(path);
     }
 
     public String getAuthHeader() {

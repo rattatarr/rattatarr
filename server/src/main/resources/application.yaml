@@ -40,7 +40,9 @@ rattatarr:
     jellyfin-activity-poll-interval: PT10M
     jellyfin-activity-poll-initial-delay: PT10M
     radarr-interval: PT24H
-    radarr-initial-delay: PT1M
+    radarr-initial-delay: PT15M
+    radarr-ratings-interval: PT24H
+    radarr-ratings-initial-delay: PT30M
   cors:
     allowed-origins:
       - http://localhost:3000

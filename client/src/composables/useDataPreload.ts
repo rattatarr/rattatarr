@@ -5,6 +5,12 @@ import { movieKeys, seriesKeys, tmdbKeys } from '@/queries/queryKeys'
 import { useProfileStore } from '@/stores/profileStore'
 import { computed } from 'vue'
 import { MediaSource, MediaType, type SearchResultSource } from '@/utils/enums'
+import type { MoviesWrapper, SeriesWrapper } from '@/schemas/types/api'
+
+export interface CachedRatings {
+  imdbRating?: number
+  rottenTomatoesRating?: number
+}
 
 export function useDataPreload() {
   const queryClient = useQueryClient()
@@ -147,6 +153,36 @@ export function useDataPreload() {
     return queryClient.getQueryData(queryKey) !== undefined
   }
 
+  const getCachedRatings = (
+    id: string,
+    type: MediaType.MOVIE | MediaType.SERIES,
+    source?: SearchResultSource,
+  ): CachedRatings | undefined => {
+    if (source === MediaSource.TMDB || source === MediaSource.IMDB) return undefined
+
+    if (type === MediaType.MOVIE) {
+      const data = queryClient.getQueryData<MoviesWrapper>(
+        movieKeys.detail(id, selectedProfileId.value),
+      )
+      const movie = data?.movies?.[0]
+      if (!movie) return undefined
+      return {
+        imdbRating: movie.metadata?.imdbRating ?? undefined,
+        rottenTomatoesRating: movie.metadata?.rottenTomatoesRating ?? undefined,
+      }
+    } else {
+      const data = queryClient.getQueryData<SeriesWrapper>(
+        seriesKeys.detail(id, selectedProfileId.value, true),
+      )
+      const show = data?.series?.[0]
+      if (!show) return undefined
+      return {
+        imdbRating: show.metadata?.imdbRating ?? undefined,
+        rottenTomatoesRating: show.metadata?.rottenTomatoesRating ?? undefined,
+      }
+    }
+  }
+
   return {
     prefetchMovie,
     prefetchSeries,
@@ -154,5 +190,6 @@ export function useDataPreload() {
     prefetchTMDbSeries,
     prefetchMediaItem,
     isDataCached,
+    getCachedRatings,
   }
 }

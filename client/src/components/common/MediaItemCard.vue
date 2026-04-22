@@ -1,10 +1,10 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
+  import { ref, computed, shallowRef } from 'vue'
   import { useRouter } from 'vue-router'
   import { useProfileStore } from '@/stores/profileStore'
   import { useRateMediaItem } from '@/queries/useRatings'
   import { useToast } from '@/composables/useToast'
-  import { useDataPreload } from '@/composables/useDataPreload'
+  import { useDataPreload, type CachedRatings } from '@/composables/useDataPreload'
   import MediaPosterCard from '@/components/media/MediaPosterCard.vue'
   import RatingDialog from '@/components/common/RatingDialog.vue'
   import SourceBadge from '@/components/common/SourceBadge.vue'
@@ -28,11 +28,12 @@
   const profileStore = useProfileStore()
   const { success, error: showError } = useToast()
   const ratingMutation = useRateMediaItem()
-  const { prefetchMediaItem, isDataCached } = useDataPreload()
+  const { prefetchMediaItem, isDataCached, getCachedRatings } = useDataPreload()
 
   // State
   const showRatingDialog = ref(false)
   let prefetchTimeout: number | null = null
+  const prefetchedRatings = shallowRef<CachedRatings | undefined>(undefined)
 
   // Computed
   const posterUrl = computed(() => props.item.metadata?.posterImageUrl)
@@ -40,6 +41,16 @@
 
   // Use backdrop if available, otherwise fallback to poster
   const dialogBackdropUrl = computed(() => backdropUrl.value || posterUrl.value)
+
+  const displayImdbRating = computed(
+    () => prefetchedRatings.value?.imdbRating ?? props.item.metadata?.imdbRating ?? undefined,
+  )
+  const displayRtRating = computed(
+    () =>
+      prefetchedRatings.value?.rottenTomatoesRating ??
+      props.item.metadata?.rottenTomatoesRating ??
+      undefined,
+  )
 
   // Only show rating for internal/Jellyfin sources when a profile is selected
   const showRating = computed(() => {
@@ -67,13 +78,17 @@
   }
 
   function handleMouseEnter() {
-    // Don't prefetch if data is already cached
-    if (props.item.id && !isDataCached(props.item.id, props.mediaType, props.source)) {
-      // Debounce prefetch slightly to avoid fetching on quick hovers
-      prefetchTimeout = window.setTimeout(() => {
-        prefetchMediaItem(props.item.id!, props.mediaType, props.source)
-      }, 150)
+    if (!props.item.id) return
+
+    if (isDataCached(props.item.id, props.mediaType, props.source)) {
+      prefetchedRatings.value = getCachedRatings(props.item.id, props.mediaType, props.source)
+      return
     }
+
+    prefetchTimeout = window.setTimeout(async () => {
+      await prefetchMediaItem(props.item.id!, props.mediaType, props.source)
+      prefetchedRatings.value = getCachedRatings(props.item.id!, props.mediaType, props.source)
+    }, 150)
   }
 
   function handleMouseLeave() {
@@ -161,6 +176,8 @@
       :show-rating="showRating"
       :show-jellyfin-badge="!!item.jellyfinId"
       :jellyfin-icon-src="jellyfinIcon"
+      :imdb-rating="displayImdbRating"
+      :rotten-tomatoes-rating="displayRtRating"
       @click="navigateToDetail"
       @click:rating="openRatingDialog"
     >
