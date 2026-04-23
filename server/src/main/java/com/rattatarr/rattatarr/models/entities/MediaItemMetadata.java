@@ -18,6 +18,11 @@ public class MediaItemMetadata extends BaseEntity {
     @Column(name = "backdrop_image_url")
     private String backdropImageUrl;
 
+    @Column(name = "imdb_rating")
+    private Float imdbRating;
+
+    @Column(name = "rotten_tomatoes_rating")
+    private Integer rottenTomatoesRating;
 
     protected MediaItemMetadata() {
 
@@ -60,5 +65,21 @@ public class MediaItemMetadata extends BaseEntity {
 
     public void setBackdropImageUrl(String backdropImageUrl) {
         this.backdropImageUrl = backdropImageUrl;
+    }
+
+    public Float imdbRating() {
+        return imdbRating;
+    }
+
+    public void setImdbRating(Float imdbRating) {
+        this.imdbRating = imdbRating;
+    }
+
+    public Integer rottenTomatoesRating() {
+        return rottenTomatoesRating;
+    }
+
+    public void setRottenTomatoesRating(Integer rottenTomatoesRating) {
+        this.rottenTomatoesRating = rottenTomatoesRating;
     }
 }

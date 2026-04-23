@@ -6,6 +6,7 @@ import { toast } from 'vue-sonner'
 import { useQueryClient } from '@tanstack/vue-query'
 import { jobKeys, movieKeys, seriesKeys } from '@/queries/queryKeys'
 import type { BackgroundJob, JobType } from '@/types'
+import { JOB_TYPE } from '@/utils/enums'
 import type { WebSocketMessage } from '@/composables/useJobWebSocket'
 
 const JOB_TIMEOUT_MS = 10 * 60 * 1000
@@ -45,8 +46,12 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
   // Locked immediately on button click, before the HTTP response arrives
   const pendingJobs = ref(new Set<JobType>())
 
-  const isJellyfinSyncRunning = computed(() => runningJobs.value.has('JELLYFIN_SYNC'))
-  const isImdbImportRunning = computed(() => runningJobs.value.has('CSV_IMPORT'))
+  const isJellyfinSyncRunning = computed(() => runningJobs.value.has(JOB_TYPE.JELLYFIN_SYNC))
+  const isImdbImportRunning = computed(() => runningJobs.value.has(JOB_TYPE.CSV_IMPORT))
+  const isRadarrImportRunning = computed(() => runningJobs.value.has(JOB_TYPE.RADARR_IMPORT))
+  const isRadarrRatingsRefreshRunning = computed(() =>
+    runningJobs.value.has(JOB_TYPE.RADARR_RATINGS_REFRESH),
+  )
   const isAnyJobRunning = computed(() => runningJobs.value.size > 0 || pendingJobs.value.size > 0)
 
   function lockJob(type: JobType) {
@@ -81,8 +86,14 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
     if (existing) clearTimeout(existing.timeoutId)
 
     const timeoutId = setTimeout(() => {
+      const jobLabels: Record<JobType, string> = {
+        [JOB_TYPE.JELLYFIN_SYNC]: 'Jellyfin sync',
+        [JOB_TYPE.CSV_IMPORT]: 'CSV import',
+        [JOB_TYPE.RADARR_IMPORT]: 'Radarr import',
+        [JOB_TYPE.RADARR_RATINGS_REFRESH]: 'Radarr ratings refresh',
+      }
       toast.warning('Job timed out', {
-        description: `${type === 'JELLYFIN_SYNC' ? 'Jellyfin sync' : 'CSV import'} did not finish within 10 minutes`,
+        description: `${jobLabels[type]} did not finish within 10 minutes`,
       })
       finish(type)
     }, JOB_TIMEOUT_MS)
@@ -116,6 +127,8 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
   return {
     isJellyfinSyncRunning,
     isImdbImportRunning,
+    isRadarrImportRunning,
+    isRadarrRatingsRefreshRunning,
     isAnyJobRunning,
     lockJob,
     unlockJob,

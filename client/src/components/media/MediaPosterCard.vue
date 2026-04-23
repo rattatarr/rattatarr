@@ -2,6 +2,8 @@
   import { ref } from 'vue'
   import Skeleton from 'primevue/skeleton'
   import { Icon } from '@/utils/enums'
+  import imdbSvg from '@/assets/imdb.svg'
+  import rtSvg from '@/assets/rotten_tomatoes.svg'
 
   interface Props {
     title: string
@@ -11,6 +13,8 @@
     jellyfinIconSrc?: string
     myRating?: number
     showRating?: boolean
+    imdbRating?: number
+    rottenTomatoesRating?: number
   }
 
   withDefaults(defineProps<Props>(), {
@@ -93,6 +97,18 @@
 
       <!-- Overlay Slot (for custom overlays) -->
       <slot name="overlay" />
+
+      <!-- IMDb / RT rating badges -->
+      <div v-if="imdbRating || rottenTomatoesRating" class="external-ratings">
+        <span v-if="imdbRating" class="rating-badge rating-badge--imdb">
+          <img :src="imdbSvg" alt="IMDb" class="rating-badge__logo" />
+          {{ imdbRating.toFixed(1) }}
+        </span>
+        <span v-if="rottenTomatoesRating" class="rating-badge rating-badge--rt">
+          <img :src="rtSvg" alt="RT" class="rating-badge__logo" />
+          {{ rottenTomatoesRating }}%
+        </span>
+      </div>
     </div>
 
     <!-- Title -->
@@ -279,6 +295,46 @@
   .rating-empty {
     font-size: 12px;
     opacity: 0.9;
+  }
+
+  /* External rating badges */
+  .external-ratings {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    z-index: 5;
+  }
+
+  .rating-badge {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+  }
+
+  .rating-badge__logo {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  .rating-badge--imdb {
+    background: #f5c518;
+    color: #000;
+  }
+
+  .rating-badge--rt {
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
   }
 
   /* Title */

@@ -6,6 +6,7 @@
 
   const configKeys = {
     autoRefresh: 'sync.auto_refresh_on_read',
+    radarrEnabled: 'sync.radarr_enabled',
   }
 </script>
 
@@ -23,6 +24,14 @@
           type="checkbox"
           description="Automatically refresh media data when reading from external sources"
           @update:model-value="(v) => updateSetting(configKeys.autoRefresh, v)"
+        />
+        <SettingInput
+          :model-value="getSetting(configKeys.radarrEnabled)"
+          label="Enable Radarr Sync"
+          :setting-key="configKeys.radarrEnabled"
+          type="checkbox"
+          description="Periodically fetch IMDb and Rotten Tomatoes ratings from Radarr and import newly added movies into your library"
+          @update:model-value="(v) => updateSetting(configKeys.radarrEnabled, v)"
         />
       </SettingsCard>
     </div>

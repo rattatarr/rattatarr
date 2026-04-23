@@ -4,6 +4,7 @@ import com.rattatarr.rattatarr.models.entities.MediaItem;
 import com.rattatarr.rattatarr.repositories.MediaItemsRepository;
 import com.rattatarr.rattatarr.specifications.MediaItemSpecifications;
 import org.jspecify.annotations.NullMarked;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +57,16 @@ public class MediaItemsService extends BaseService<MediaItem, MediaItemsReposito
         }
         Instant staleThreshold = Instant.now().minus(threshold);
         return mediaItem.updatedAt().isBefore(staleThreshold);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MediaItem> findAllMoviesWithTmdbId() {
+        return repository.findAll(
+                Specification.allOf(
+                        MediaItemSpecifications.isMovie(),
+                        MediaItemSpecifications.hasTmdbId()
+                )
+        );
     }
 
     @Transactional(readOnly = true)

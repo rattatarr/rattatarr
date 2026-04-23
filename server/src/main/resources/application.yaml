@@ -1,6 +1,10 @@
 spring:
   application:
     name: rattatarr
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
   datasource:
     url: jdbc:sqlite:./rattatarr.db?journal_mode=WAL
     driver-class-name: org.sqlite.JDBC
@@ -14,9 +18,7 @@ spring:
         order_updates: true
         batch_versioned_data: true
     hibernate:
-      # For development purpose until a proper model is established and migrations are in place we use 'create'
-      # Use 'update' for preserving data between restarts
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     open-in-view: false
 
@@ -37,6 +39,10 @@ rattatarr:
     jellyfin-initial-delay: PT5H # 5 minutes initial delay after startup (ISO-8601 duration format)
     jellyfin-activity-poll-interval: PT10M
     jellyfin-activity-poll-initial-delay: PT10M
+    radarr-interval: PT24H
+    radarr-initial-delay: PT15M
+    radarr-ratings-interval: PT24H
+    radarr-ratings-initial-delay: PT30M
   cors:
     allowed-origins:
       - http://localhost:3000
