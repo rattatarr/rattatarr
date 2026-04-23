@@ -30,6 +30,13 @@ public class MediaItemSpecifications {
         return (root, query, cb) -> cb.equal(root.get("mediaType"), "SERIES");
     }
 
+    public static Specification<MediaItem> hasTmdbId() {
+        return (root, query, cb) -> cb.and(
+                cb.isNotNull(root.get("TMDbId")),
+                cb.notEqual(root.get("TMDbId"), "")
+        );
+    }
+
     public static Specification<MediaItem> hasId(@Nullable UUID id) {
         return (root, query, cb) -> id == null ? null :
                 cb.equal(root.get("id"), id);

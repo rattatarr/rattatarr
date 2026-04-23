@@ -1,3 +1,12 @@
+import type { JobType } from '@/types'
+
+export const JOB_TYPE = {
+  JELLYFIN_SYNC: 'JELLYFIN_SYNC',
+  CSV_IMPORT: 'CSV_IMPORT',
+  RADARR_IMPORT: 'RADARR_IMPORT',
+  RADARR_RATINGS_REFRESH: 'RADARR_RATINGS_REFRESH',
+} as const satisfies Record<string, JobType>
+
 /**
  * Common enums used throughout the application
  */

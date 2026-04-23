@@ -11,9 +11,13 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 
 @Service
@@ -52,11 +56,32 @@ public class MediaItemMetadataService extends BaseService<MediaItemMetadata, Med
                     existingMetadata.setDescription(metadata.description());
                     existingMetadata.setPosterImageUrl(metadata.posterImageUrl());
                     existingMetadata.setBackdropImageUrl(metadata.backdropImageUrl());
+                    // Preserve Radarr-sourced ratings — not overwritten by TMDb refresh
                     return repository.save(existingMetadata);
                 })
                 .orElseGet(() -> repository.save(metadata));
 
         return metadata;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isRatingFresh(UUID mediaItemId) {
+        return repository.findByMediaItemId(mediaItemId)
+                .map(metadata -> {
+                    boolean hasRating = metadata.imdbRating() != null || metadata.rottenTomatoesRating() != null;
+                    if (!hasRating) return false;
+                    return metadata.updatedAt().isAfter(Instant.now().minus(7, ChronoUnit.DAYS));
+                })
+                .orElse(false);
+    }
+
+    @Transactional
+    public void updateExternalRatings(MediaItem mediaItem, @Nullable Float imdbRating, @Nullable Integer rottenTomatoesRating) {
+        repository.findByMediaItemId(mediaItem.id()).ifPresent(metadata -> {
+            metadata.setImdbRating(imdbRating);
+            metadata.setRottenTomatoesRating(rottenTomatoesRating);
+            repository.save(metadata);
+        });
     }
 
     private TMDbFetchResult fetchMetadataFromTMDb(MediaItem mediaItem) {

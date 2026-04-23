@@ -3,6 +3,7 @@
   import DataTable from 'primevue/datatable'
   import JobStatusTag from './JobStatusTag.vue'
   import type { BackgroundJob, JobType } from '@/types'
+  import { JOB_TYPE } from '@/utils/enums'
 
   defineProps<{
     jobs: BackgroundJob[]
@@ -17,10 +18,14 @@
 
   function formatType(type?: JobType): string {
     switch (type) {
-      case 'JELLYFIN_SYNC':
+      case JOB_TYPE.JELLYFIN_SYNC:
         return 'Jellyfin Sync'
-      case 'CSV_IMPORT':
+      case JOB_TYPE.CSV_IMPORT:
         return 'CSV Import'
+      case JOB_TYPE.RADARR_IMPORT:
+        return 'Radarr Import'
+      case JOB_TYPE.RADARR_RATINGS_REFRESH:
+        return 'Radarr Ratings Refresh'
       default:
         return type ?? '—'
     }

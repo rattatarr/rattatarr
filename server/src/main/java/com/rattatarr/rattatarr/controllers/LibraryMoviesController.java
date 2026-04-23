@@ -8,6 +8,7 @@ import com.rattatarr.rattatarr.models.dtos.responses.wrappers.BrokenMediaItemRes
 import com.rattatarr.rattatarr.models.dtos.responses.wrappers.MoviesResponseWrapper;
 import com.rattatarr.rattatarr.services.BrokenMediaItemsService;
 import com.rattatarr.rattatarr.services.MoviesService;
+import com.rattatarr.rattatarr.services.RadarrService;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -17,8 +18,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/library/movies")
 @ApiVersion("v1")
@@ -26,12 +25,15 @@ import java.util.UUID;
 public class LibraryMoviesController extends BaseController {
     private final MoviesService moviesService;
     private final BrokenMediaItemsService brokenMediaItemsService;
+    private final RadarrService radarrService;
 
     public LibraryMoviesController(MoviesService moviesService,
-                                   BrokenMediaItemsService brokenMediaItemsService
+                                   BrokenMediaItemsService brokenMediaItemsService,
+                                   RadarrService radarrService
     ) {
         this.moviesService = moviesService;
         this.brokenMediaItemsService = brokenMediaItemsService;
+        this.radarrService = radarrService;
     }
 
     @GetMapping
@@ -40,6 +42,10 @@ public class LibraryMoviesController extends BaseController {
             @ModelAttribute MoviesFiltersDTO filters
     ) {
         logger.info("Fetching movies with filters: {}", filters);
+
+        if (filters.id() != null) {
+            radarrService.enrichMovieFromRadarrIfStale(filters.id());
+        }
 
         return ResponseEntity.ok(MoviesResponseWrapper.fromPage(
                 moviesService.filterMovies(filters, pageable)

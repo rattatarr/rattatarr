@@ -4,6 +4,7 @@
   import { SyncButton, FileUpload } from '@/components/sync'
   import { useSyncJellyfinMedia, useSyncJellyfinProfiles } from '@/queries/useJellyfin'
   import { useImportIMDbRatings, useExportRatingsCsv } from '@/queries/useRatings'
+  import { useImportRadarrMovies, useRefreshRadarrRatings } from '@/queries/useRadarr'
   import { useProfileManagement } from '@/composables/useProfileManagement'
   import { useSyncOperation } from '@/composables/useSyncOperation'
   import { useToast } from '@/composables/useToast'
@@ -11,7 +12,7 @@
   import { useProfileStore } from '@/stores/profileStore'
   import { useJobTrackingStore } from '@/stores/jobTrackingStore'
   import type { BackgroundJob, ProfilesWrapper } from '@/schemas/types/api'
-  import { OperationStatus, ButtonSeverity, Icon } from '@/utils/enums'
+  import { OperationStatus, ButtonSeverity, Icon, JOB_TYPE } from '@/utils/enums'
 
   const toast = useToast()
   const { savedSettings } = useSettingsForm()
@@ -24,6 +25,8 @@
     jellyfinUrl: 'jellyfin.base_url',
     jellyfinKey: 'jellyfin.api_key',
     tmdbKey: 'tmdb.api_key',
+    radarrUrl: 'radarr.base_url',
+    radarrKey: 'radarr.api_key',
   }
 
   // Jellyfin Profiles Sync
@@ -43,11 +46,11 @@
     successDescription: () => 'Media synchronization is running in the background',
     errorMessage: 'Failed to sync Jellyfin media',
     onSuccess: (job) => jobTrackingStore.startTracking(job),
-    onError: () => jobTrackingStore.unlockJob('JELLYFIN_SYNC'),
+    onError: () => jobTrackingStore.unlockJob(JOB_TYPE.JELLYFIN_SYNC),
   })
 
   function executeJellyfinSync() {
-    jobTrackingStore.lockJob('JELLYFIN_SYNC')
+    jobTrackingStore.lockJob(JOB_TYPE.JELLYFIN_SYNC)
     void jellyfinSync.execute()
   }
 
@@ -87,7 +90,7 @@
       return
     }
 
-    jobTrackingStore.lockJob('CSV_IMPORT')
+    jobTrackingStore.lockJob(JOB_TYPE.CSV_IMPORT)
     imdbImportStatus.value = OperationStatus.LOADING
 
     try {
@@ -109,7 +112,7 @@
         imdbImportStatus.value = OperationStatus.IDLE
       }, 3000)
     } catch (error) {
-      jobTrackingStore.unlockJob('CSV_IMPORT')
+      jobTrackingStore.unlockJob(JOB_TYPE.CSV_IMPORT)
       imdbImportStatus.value = OperationStatus.ERROR
       toast.error(error as Error, { fallbackMessage: 'Failed to import IMDb ratings' })
 
@@ -177,6 +180,94 @@
   }
 
   const canExportRatings = computed(() => !!selectedProfile.value?.id)
+
+  // Radarr Import
+  const importRadarrMutation = useImportRadarrMovies()
+  const radarrImportStatus = ref<OperationStatus>(OperationStatus.IDLE)
+  const radarrImportButtonProps = computed(() => {
+    switch (radarrImportStatus.value) {
+      case OperationStatus.LOADING:
+        return { loading: true }
+      case OperationStatus.SUCCESS:
+        return { severity: ButtonSeverity.SUCCESS, icon: Icon.CHECK, loading: false }
+      case OperationStatus.ERROR:
+        return { severity: ButtonSeverity.DANGER, icon: Icon.TIMES, loading: false }
+      default:
+        return { loading: false }
+    }
+  })
+
+  async function executeRadarrImport() {
+    jobTrackingStore.lockJob(JOB_TYPE.RADARR_IMPORT)
+    radarrImportStatus.value = OperationStatus.LOADING
+
+    try {
+      const data = await importRadarrMutation.mutateAsync()
+      radarrImportStatus.value = OperationStatus.SUCCESS
+
+      toast.success('Radarr import started', {
+        description: 'Movie import is running in the background',
+      })
+
+      void jobTrackingStore.startTracking(data)
+
+      setTimeout(() => {
+        radarrImportStatus.value = OperationStatus.IDLE
+      }, 3000)
+    } catch (error) {
+      jobTrackingStore.unlockJob(JOB_TYPE.RADARR_IMPORT)
+      radarrImportStatus.value = OperationStatus.ERROR
+      toast.error(error as Error, { fallbackMessage: 'Failed to import from Radarr' })
+
+      setTimeout(() => {
+        radarrImportStatus.value = OperationStatus.IDLE
+      }, 3000)
+    }
+  }
+
+  // Radarr Ratings Refresh
+  const refreshRadarrRatingsMutation = useRefreshRadarrRatings()
+  const radarrRatingsRefreshStatus = ref<OperationStatus>(OperationStatus.IDLE)
+  const radarrRatingsRefreshButtonProps = computed(() => {
+    switch (radarrRatingsRefreshStatus.value) {
+      case OperationStatus.LOADING:
+        return { loading: true }
+      case OperationStatus.SUCCESS:
+        return { severity: ButtonSeverity.SUCCESS, icon: Icon.CHECK, loading: false }
+      case OperationStatus.ERROR:
+        return { severity: ButtonSeverity.DANGER, icon: Icon.TIMES, loading: false }
+      default:
+        return { loading: false }
+    }
+  })
+
+  async function executeRadarrRatingsRefresh() {
+    jobTrackingStore.lockJob(JOB_TYPE.RADARR_RATINGS_REFRESH)
+    radarrRatingsRefreshStatus.value = OperationStatus.LOADING
+
+    try {
+      const data = await refreshRadarrRatingsMutation.mutateAsync()
+      radarrRatingsRefreshStatus.value = OperationStatus.SUCCESS
+
+      toast.success('Radarr ratings refresh started', {
+        description: 'Ratings refresh is running in the background',
+      })
+
+      void jobTrackingStore.startTracking(data)
+
+      setTimeout(() => {
+        radarrRatingsRefreshStatus.value = OperationStatus.IDLE
+      }, 3000)
+    } catch (error) {
+      jobTrackingStore.unlockJob(JOB_TYPE.RADARR_RATINGS_REFRESH)
+      radarrRatingsRefreshStatus.value = OperationStatus.ERROR
+      toast.error(error as Error, { fallbackMessage: 'Failed to refresh Radarr ratings' })
+
+      setTimeout(() => {
+        radarrRatingsRefreshStatus.value = OperationStatus.IDLE
+      }, 3000)
+    }
+  }
 </script>
 
 <template>
@@ -259,6 +350,53 @@
             @click="executeImdbImport"
           />
         </div>
+      </SettingsCard>
+
+      <!-- Radarr Movie Import -->
+      <SettingsCard
+        title="Radarr Movie Import"
+        description="Look up movies in Radarr's internal database and import them into your library"
+      >
+        <SyncButton
+          label="Import from Radarr"
+          :required-settings="[
+            { key: integrationKeys.radarrUrl, displayName: 'Radarr URL' },
+            { key: integrationKeys.radarrKey, displayName: 'Radarr API Key' },
+          ]"
+          :settings="savedSettings"
+          :status="radarrImportStatus"
+          :severity="radarrImportButtonProps.severity"
+          :icon="radarrImportButtonProps.icon"
+          :loading="radarrImportButtonProps.loading || jobTrackingStore.isRadarrImportRunning"
+          :disabled="jobTrackingStore.isAnyJobRunning"
+          info-message="Scans Radarr's internal database for movies and imports any that are not yet in your Rattatarr library. Runs in the background — you will be notified when complete."
+          @click="executeRadarrImport"
+        />
+      </SettingsCard>
+
+      <!-- Radarr Ratings Refresh -->
+      <SettingsCard
+        title="Radarr Ratings Refresh"
+        description="Fetch IMDb and Rotten Tomatoes ratings for all Rattatarr movies via Radarr"
+      >
+        <SyncButton
+          label="Refresh Ratings"
+          :required-settings="[
+            { key: integrationKeys.radarrUrl, displayName: 'Radarr URL' },
+            { key: integrationKeys.radarrKey, displayName: 'Radarr API Key' },
+          ]"
+          :settings="savedSettings"
+          :status="radarrRatingsRefreshStatus"
+          :severity="radarrRatingsRefreshButtonProps.severity"
+          :icon="radarrRatingsRefreshButtonProps.icon"
+          :loading="
+            radarrRatingsRefreshButtonProps.loading ||
+            jobTrackingStore.isRadarrRatingsRefreshRunning
+          "
+          :disabled="jobTrackingStore.isAnyJobRunning"
+          info-message="Goes through all movies in your Rattatarr library and updates their IMDb and Rotten Tomatoes ratings using data from Radarr. Runs in the background — you will be notified when complete."
+          @click="executeRadarrRatingsRefresh"
+        />
       </SettingsCard>
 
       <!-- Ratings CSV Export -->

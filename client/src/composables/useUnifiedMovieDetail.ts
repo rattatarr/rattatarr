@@ -76,6 +76,8 @@ export function useUnifiedMovieDetail(
         description: internalMovie.metadata?.description,
         imdbId: internalMovie.IMDbId,
         tmdbId: internalMovie.TMDbId,
+        imdbRating: internalMovie.metadata?.imdbRating ?? undefined,
+        rottenTomatoesRating: internalMovie.metadata?.rottenTomatoesRating ?? undefined,
         jellyfinId: internalMovie.jellyfinId,
         myRating: internalMovie.myRating,
         source: MediaSource.INTERNAL,

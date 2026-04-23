@@ -2,6 +2,7 @@
   import Select from 'primevue/select'
   import Button from 'primevue/button'
   import type { JobStatus, JobType } from '@/types'
+  import { JOB_TYPE } from '@/utils/enums'
 
   export interface JobsFilterState {
     type?: JobType
@@ -12,8 +13,10 @@
 
   const typeOptions: Array<{ label: string; value: JobType | undefined }> = [
     { label: 'All types', value: undefined },
-    { label: 'Jellyfin Sync', value: 'JELLYFIN_SYNC' },
-    { label: 'CSV Import', value: 'CSV_IMPORT' },
+    { label: 'Jellyfin Sync', value: JOB_TYPE.JELLYFIN_SYNC },
+    { label: 'CSV Import', value: JOB_TYPE.CSV_IMPORT },
+    { label: 'Radarr Import', value: JOB_TYPE.RADARR_IMPORT },
+    { label: 'Radarr Ratings Refresh', value: JOB_TYPE.RADARR_RATINGS_REFRESH },
   ]
 
   const statusOptions: Array<{ label: string; value: JobStatus | undefined }> = [

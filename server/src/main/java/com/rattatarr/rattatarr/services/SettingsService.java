@@ -30,6 +30,10 @@ public class SettingsService extends BaseService<Setting, SettingsRepository> {
     public static final String SYNC_STALE_THRESHOLD = "sync.stale_threshold";
     public static final String SYNC_AUTO_REFRESH_ON_READ = "sync.auto_refresh_on_read";
 
+    public static final String RADARR_BASE_URL = "radarr.base_url";
+    public static final String RADARR_API_KEY = "radarr.api_key";
+    public static final String SYNC_RADARR_ENABLED = "sync.radarr_enabled";
+
     public static final String AGENTS_OLLAMA_BASE_URL = "agents.ollama.base_url";
     public static final String AGENTS_OLLAMA_API_KEY = "agents.ollama.api_key";
     public static final String AGENTS_OLLAMA_MODEL = "agents.ollama.model";
@@ -75,6 +79,11 @@ public class SettingsService extends BaseService<Setting, SettingsRepository> {
         createSettingIfNotExists(SYNC_JELLYFIN_ACTIVITY_BACKFILL_COMPLETE, "false", "Whether initial Jellyfin activity log backfill has completed");
         createSettingIfNotExists(SYNC_STALE_THRESHOLD, "P2D", "Staleness threshold for TMDb items (ISO-8601 duration)");
         createSettingIfNotExists(SYNC_AUTO_REFRESH_ON_READ, "false", "Auto-refresh stale series when viewing them");
+
+        // Radarr settings
+        createSettingIfNotExists(RADARR_BASE_URL, null, "Radarr server base URL (e.g. http://radarr:7878)");
+        createSettingIfNotExists(RADARR_API_KEY, null, "Radarr API key");
+        createSettingIfNotExists(SYNC_RADARR_ENABLED, "true", "Enable scheduled Radarr import synchronization");
 
         // Ollama agent settings
         createSettingIfNotExists(AGENTS_OLLAMA_BASE_URL, null, "Ollama base URL (e.g. http://localhost:11434)");

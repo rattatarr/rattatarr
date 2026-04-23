@@ -318,6 +318,46 @@
         }
       }
     },
+    "/api/v1/radarr/refresh-ratings": {
+      "post": {
+        "tags": [
+          "radarr-controller"
+        ],
+        "operationId": "refreshRatings",
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackgroundJobResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/radarr/import": {
+      "post": {
+        "tags": [
+          "radarr-controller"
+        ],
+        "operationId": "importMovies",
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackgroundJobResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/profiles": {
       "get": {
         "tags": [
@@ -784,6 +824,37 @@
                 "schema": {
                   "type": "string",
                   "format": "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/radarr/movies": {
+      "get": {
+        "tags": [
+          "radarr-controller"
+        ],
+        "operationId": "lookupMovieByTmdbId",
+        "parameters": [
+          {
+            "name": "tmdbId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarrMovieLookupResponseDTO"
                 }
               }
             }
@@ -1263,7 +1334,9 @@
               "type": "string",
               "enum": [
                 "JELLYFIN_SYNC",
-                "CSV_IMPORT"
+                "CSV_IMPORT",
+                "RADARR_IMPORT",
+                "RADARR_RATINGS_REFRESH"
               ]
             }
           },
@@ -1798,7 +1871,9 @@
             "type": "string",
             "enum": [
               "JELLYFIN_SYNC",
-              "CSV_IMPORT"
+              "CSV_IMPORT",
+              "RADARR_IMPORT",
+              "RADARR_RATINGS_REFRESH"
             ]
           },
           "status": {
@@ -1954,6 +2029,12 @@
               "MOVIE",
               "SERIES"
             ]
+          },
+          "posterSize": {
+            "type": "string"
+          },
+          "backdropSize": {
+            "type": "string"
           }
         }
       },
@@ -2064,6 +2145,14 @@
           },
           "backdropImageUrl": {
             "type": "string"
+          },
+          "imdbRating": {
+            "type": "number",
+            "format": "float"
+          },
+          "rottenTomatoesRating": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -2690,6 +2779,58 @@
         "properties": {
           "setting": {
             "$ref": "#/components/schemas/SettingResponseDTO"
+          }
+        }
+      },
+      "RadarrMovieLookupResponseDTO": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tmdbId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "imdbId": {
+            "type": "string"
+          },
+          "monitored": {
+            "type": "boolean"
+          },
+          "ratings": {
+            "$ref": "#/components/schemas/RadarrRatings"
+          }
+        }
+      },
+      "RadarrRatingEntry": {
+        "type": "object",
+        "properties": {
+          "votes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "RadarrRatings": {
+        "type": "object",
+        "properties": {
+          "imdb": {
+            "$ref": "#/components/schemas/RadarrRatingEntry"
+          },
+          "rottenTomatoes": {
+            "$ref": "#/components/schemas/RadarrRatingEntry"
           }
         }
       },

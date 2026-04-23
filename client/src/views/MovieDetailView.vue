@@ -162,6 +162,8 @@
               :poster-url="movie.posterUrl"
               :my-rating="movie.source === MediaSource.INTERNAL ? movie.myRating : undefined"
               :show-rating="movie.source === MediaSource.INTERNAL && !!selectedProfileId"
+              :imdb-rating="movie.imdbRating"
+              :rotten-tomatoes-rating="movie.rottenTomatoesRating"
               @click:rating="openRatingDialog"
             />
 

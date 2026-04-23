@@ -82,6 +82,10 @@ public class TMDbService {
     }
 
     private MediaItem toMediaItemMovie(TMDbMovieFullDetailsResponseDTO dto, Set<Genre> genres) {
+        if (dto.releaseDate() == null || dto.releaseDate().length() < 4) {
+            logger.warn("Skipping TMDb movie id={} title='{}': missing or invalid release date '{}'",
+                    dto.id(), dto.title(), dto.releaseDate());
+        }
         return new MediaItem(
                 MediaType.MOVIE,
                 dto.title(),
