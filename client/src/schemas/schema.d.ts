@@ -132,6 +132,22 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/sonarr/import': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: operations['importSeries']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/ratings/import/imdb': {
     parameters: {
       query?: never
@@ -372,6 +388,22 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/sonarr/test': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['testConnection_1']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/settings/{key}': {
     parameters: {
       query?: never
@@ -396,6 +428,22 @@ export interface paths {
       cookie?: never
     }
     get: operations['exportRatingsCsv']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/radarr/test': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['testConnection_2']
     put?: never
     post?: never
     delete?: never
@@ -651,7 +699,7 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    get: operations['testConnection_1']
+    get: operations['testConnection_3']
     put?: never
     post?: never
     delete?: never
@@ -853,7 +901,12 @@ export interface components {
       /** Format: uuid */
       id?: string
       /** @enum {string} */
-      type?: 'JELLYFIN_SYNC' | 'CSV_IMPORT' | 'RADARR_IMPORT' | 'RADARR_RATINGS_REFRESH'
+      type?:
+        | 'JELLYFIN_SYNC'
+        | 'CSV_IMPORT'
+        | 'RADARR_IMPORT'
+        | 'RADARR_RATINGS_REFRESH'
+        | 'SONARR_IMPORT'
       /** @enum {string} */
       status?: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
       message?: string
@@ -1728,6 +1781,26 @@ export interface operations {
       }
     }
   }
+  importSeries: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Accepted */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['BackgroundJobResponseDTO']
+        }
+      }
+    }
+  }
   importImdbCsv: {
     parameters: {
       query: {
@@ -2091,6 +2164,26 @@ export interface operations {
       }
     }
   }
+  testConnection_1: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['GenericResponseDTO']
+        }
+      }
+    }
+  }
   getSettingByKey: {
     parameters: {
       query?: never
@@ -2131,6 +2224,26 @@ export interface operations {
         }
         content: {
           'text/csv': string
+        }
+      }
+    }
+  }
+  testConnection_2: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['GenericResponseDTO']
         }
       }
     }
@@ -2447,7 +2560,12 @@ export interface operations {
     parameters: {
       query: {
         /** @description Filter by job type (JELLYFIN_SYNC, CSV_IMPORT) */
-        type?: 'JELLYFIN_SYNC' | 'CSV_IMPORT' | 'RADARR_IMPORT' | 'RADARR_RATINGS_REFRESH'
+        type?:
+          | 'JELLYFIN_SYNC'
+          | 'CSV_IMPORT'
+          | 'RADARR_IMPORT'
+          | 'RADARR_RATINGS_REFRESH'
+          | 'SONARR_IMPORT'
         /** @description Filter by job status (PENDING, RUNNING, COMPLETED, FAILED) */
         status?: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
         /**
@@ -2501,7 +2619,7 @@ export interface operations {
       }
     }
   }
-  testConnection_1: {
+  testConnection_3: {
     parameters: {
       query?: never
       header?: never

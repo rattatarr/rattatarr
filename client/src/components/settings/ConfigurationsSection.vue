@@ -7,6 +7,7 @@
   const configKeys = {
     autoRefresh: 'sync.auto_refresh_on_read',
     radarrEnabled: 'sync.radarr_enabled',
+    sonarrEnabled: 'sync.sonarr_enabled',
   }
 </script>
 
@@ -32,6 +33,14 @@
           type="checkbox"
           description="Periodically fetch IMDb and Rotten Tomatoes ratings from Radarr and import newly added movies into your library"
           @update:model-value="(v) => updateSetting(configKeys.radarrEnabled, v)"
+        />
+        <SettingInput
+          :model-value="getSetting(configKeys.sonarrEnabled)"
+          label="Enable Sonarr Sync"
+          :setting-key="configKeys.sonarrEnabled"
+          type="checkbox"
+          description="Periodically import newly added series from Sonarr into your library"
+          @update:model-value="(v) => updateSetting(configKeys.sonarrEnabled, v)"
         />
       </SettingsCard>
     </div>

@@ -5,6 +5,7 @@ export const JOB_TYPE = {
   CSV_IMPORT: 'CSV_IMPORT',
   RADARR_IMPORT: 'RADARR_IMPORT',
   RADARR_RATINGS_REFRESH: 'RADARR_RATINGS_REFRESH',
+  SONARR_IMPORT: 'SONARR_IMPORT',
 } as const satisfies Record<string, JobType>
 
 /**
