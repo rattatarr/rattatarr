@@ -14,10 +14,11 @@ describe('JOB_TYPE', () => {
     expect(JOB_TYPE.CSV_IMPORT).toBe('CSV_IMPORT')
     expect(JOB_TYPE.RADARR_IMPORT).toBe('RADARR_IMPORT')
     expect(JOB_TYPE.RADARR_RATINGS_REFRESH).toBe('RADARR_RATINGS_REFRESH')
+    expect(JOB_TYPE.SONARR_IMPORT).toBe('SONARR_IMPORT')
   })
 
-  it('has exactly 4 entries', () => {
-    expect(Object.keys(JOB_TYPE)).toHaveLength(4)
+  it('has exactly 5 entries', () => {
+    expect(Object.keys(JOB_TYPE)).toHaveLength(5)
   })
 
   it('all values are uppercase strings', () => {

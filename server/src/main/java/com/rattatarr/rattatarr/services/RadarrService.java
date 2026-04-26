@@ -47,6 +47,10 @@ public class RadarrService {
         this.tmdbApiExecutor = tmdbApiExecutor;
     }
 
+    public boolean testConnection() {
+        return radarrClient.testConnection();
+    }
+
     public RadarrMovieLookupResponseDTO lookupByTmdbId(int tmdbId) {
         return radarrClient.lookupByTmdbId(tmdbId);
     }

@@ -4,12 +4,16 @@
   import { useToast } from '@/composables/useToast'
   import { useSettingsForm } from '@/composables/useSettingsForm'
   import { useJellyfinTest, useTMDbTest } from '@/queries'
+  import { useRadarrTest } from '@/queries/useRadarr'
+  import { useSonarrTest } from '@/queries/useSonarr'
 
   const toast = useToast()
   const { updateSetting, getSetting, saveSpecificSettings } = useSettingsForm()
 
   const jellyfinTest = useJellyfinTest()
   const tmdbTest = useTMDbTest()
+  const radarrTest = useRadarrTest()
+  const sonarrTest = useSonarrTest()
 
   const integrationKeys = {
     jellyfinUrl: 'jellyfin.base_url',
@@ -77,24 +81,56 @@
     },
   }
 
-  const sonarrConnectionTest: ConnectionTestConfig = {
-    preSaveKeys: [integrationKeys.sonarrUrl, integrationKeys.sonarrKey],
-    saveSpecificSettings,
-    testFn: async () => {
-      toast.info('Sonarr API not configured', 'Connection test not available yet')
-      return { status: '501', message: 'API not implemented' }
-    },
-    buttonLabel: 'Check Connection (Not Available)',
-  }
-
   const radarrConnectionTest: ConnectionTestConfig = {
     preSaveKeys: [integrationKeys.radarrUrl, integrationKeys.radarrKey],
     saveSpecificSettings,
     testFn: async () => {
-      toast.info('Radarr API not configured', 'Connection test not available yet')
-      return { status: '501', message: 'API not implemented' }
+      await radarrTest.refetch()
+
+      const response = radarrTest.data?.value
+      const error = radarrTest.error?.value
+
+      if (error) {
+        toast.error('Failed to connect to Radarr', error.message)
+        return { status: '500', message: error.message }
+      }
+
+      if (
+        response?.status?.includes('200') ||
+        (!response?.message?.toLowerCase().includes('failed') &&
+          !response?.message?.toLowerCase().includes('error'))
+      ) {
+        toast.success('Radarr connected', 'Connection test successful')
+      }
+
+      return response || { status: '500', message: 'Unknown error' }
     },
-    buttonLabel: 'Check Connection (Not Available)',
+  }
+
+  const sonarrConnectionTest: ConnectionTestConfig = {
+    preSaveKeys: [integrationKeys.sonarrUrl, integrationKeys.sonarrKey],
+    saveSpecificSettings,
+    testFn: async () => {
+      await sonarrTest.refetch()
+
+      const response = sonarrTest.data?.value
+      const error = sonarrTest.error?.value
+
+      if (error) {
+        toast.error('Failed to connect to Sonarr', error.message)
+        return { status: '500', message: error.message }
+      }
+
+      if (
+        response?.status?.includes('200') ||
+        (!response?.message?.toLowerCase().includes('failed') &&
+          !response?.message?.toLowerCase().includes('error'))
+      ) {
+        toast.success('Sonarr connected', 'Connection test successful')
+      }
+
+      return response || { status: '500', message: 'Unknown error' }
+    },
   }
 </script>
 

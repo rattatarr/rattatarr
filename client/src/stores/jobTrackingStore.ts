@@ -52,6 +52,7 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
   const isRadarrRatingsRefreshRunning = computed(() =>
     runningJobs.value.has(JOB_TYPE.RADARR_RATINGS_REFRESH),
   )
+  const isSonarrImportRunning = computed(() => runningJobs.value.has(JOB_TYPE.SONARR_IMPORT))
   const isAnyJobRunning = computed(() => runningJobs.value.size > 0 || pendingJobs.value.size > 0)
 
   function lockJob(type: JobType) {
@@ -91,6 +92,7 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
         [JOB_TYPE.CSV_IMPORT]: 'CSV import',
         [JOB_TYPE.RADARR_IMPORT]: 'Radarr import',
         [JOB_TYPE.RADARR_RATINGS_REFRESH]: 'Radarr ratings refresh',
+        [JOB_TYPE.SONARR_IMPORT]: 'Sonarr import',
       }
       toast.warning('Job timed out', {
         description: `${jobLabels[type]} did not finish within 10 minutes`,
@@ -129,6 +131,7 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
     isImdbImportRunning,
     isRadarrImportRunning,
     isRadarrRatingsRefreshRunning,
+    isSonarrImportRunning,
     isAnyJobRunning,
     lockJob,
     unlockJob,

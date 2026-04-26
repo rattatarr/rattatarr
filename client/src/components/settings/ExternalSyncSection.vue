@@ -5,6 +5,7 @@
   import { useSyncJellyfinMedia, useSyncJellyfinProfiles } from '@/queries/useJellyfin'
   import { useImportIMDbRatings, useExportRatingsCsv } from '@/queries/useRatings'
   import { useImportRadarrMovies, useRefreshRadarrRatings } from '@/queries/useRadarr'
+  import { useImportSonarrSeries } from '@/queries/useSonarr'
   import { useProfileManagement } from '@/composables/useProfileManagement'
   import { useSyncOperation } from '@/composables/useSyncOperation'
   import { useToast } from '@/composables/useToast'
@@ -27,6 +28,8 @@
     tmdbKey: 'tmdb.api_key',
     radarrUrl: 'radarr.base_url',
     radarrKey: 'radarr.api_key',
+    sonarrUrl: 'sonarr.base_url',
+    sonarrKey: 'sonarr.api_key',
   }
 
   // Jellyfin Profiles Sync
@@ -225,6 +228,50 @@
     }
   }
 
+  // Sonarr Import
+  const importSonarrMutation = useImportSonarrSeries()
+  const sonarrImportStatus = ref<OperationStatus>(OperationStatus.IDLE)
+  const sonarrImportButtonProps = computed(() => {
+    switch (sonarrImportStatus.value) {
+      case OperationStatus.LOADING:
+        return { loading: true }
+      case OperationStatus.SUCCESS:
+        return { severity: ButtonSeverity.SUCCESS, icon: Icon.CHECK, loading: false }
+      case OperationStatus.ERROR:
+        return { severity: ButtonSeverity.DANGER, icon: Icon.TIMES, loading: false }
+      default:
+        return { loading: false }
+    }
+  })
+
+  async function executeSonarrImport() {
+    jobTrackingStore.lockJob(JOB_TYPE.SONARR_IMPORT)
+    sonarrImportStatus.value = OperationStatus.LOADING
+
+    try {
+      const data = await importSonarrMutation.mutateAsync()
+      sonarrImportStatus.value = OperationStatus.SUCCESS
+
+      toast.success('Sonarr import started', {
+        description: 'Series import is running in the background',
+      })
+
+      void jobTrackingStore.startTracking(data)
+
+      setTimeout(() => {
+        sonarrImportStatus.value = OperationStatus.IDLE
+      }, 3000)
+    } catch (error) {
+      jobTrackingStore.unlockJob(JOB_TYPE.SONARR_IMPORT)
+      sonarrImportStatus.value = OperationStatus.ERROR
+      toast.error(error as Error, { fallbackMessage: 'Failed to import from Sonarr' })
+
+      setTimeout(() => {
+        sonarrImportStatus.value = OperationStatus.IDLE
+      }, 3000)
+    }
+  }
+
   // Radarr Ratings Refresh
   const refreshRadarrRatingsMutation = useRefreshRadarrRatings()
   const radarrRatingsRefreshStatus = ref<OperationStatus>(OperationStatus.IDLE)
@@ -275,6 +322,7 @@
     <h2 class="section-title">External Synchronization</h2>
     <p class="section-description">Sync media and import ratings from external sources</p>
 
+    <!-- Row 1: Jellyfin + IMDb + CSV -->
     <div class="settings-grid">
       <!-- Jellyfin Profiles Sync -->
       <SettingsCard
@@ -352,6 +400,24 @@
         </div>
       </SettingsCard>
 
+      <!-- Ratings CSV Export -->
+      <SettingsCard title="Ratings CSV Export" description="Download profile ratings as CSV">
+        <SyncButton
+          label="Export Ratings CSV"
+          :status="ratingsExportStatus"
+          :severity="ratingsExportButtonProps.severity"
+          :icon="ratingsExportButtonProps.icon"
+          :loading="ratingsExportButtonProps.loading"
+          :disabled="!canExportRatings"
+          info-message="Exports ratings for selected profile and downloads a CSV file to your device."
+          @click="executeRatingsExport"
+        />
+      </SettingsCard>
+    </div>
+
+    <!-- Row 2: Radarr + Sonarr -->
+    <h3 class="subsection-title">Arr Integrations</h3>
+    <div class="settings-grid">
       <!-- Radarr Movie Import -->
       <SettingsCard
         title="Radarr Movie Import"
@@ -399,17 +465,25 @@
         />
       </SettingsCard>
 
-      <!-- Ratings CSV Export -->
-      <SettingsCard title="Ratings CSV Export" description="Download profile ratings as CSV">
+      <!-- Sonarr Series Import -->
+      <SettingsCard
+        title="Sonarr Series Import"
+        description="Look up series in Sonarr's internal database and import them into your library"
+      >
         <SyncButton
-          label="Export Ratings CSV"
-          :status="ratingsExportStatus"
-          :severity="ratingsExportButtonProps.severity"
-          :icon="ratingsExportButtonProps.icon"
-          :loading="ratingsExportButtonProps.loading"
-          :disabled="!canExportRatings"
-          info-message="Exports ratings for selected profile and downloads a CSV file to your device."
-          @click="executeRatingsExport"
+          label="Import from Sonarr"
+          :required-settings="[
+            { key: integrationKeys.sonarrUrl, displayName: 'Sonarr URL' },
+            { key: integrationKeys.sonarrKey, displayName: 'Sonarr API Key' },
+          ]"
+          :settings="savedSettings"
+          :status="sonarrImportStatus"
+          :severity="sonarrImportButtonProps.severity"
+          :icon="sonarrImportButtonProps.icon"
+          :loading="sonarrImportButtonProps.loading || jobTrackingStore.isSonarrImportRunning"
+          :disabled="jobTrackingStore.isAnyJobRunning"
+          info-message="Scans Sonarr's internal database for series and imports any that are not yet in your Rattatarr library. Runs in the background — you will be notified when complete."
+          @click="executeSonarrImport"
         />
       </SettingsCard>
     </div>
@@ -441,6 +515,13 @@
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 1.5rem;
     margin-top: 1rem;
+  }
+
+  .subsection-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--p-text-color);
+    margin: 1rem 0 0 0;
   }
 
   .card-description-custom {

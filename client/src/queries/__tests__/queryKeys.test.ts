@@ -10,6 +10,8 @@ import {
   logKeys,
   watchActivityKeys,
   invalidateAll,
+  radarrKeys,
+  sonarrKeys,
 } from '@/queries'
 import type {
   Pageable,
@@ -262,6 +264,26 @@ describe('invalidateAll', () => {
     expect(invalidateAll.settings).toEqual(['settings'])
     expect(invalidateAll.jellyfin).toEqual(['jellyfin'])
     expect(invalidateAll.logs).toEqual(['logs'])
+  })
+})
+
+describe('radarrKeys', () => {
+  it('should generate base key', () => {
+    expect(radarrKeys.all).toEqual(['radarr'])
+  })
+
+  it('should generate test key', () => {
+    expect(radarrKeys.test()).toEqual(['radarr', 'test'])
+  })
+})
+
+describe('sonarrKeys', () => {
+  it('should generate base key', () => {
+    expect(sonarrKeys.all).toEqual(['sonarr'])
+  })
+
+  it('should generate test key', () => {
+    expect(sonarrKeys.test()).toEqual(['sonarr', 'test'])
   })
 })
 

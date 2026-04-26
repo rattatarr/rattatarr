@@ -34,6 +34,26 @@ class RadarrControllerTest {
     private RadarrController radarrController;
 
     @Test
+    void testConnection_whenSuccessful_shouldReturnSuccess() {
+        when(radarrService.testConnection()).thenReturn(true);
+
+        var result = radarrController.testConnection();
+
+        assertEquals(HttpStatus.OK, result.status());
+        verify(radarrService).testConnection();
+    }
+
+    @Test
+    void testConnection_whenFailed_shouldReturnFailure() {
+        when(radarrService.testConnection()).thenReturn(false);
+
+        var result = radarrController.testConnection();
+
+        assertEquals(HttpStatus.BAD_REQUEST, result.status());
+        verify(radarrService).testConnection();
+    }
+
+    @Test
     void lookupMovieByTmdbId_shouldReturnLookupResult() {
         var dto = new RadarrMovieLookupResponseDTO("Inception", 2010, 27205, "tt1375666", true, null);
         when(radarrService.lookupByTmdbId(27205)).thenReturn(dto);
