@@ -4,6 +4,7 @@ import com.rattatarr.rattatarr.clients.radarr.responses.RadarrMovieLookupRespons
 import com.rattatarr.rattatarr.configs.ApiVersion;
 import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.dtos.responses.BackgroundJobResponseDTO;
+import com.rattatarr.rattatarr.models.dtos.responses.GenericResponseDTO;
 import com.rattatarr.rattatarr.services.BackgroundJobService;
 import com.rattatarr.rattatarr.services.RadarrService;
 import org.jspecify.annotations.NullMarked;
@@ -22,6 +23,15 @@ public class RadarrController extends BaseController {
     public RadarrController(RadarrService radarrService, BackgroundJobService backgroundJobService) {
         this.radarrService = radarrService;
         this.backgroundJobService = backgroundJobService;
+    }
+
+    @GetMapping("/test")
+    public GenericResponseDTO testConnection() {
+        logger.info("Testing Radarr connection");
+        boolean success = radarrService.testConnection();
+        if (!success)
+            return GenericResponseDTO.failure("Radarr connection failed");
+        return GenericResponseDTO.success("Radarr connection successful", null);
     }
 
     @GetMapping("/movies")

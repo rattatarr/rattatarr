@@ -269,6 +269,26 @@
         }
       }
     },
+    "/api/v1/sonarr/import": {
+      "post": {
+        "tags": [
+          "sonarr-controller"
+        ],
+        "operationId": "importSeries",
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackgroundJobResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ratings/import/imdb": {
       "post": {
         "tags": [
@@ -769,6 +789,26 @@
         }
       }
     },
+    "/api/v1/sonarr/test": {
+      "get": {
+        "tags": [
+          "sonarr-controller"
+        ],
+        "operationId": "testConnection_1",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/settings/{key}": {
       "get": {
         "tags": [
@@ -824,6 +864,26 @@
                 "schema": {
                   "type": "string",
                   "format": "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/radarr/test": {
+      "get": {
+        "tags": [
+          "radarr-controller"
+        ],
+        "operationId": "testConnection_2",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponseDTO"
                 }
               }
             }
@@ -1336,7 +1396,8 @@
                 "JELLYFIN_SYNC",
                 "CSV_IMPORT",
                 "RADARR_IMPORT",
-                "RADARR_RATINGS_REFRESH"
+                "RADARR_RATINGS_REFRESH",
+                "SONARR_IMPORT"
               ]
             }
           },
@@ -1434,7 +1495,7 @@
         "tags": [
           "jellyfin-controller"
         ],
-        "operationId": "testConnection_1",
+        "operationId": "testConnection_3",
         "responses": {
           "200": {
             "description": "OK",
@@ -1873,7 +1934,8 @@
               "JELLYFIN_SYNC",
               "CSV_IMPORT",
               "RADARR_IMPORT",
-              "RADARR_RATINGS_REFRESH"
+              "RADARR_RATINGS_REFRESH",
+              "SONARR_IMPORT"
             ]
           },
           "status": {

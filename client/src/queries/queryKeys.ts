@@ -121,6 +121,22 @@ export const jellyfinKeys = {
 }
 
 /**
+ * Query key factory for Radarr
+ */
+export const radarrKeys = {
+  all: ['radarr'] as const,
+  test: () => [...radarrKeys.all, 'test'] as const,
+}
+
+/**
+ * Query key factory for Sonarr
+ */
+export const sonarrKeys = {
+  all: ['sonarr'] as const,
+  test: () => [...sonarrKeys.all, 'test'] as const,
+}
+
+/**
  * Query key factory for logs
  */
 export const logKeys = {
