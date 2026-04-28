@@ -698,7 +698,8 @@ public final class StatisticsSpecifications {
         movieQuery.where(
                 cb.equal(movieRoot.get("profile").get("id"), profileId),
                 cb.equal(movieRoot.get("mediaItem").get("mediaType"), MediaType.MOVIE),
-                cb.isNotNull(movieRoot.get("mediaItem").get("runtimeMinutes"))
+                cb.isNotNull(movieRoot.get("mediaItem").get("runtimeMinutes")),
+                completionEquivalent(cb, movieRoot)
         );
         movieQuery.groupBy(movieRoot.get("mediaItem").get("id"), movieRoot.get("mediaItem").get("runtimeMinutes"));
 
@@ -717,7 +718,8 @@ public final class StatisticsSpecifications {
                 cb.equal(episodeRoot.get("profile").get("id"), profileId),
                 cb.equal(episodeRoot.get("mediaItem").get("mediaType"), MediaType.SERIES),
                 cb.isNotNull(episodeRoot.get("episode")),
-                cb.isNotNull(episodeRuntime)
+                cb.isNotNull(episodeRuntime),
+                completionEquivalent(cb, episodeRoot)
         );
         episodeQuery.groupBy(episodeRoot.get("episode").get("id"), episodeRuntime);
 
@@ -784,7 +786,8 @@ public final class StatisticsSpecifications {
         q.where(
                 cb.equal(root.get("profile").get("id"), profileId),
                 cb.equal(root.get("mediaItem").get("mediaType"), MediaType.MOVIE),
-                cb.isNotNull(root.get("mediaItem").get("runtimeMinutes"))
+                cb.isNotNull(root.get("mediaItem").get("runtimeMinutes")),
+                completionEquivalent(cb, root)
         );
         q.groupBy(root.get("mediaItem").get("id"), root.get("mediaItem").get("runtimeMinutes"));
 
@@ -835,7 +838,8 @@ public final class StatisticsSpecifications {
                 cb.equal(root.get("profile").get("id"), profileId),
                 cb.equal(root.get("mediaItem").get("mediaType"), MediaType.SERIES),
                 cb.isNotNull(root.get("episode")),
-                cb.isNotNull(runtimeExpr)
+                cb.isNotNull(runtimeExpr),
+                completionEquivalent(cb, root)
         );
         q.groupBy(root.get("episode").get("id"), runtimeExpr);
 

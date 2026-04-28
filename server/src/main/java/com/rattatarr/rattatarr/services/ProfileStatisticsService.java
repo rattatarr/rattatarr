@@ -1,7 +1,6 @@
 package com.rattatarr.rattatarr.services;
 
 import com.rattatarr.rattatarr.clients.tmdb.TMDbClient;
-import com.rattatarr.rattatarr.configs.CacheConfig;
 import com.rattatarr.rattatarr.exceptions.ProfilesExceptions;
 import com.rattatarr.rattatarr.models.dtos.responses.*;
 import com.rattatarr.rattatarr.repositories.ProfilesRepository;
@@ -13,7 +12,6 @@ import jakarta.persistence.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -43,10 +41,6 @@ public class ProfileStatisticsService {
         this.tmdbClient = tmdbClient;
     }
 
-    @Cacheable(
-            value = CacheConfig.STATISTICS_CACHE,
-            key = "#profileId + ':' + #ratingThreshold + ':' + #minCount + ':' + #genresLimit + ':' + #actorsLimit + ':' + #directorsLimit + ':' + #producersLimit + ':' + #genreOverTimeLimit + ':' + #profileImageSize"
-    )
     public ProfileStatisticsResponseDTO getStatistics(
             UUID profileId,
             Float ratingThreshold,
