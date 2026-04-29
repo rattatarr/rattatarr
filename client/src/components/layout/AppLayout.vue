@@ -24,7 +24,11 @@
 
       <!-- Main Content -->
       <main class="app-layout__main">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <keep-alive :include="['MoviesView', 'SeriesView']">
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
       </main>
     </div>
   </div>
