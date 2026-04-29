@@ -62,12 +62,14 @@
       </template>
     </Card>
 
-    <Card v-if="runtimeStats" class="stat-card">
+    <Card v-if="jellyfinRuntimeStats" class="stat-card">
       <template #content>
         <div class="stat-content">
-          <span class="stat-label">Avg Runtime</span>
+          <span class="stat-label">Jellyfin Avg Runtime</span>
           <span class="stat-value">{{
-            runtimeStats.averageRuntime != null ? formatRuntime(runtimeStats.averageRuntime) : '—'
+            jellyfinRuntimeStats.averageRuntime != null
+              ? formatRuntime(jellyfinRuntimeStats.averageRuntime)
+              : '—'
           }}</span>
         </div>
       </template>
@@ -81,6 +83,17 @@
             jellyfinRuntimeStats.totalRuntime != null
               ? `${Math.round(jellyfinRuntimeStats.totalRuntime / 60).toLocaleString()}h`
               : '—'
+          }}</span>
+        </div>
+      </template>
+    </Card>
+
+    <Card v-if="runtimeStats" class="stat-card">
+      <template #content>
+        <div class="stat-content">
+          <span class="stat-label">Rated Avg Runtime</span>
+          <span class="stat-value">{{
+            runtimeStats.averageRuntime != null ? formatRuntime(runtimeStats.averageRuntime) : '—'
           }}</span>
         </div>
       </template>
