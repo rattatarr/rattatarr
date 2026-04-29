@@ -10,9 +10,14 @@
   import { useMediaFilters } from '@/composables/useMediaFilters'
   import { useSentinelInfiniteScroll } from '@/composables/useSentinelInfiniteScroll'
   import { useScrollToTop } from '@/composables/useScrollToTop'
+  import { useScrollRestoration } from '@/composables/useScrollRestoration'
   import { ScrollToTop } from '@/components/common'
   import { usePerson } from '@/queries/usePeople'
   import '@/styles/media-view.css'
+
+  defineOptions({ name: 'SeriesView' })
+
+  useScrollRestoration()
 
   const profileStore = useProfileStore()
   const route = useRoute()
