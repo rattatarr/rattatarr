@@ -20,6 +20,13 @@
     searchPlaceholder: 'Search...',
   })
 
+  const gridMode = defineModel<'default' | 'compact'>('gridMode', { default: 'default' })
+
+  const gridModeOptions = [
+    { label: 'Default', value: 'default' },
+    { label: 'Compact', value: 'compact' },
+  ]
+
   const filters = useMediaFiltersContext()
 
   const currentYear = new Date().getFullYear()
@@ -312,6 +319,18 @@
             />
           </div>
 
+          <div class="filter-group grid-mode-group">
+            <label class="filter-label">View</label>
+            <SelectButton
+              v-model="gridMode"
+              :options="gridModeOptions"
+              option-label="label"
+              option-value="value"
+              :allow-empty="false"
+              class="grid-mode-select"
+            />
+          </div>
+
           <div class="filter-group filter-actions">
             <label class="filter-label" style="visibility: hidden">Actions</label>
             <div class="action-buttons">
@@ -360,9 +379,9 @@
     grid-template-columns: 1fr 1fr 1fr;
   }
 
-  /* Row 2: Year, Sort list, Unrated, Actions */
+  /* Row 2: Year, Sort list, Unrated, View, Actions */
   .row-2 {
-    grid-template-columns: minmax(280px, 1.5fr) minmax(320px, 2fr) minmax(210px, auto) minmax(
+    grid-template-columns: minmax(280px, 1.5fr) minmax(320px, 2fr) minmax(210px, auto) auto minmax(
         180px,
         1fr
       );
@@ -518,6 +537,18 @@
     justify-content: center;
   }
 
+  /* Grid mode */
+  .grid-mode-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .grid-mode-select :deep(.p-togglebutton-content) {
+    padding: 0.4rem 0.75rem;
+    justify-content: center;
+  }
+
   /* Actions */
   .filter-actions {
     display: flex;
@@ -536,7 +567,7 @@
     }
 
     .row-2 {
-      grid-template-columns: minmax(280px, 1.5fr) minmax(280px, 2fr) minmax(140px, auto);
+      grid-template-columns: minmax(280px, 1.5fr) minmax(280px, 2fr) minmax(140px, auto) auto;
     }
 
     .filter-actions {
@@ -557,7 +588,8 @@
       grid-template-columns: 1fr 1fr;
     }
 
-    .unrated-group {
+    .unrated-group,
+    .grid-mode-group {
       grid-column: 1 / -1;
     }
 
@@ -609,12 +641,14 @@
       width: 100%;
     }
 
-    .unrated-select :deep(.p-selectbutton) {
+    .unrated-select :deep(.p-selectbutton),
+    .grid-mode-select :deep(.p-selectbutton) {
       display: flex;
       width: 100%;
     }
 
-    .unrated-select :deep(.p-togglebutton) {
+    .unrated-select :deep(.p-togglebutton),
+    .grid-mode-select :deep(.p-togglebutton) {
       flex: 1;
     }
   }

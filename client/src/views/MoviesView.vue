@@ -20,6 +20,8 @@
   // Setup filters with provide/inject
   const filterState = useMediaFilters()
 
+  const gridMode = ref<'default' | 'compact'>('default')
+
   // Fetch full person object when navigating with ?personId=uuid
   const personIdFromQuery = ref<string | undefined>(undefined)
   const { data: personData } = usePerson(personIdFromQuery)
@@ -102,7 +104,7 @@
 
     <div v-else class="media-content">
       <!-- Filters -->
-      <MediaFiltersPanel search-placeholder="Search movies..." />
+      <MediaFiltersPanel v-model:grid-mode="gridMode" search-placeholder="Search movies..." />
 
       <!-- Loading State -->
       <div v-if="isLoading" class="loading-container">
@@ -136,7 +138,7 @@
       </Card>
 
       <!-- Movies Grid -->
-      <div v-else class="media-grid">
+      <div v-else :class="['media-grid', { compact: gridMode === 'compact' }]">
         <MediaItemCard
           v-for="movie in allMovies"
           :key="movie.id"

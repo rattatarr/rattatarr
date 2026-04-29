@@ -35,6 +35,10 @@
   gap: 1.5rem;
 }
 
+.media-grid.compact {
+  grid-template-columns: repeat(8, 1fr);
+}
+
 /* Loading More */
 .loading-more {
   display: flex;
@@ -69,16 +73,25 @@
   .media-grid {
     grid-template-columns: repeat(5, 1fr);
   }
+
+  .media-grid.compact {
+    grid-template-columns: repeat(7, 1fr);
+  }
 }
 
 @media (max-width: 1200px) {
   .media-grid {
     grid-template-columns: repeat(4, 1fr);
   }
+
+  .media-grid.compact {
+    grid-template-columns: repeat(6, 1fr);
+  }
 }
 
 @media (max-width: 900px) {
-  .media-grid {
+  .media-grid,
+  .media-grid.compact {
     grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
   }
