@@ -20,10 +20,12 @@
 
   const props = defineProps<Props>()
 
-  type ViewMode = 'count' | 'score' | 'jellyfin'
+  type ViewMode = 'count' | 'jellyfin'
   const viewMode = ref<ViewMode>('count')
 
-  const hasPrimaryData = computed(() => props.trends.length > 0)
+  const hasPrimaryData = computed(
+    () => (props.trends.find((t) => t.period === '365_DAYS')?.count ?? 0) > 0,
+  )
   const hasJellyfinData = computed(() => (props.jellyfinTrends?.length ?? 0) > 0)
 
   watchEffect(() => {
@@ -161,12 +163,6 @@
             size="small"
             :severity="viewMode === 'count' ? 'primary' : 'secondary'"
             @click="viewMode = 'count'"
-          />
-          <Button
-            label="Score"
-            size="small"
-            :severity="viewMode === 'score' ? 'primary' : 'secondary'"
-            @click="viewMode = 'score'"
           />
           <Button
             label="Jellyfin"
