@@ -7,14 +7,12 @@ import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClien
 import com.rattatarr.rattatarr.models.WatchEventType;
 import com.rattatarr.rattatarr.models.entities.*;
 import com.rattatarr.rattatarr.repositories.WatchEventsRepository;
-import com.rattatarr.rattatarr.services.MediaEpisodesService;
-import com.rattatarr.rattatarr.services.MediaItemsService;
-import com.rattatarr.rattatarr.services.ProfilesService;
-import com.rattatarr.rattatarr.services.SettingsService;
+import com.rattatarr.rattatarr.services.*;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,14 +29,13 @@ public class JellyfinActivityPollingService {
     private static final String VIDEO_PLAYBACK = "VideoPlayback";
     private static final String VIDEO_PLAYBACK_STOPPED = "VideoPlaybackStopped";
 
-    private final List<WatchEvent> pendingWatchEvents = new ArrayList<>();
-
     private final JellyfinClient jellyfinClient;
     private final SettingsService settingsService;
     private final ProfilesService profilesService;
     private final MediaItemsService mediaItemsService;
     private final MediaEpisodesService mediaEpisodesService;
     private final WatchEventsRepository watchEventsRepository;
+    private final BackgroundJobService backgroundJobService;
 
     public JellyfinActivityPollingService(
             JellyfinClient jellyfinClient,
@@ -46,7 +43,8 @@ public class JellyfinActivityPollingService {
             ProfilesService profilesService,
             MediaItemsService mediaItemsService,
             MediaEpisodesService mediaEpisodesService,
-            WatchEventsRepository watchEventsRepository
+            WatchEventsRepository watchEventsRepository,
+            BackgroundJobService backgroundJobService
     ) {
         this.jellyfinClient = jellyfinClient;
         this.settingsService = settingsService;
@@ -54,6 +52,26 @@ public class JellyfinActivityPollingService {
         this.mediaItemsService = mediaItemsService;
         this.mediaEpisodesService = mediaEpisodesService;
         this.watchEventsRepository = watchEventsRepository;
+        this.backgroundJobService = backgroundJobService;
+    }
+
+    @Async("backgroundTaskExecutor")
+    public void triggerPollAsync(BackgroundJob job) {
+        try {
+            // Add a small delaying because this might be too fast and the client side will not be able to connect
+            // to the websocket properly and will be locked in an infinite loading
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        backgroundJobService.markRunning(job);
+        try {
+            doPollJellyfinActivity();
+            backgroundJobService.markCompleted(job, "Activity poll completed successfully");
+        } catch (Exception e) {
+            logger.error("Manual Jellyfin activity poll failed", e);
+            backgroundJobService.markFailed(job, e.getMessage());
+        }
     }
 
     @Scheduled(
@@ -62,6 +80,10 @@ public class JellyfinActivityPollingService {
     )
     @Transactional
     public void pollJellyfinActivity() {
+        doPollJellyfinActivity();
+    }
+
+    private void doPollJellyfinActivity() {
         boolean enabled = settingsService.getBooleanSetting(SettingsService.SYNC_JELLYFIN_ENABLED, true);
         if (!enabled) {
             logger.debug("Jellyfin activity polling is disabled via settings");
@@ -86,16 +108,16 @@ public class JellyfinActivityPollingService {
                 ? Set.of()
                 : watchEventsRepository.findExistingJellyfinLogIds(polledEntryIds);
 
+        List<WatchEvent> pendingWatchEvents = new ArrayList<>();
         entries.stream()
                 .sorted(Comparator.comparing(JellyfinClientActivityLogEntryResponseDTO::id))
                 .filter(this::isSupportedPlaybackEntry)
                 .filter(entry -> entry.id() != null)
                 .filter(entry -> !existingEntryIds.contains(entry.id()))
-                .forEach(this::processEntry);
+                .forEach(entry -> processEntry(entry, pendingWatchEvents));
 
         if (!pendingWatchEvents.isEmpty()) {
-            watchEventsRepository.saveAll(new ArrayList<>(pendingWatchEvents));
-            pendingWatchEvents.clear();
+            watchEventsRepository.saveAll(pendingWatchEvents);
         }
     }
 
@@ -139,7 +161,7 @@ public class JellyfinActivityPollingService {
         return VIDEO_PLAYBACK.equals(entry.type()) || VIDEO_PLAYBACK_STOPPED.equals(entry.type());
     }
 
-    private void processEntry(JellyfinClientActivityLogEntryResponseDTO entry) {
+    private void processEntry(JellyfinClientActivityLogEntryResponseDTO entry, List<WatchEvent> pendingWatchEvents) {
         try {
             if (entry.id() == null) {
                 return;

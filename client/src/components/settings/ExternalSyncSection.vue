@@ -2,7 +2,11 @@
   import { ref, computed } from 'vue'
   import { SettingsCard } from '@/components/settings'
   import { SyncButton, FileUpload } from '@/components/sync'
-  import { useSyncJellyfinMedia, useSyncJellyfinProfiles } from '@/queries/useJellyfin'
+  import {
+    useSyncJellyfinMedia,
+    useSyncJellyfinProfiles,
+    usePollJellyfinActivity,
+  } from '@/queries/useJellyfin'
   import { useImportIMDbRatings, useExportRatingsCsv } from '@/queries/useRatings'
   import { useImportRadarrMovies, useRefreshRadarrRatings } from '@/queries/useRadarr'
   import { useImportSonarrSeries } from '@/queries/useSonarr'
@@ -184,6 +188,50 @@
 
   const canExportRatings = computed(() => !!selectedProfile.value?.id)
 
+  // Jellyfin Activity Poll
+  const pollJellyfinActivityMutation = usePollJellyfinActivity()
+  const jellyfinActivityPollStatus = ref<OperationStatus>(OperationStatus.IDLE)
+  const jellyfinActivityPollButtonProps = computed(() => {
+    switch (jellyfinActivityPollStatus.value) {
+      case OperationStatus.LOADING:
+        return { loading: true }
+      case OperationStatus.SUCCESS:
+        return { severity: ButtonSeverity.SUCCESS, icon: Icon.CHECK, loading: false }
+      case OperationStatus.ERROR:
+        return { severity: ButtonSeverity.DANGER, icon: Icon.TIMES, loading: false }
+      default:
+        return { loading: false }
+    }
+  })
+
+  async function executeJellyfinActivityPoll() {
+    jobTrackingStore.lockJob(JOB_TYPE.JELLYFIN_ACTIVITY_POLL)
+    jellyfinActivityPollStatus.value = OperationStatus.LOADING
+
+    try {
+      const data = await pollJellyfinActivityMutation.mutateAsync()
+      jellyfinActivityPollStatus.value = OperationStatus.SUCCESS
+
+      toast.success('Jellyfin activity poll started', {
+        description: 'Watch activity polling is running in the background',
+      })
+
+      void jobTrackingStore.startTracking(data)
+
+      setTimeout(() => {
+        jellyfinActivityPollStatus.value = OperationStatus.IDLE
+      }, 3000)
+    } catch (error) {
+      jobTrackingStore.unlockJob(JOB_TYPE.JELLYFIN_ACTIVITY_POLL)
+      jellyfinActivityPollStatus.value = OperationStatus.ERROR
+      toast.error(error as Error, { fallbackMessage: 'Failed to poll Jellyfin activity' })
+
+      setTimeout(() => {
+        jellyfinActivityPollStatus.value = OperationStatus.IDLE
+      }, 3000)
+    }
+  }
+
   // Radarr Import
   const importRadarrMutation = useImportRadarrMovies()
   const radarrImportStatus = ref<OperationStatus>(OperationStatus.IDLE)
@@ -364,6 +412,31 @@
           :disabled="jobTrackingStore.isAnyJobRunning"
           info-message="The media sync will be done in background and may take several minutes to complete depending on the size of your library. You'll be notified when this is done."
           @click="executeJellyfinSync"
+        />
+      </SettingsCard>
+
+      <!-- Jellyfin Activity Poll -->
+      <SettingsCard
+        title="Jellyfin Activity Poll"
+        description="Poll Jellyfin for recent watch activity"
+      >
+        <SyncButton
+          label="Poll Activity"
+          :required-settings="[
+            { key: integrationKeys.jellyfinUrl, displayName: 'Jellyfin URL' },
+            { key: integrationKeys.jellyfinKey, displayName: 'Jellyfin API Key' },
+          ]"
+          :settings="savedSettings"
+          :status="jellyfinActivityPollStatus"
+          :severity="jellyfinActivityPollButtonProps.severity"
+          :icon="jellyfinActivityPollButtonProps.icon"
+          :loading="
+            jellyfinActivityPollButtonProps.loading ||
+            jobTrackingStore.isJellyfinActivityPollRunning
+          "
+          :disabled="jobTrackingStore.isAnyJobRunning"
+          info-message="Polls Jellyfin for new watch activity and records it in Rattatarr. Runs in the background — you will be notified when complete."
+          @click="executeJellyfinActivityPoll"
         />
       </SettingsCard>
 

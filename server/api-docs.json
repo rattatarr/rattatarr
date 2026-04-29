@@ -479,6 +479,26 @@
         }
       }
     },
+    "/api/v1/jellyfin/poll-activity": {
+      "post": {
+        "tags": [
+          "jellyfin-controller"
+        ],
+        "operationId": "pollActivity",
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackgroundJobResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/agent/chat": {
       "post": {
         "tags": [
@@ -1394,6 +1414,7 @@
               "type": "string",
               "enum": [
                 "JELLYFIN_SYNC",
+                "JELLYFIN_ACTIVITY_POLL",
                 "CSV_IMPORT",
                 "RADARR_IMPORT",
                 "RADARR_RATINGS_REFRESH",
@@ -1932,6 +1953,7 @@
             "type": "string",
             "enum": [
               "JELLYFIN_SYNC",
+              "JELLYFIN_ACTIVITY_POLL",
               "CSV_IMPORT",
               "RADARR_IMPORT",
               "RADARR_RATINGS_REFRESH",

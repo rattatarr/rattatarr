@@ -11,6 +11,7 @@ import com.rattatarr.rattatarr.services.BackgroundJobService;
 import com.rattatarr.rattatarr.services.JellyfinService;
 import com.rattatarr.rattatarr.services.JellyfinTraversalService;
 import com.rattatarr.rattatarr.services.MediaItemMetadataService;
+import com.rattatarr.rattatarr.services.schedulers.JellyfinActivityPollingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +36,8 @@ class JellyfinControllerTest {
     private JellyfinService jellyfinService;
     @Mock
     private JellyfinTraversalService jellyfinTraversalService;
+    @Mock
+    private JellyfinActivityPollingService jellyfinActivityPollingService;
     @Mock
     private MediaItemMetadataService mediaItemMetadataService;
     @Mock

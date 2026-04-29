@@ -6,13 +6,18 @@
   import ActivityFilters from '@/components/activity/ActivityFilters.vue'
   import WatchEventCard from '@/components/activity/WatchEventCard.vue'
   import { useProfileStore } from '@/stores'
+  import { useJobTrackingStore } from '@/stores/jobTrackingStore'
   import { useInfiniteWatchActivity } from '@/queries/useInfiniteWatchActivity'
+  import { usePollJellyfinActivity } from '@/queries/useJellyfin'
   import { useSentinelInfiniteScroll } from '@/composables/useSentinelInfiniteScroll'
   import { useScrollToTop } from '@/composables/useScrollToTop'
-  import { Icon } from '@/utils/enums'
+  import { useToast } from '@/composables/useToast'
+  import { Icon, JOB_TYPE } from '@/utils/enums'
   import type { WatchEventResponse } from '@/types'
 
   const profileStore = useProfileStore()
+  const jobTrackingStore = useJobTrackingStore()
+  const toast = useToast()
   const route = useRoute()
   const router = useRouter()
 
@@ -66,6 +71,22 @@
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, error } =
     useInfiniteWatchActivity(filters, 20)
 
+  const pollMutation = usePollJellyfinActivity()
+
+  async function triggerPoll() {
+    jobTrackingStore.lockJob(JOB_TYPE.JELLYFIN_ACTIVITY_POLL)
+    try {
+      const job = await pollMutation.mutateAsync()
+      toast.success('Activity poll started', {
+        description: 'Watch activity is being fetched in the background',
+      })
+      void jobTrackingStore.startTracking(job)
+    } catch (err) {
+      jobTrackingStore.unlockJob(JOB_TYPE.JELLYFIN_ACTIVITY_POLL)
+      toast.error(err as Error, { fallbackMessage: 'Failed to poll Jellyfin activity' })
+    }
+  }
+
   const allEvents = computed(() => data.value?.pages.flatMap((page) => page.events ?? []) ?? [])
 
   const { sentinel } = useSentinelInfiniteScroll(
@@ -101,6 +122,11 @@
         v-model:start-date="startDateObj"
         v-model:end-date="endDateObj"
         v-model:media-type="mediaTypeFilter"
+        :is-refetching="
+          pollMutation.isPending.value || jobTrackingStore.isJellyfinActivityPollRunning
+        "
+        :disable-refresh="jobTrackingStore.isAnyJobRunning"
+        @refresh="triggerPoll"
       />
 
       <div v-if="isLoading" class="loading-container">
