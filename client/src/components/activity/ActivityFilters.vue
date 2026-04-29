@@ -9,6 +9,9 @@
   const endDate = defineModel<Date | undefined>('endDate')
   const mediaType = defineModel<'MOVIE' | 'SERIES' | undefined>('mediaType')
 
+  const props = defineProps<{ isRefetching?: boolean; disableRefresh?: boolean }>()
+  const emit = defineEmits<{ refresh: [] }>()
+
   const MEDIA_TYPE_OPTIONS = [
     { label: 'All types', value: undefined },
     { label: 'Movies', value: 'MOVIE' as const },
@@ -75,6 +78,17 @@
           @click="clearFilters"
         />
       </div>
+
+      <div class="filter-group filter-refresh">
+        <label class="filter-label">&nbsp;</label>
+        <Button
+          label="Refresh"
+          :icon="Icon.REFRESH"
+          :loading="props.isRefetching"
+          :disabled="props.disableRefresh"
+          @click="emit('refresh')"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -89,7 +103,7 @@
 
   .filters-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr auto;
+    grid-template-columns: 1fr 1fr 1fr auto auto;
     gap: 0.75rem;
     align-items: end;
   }
@@ -115,11 +129,13 @@
       grid-template-columns: 1fr 1fr;
     }
 
-    .filter-clear {
-      grid-column: span 2;
+    .filter-clear,
+    .filter-refresh {
+      grid-column: span 1;
     }
 
-    .filter-clear :deep(.p-button) {
+    .filter-clear :deep(.p-button),
+    .filter-refresh :deep(.p-button) {
       width: 100%;
     }
   }
@@ -129,7 +145,8 @@
       grid-template-columns: 1fr;
     }
 
-    .filter-clear {
+    .filter-clear,
+    .filter-refresh {
       grid-column: span 1;
     }
   }

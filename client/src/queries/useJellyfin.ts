@@ -36,6 +36,20 @@ export function useSyncJellyfinMedia() {
 }
 
 /**
+ * Mutation hook to poll Jellyfin watch activity
+ */
+export function usePollJellyfinActivity() {
+  const queryClient = useQueryClient()
+
+  return useMutation<BackgroundJob, Error, void>({
+    mutationFn: () => jellyfinApi.pollJellyfinActivity(),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: jobKeys.all })
+    },
+  })
+}
+
+/**
  * Mutation hook to sync profiles from Jellyfin
  */
 export function useSyncJellyfinProfiles() {

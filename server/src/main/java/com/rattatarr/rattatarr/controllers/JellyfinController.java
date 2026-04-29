@@ -9,6 +9,7 @@ import com.rattatarr.rattatarr.models.dtos.responses.wrappers.ProfilesWrapper;
 import com.rattatarr.rattatarr.services.BackgroundJobService;
 import com.rattatarr.rattatarr.services.JellyfinService;
 import com.rattatarr.rattatarr.services.JellyfinTraversalService;
+import com.rattatarr.rattatarr.services.schedulers.JellyfinActivityPollingService;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -22,15 +23,18 @@ import java.time.ZoneId;
 public class JellyfinController extends BaseController {
     private final JellyfinService jellyfinService;
     private final JellyfinTraversalService jellyfinTraversalService;
+    private final JellyfinActivityPollingService jellyfinActivityPollingService;
     private final BackgroundJobService backgroundJobService;
 
     public JellyfinController(
             JellyfinService jellyfinService,
             JellyfinTraversalService jellyfinTraversalService,
+            JellyfinActivityPollingService jellyfinActivityPollingService,
             BackgroundJobService backgroundJobService
     ) {
         this.jellyfinService = jellyfinService;
         this.jellyfinTraversalService = jellyfinTraversalService;
+        this.jellyfinActivityPollingService = jellyfinActivityPollingService;
         this.backgroundJobService = backgroundJobService;
     }
 
@@ -64,6 +68,15 @@ public class JellyfinController extends BaseController {
         logger.info("Starting Jellyfin media synchronization");
         var job = backgroundJobService.create(JobType.JELLYFIN_SYNC, null);
         jellyfinTraversalService.syncMediaAsync(job);
+        return BackgroundJobResponseDTO.fromEntity(job);
+    }
+
+    @PostMapping("/poll-activity")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public BackgroundJobResponseDTO pollActivity() {
+        logger.info("Manually triggering Jellyfin activity poll");
+        var job = backgroundJobService.create(JobType.JELLYFIN_ACTIVITY_POLL, null);
+        jellyfinActivityPollingService.triggerPollAsync(job);
         return BackgroundJobResponseDTO.fromEntity(job);
     }
 }

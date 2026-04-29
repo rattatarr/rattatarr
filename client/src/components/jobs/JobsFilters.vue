@@ -14,9 +14,11 @@
   const typeOptions: Array<{ label: string; value: JobType | undefined }> = [
     { label: 'All types', value: undefined },
     { label: 'Jellyfin Sync', value: JOB_TYPE.JELLYFIN_SYNC },
+    { label: 'Jellyfin Activity Poll', value: JOB_TYPE.JELLYFIN_ACTIVITY_POLL },
     { label: 'CSV Import', value: JOB_TYPE.CSV_IMPORT },
     { label: 'Radarr Import', value: JOB_TYPE.RADARR_IMPORT },
     { label: 'Radarr Ratings Refresh', value: JOB_TYPE.RADARR_RATINGS_REFRESH },
+    { label: 'Sonarr Import', value: JOB_TYPE.SONARR_IMPORT },
   ]
 
   const statusOptions: Array<{ label: string; value: JobStatus | undefined }> = [

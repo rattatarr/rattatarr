@@ -4,7 +4,7 @@ import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import { toast } from 'vue-sonner'
 import { useQueryClient } from '@tanstack/vue-query'
-import { jobKeys, movieKeys, seriesKeys } from '@/queries/queryKeys'
+import { jobKeys, movieKeys, seriesKeys, watchActivityKeys } from '@/queries/queryKeys'
 import type { BackgroundJob, JobType } from '@/types'
 import { JOB_TYPE } from '@/utils/enums'
 import type { WebSocketMessage } from '@/composables/useJobWebSocket'
@@ -47,6 +47,9 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
   const pendingJobs = ref(new Set<JobType>())
 
   const isJellyfinSyncRunning = computed(() => runningJobs.value.has(JOB_TYPE.JELLYFIN_SYNC))
+  const isJellyfinActivityPollRunning = computed(() =>
+    runningJobs.value.has(JOB_TYPE.JELLYFIN_ACTIVITY_POLL),
+  )
   const isImdbImportRunning = computed(() => runningJobs.value.has(JOB_TYPE.CSV_IMPORT))
   const isRadarrImportRunning = computed(() => runningJobs.value.has(JOB_TYPE.RADARR_IMPORT))
   const isRadarrRatingsRefreshRunning = computed(() =>
@@ -72,6 +75,7 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
     void queryClient.invalidateQueries({ queryKey: jobKeys.all })
     void queryClient.invalidateQueries({ queryKey: movieKeys.all })
     void queryClient.invalidateQueries({ queryKey: seriesKeys.all })
+    void queryClient.invalidateQueries({ queryKey: watchActivityKeys.all })
   }
 
   async function startTracking(job: BackgroundJob) {
@@ -89,6 +93,7 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
     const timeoutId = setTimeout(() => {
       const jobLabels: Record<JobType, string> = {
         [JOB_TYPE.JELLYFIN_SYNC]: 'Jellyfin sync',
+        [JOB_TYPE.JELLYFIN_ACTIVITY_POLL]: 'Jellyfin activity poll',
         [JOB_TYPE.CSV_IMPORT]: 'CSV import',
         [JOB_TYPE.RADARR_IMPORT]: 'Radarr import',
         [JOB_TYPE.RADARR_RATINGS_REFRESH]: 'Radarr ratings refresh',
@@ -128,6 +133,7 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
 
   return {
     isJellyfinSyncRunning,
+    isJellyfinActivityPollRunning,
     isImdbImportRunning,
     isRadarrImportRunning,
     isRadarrRatingsRefreshRunning,

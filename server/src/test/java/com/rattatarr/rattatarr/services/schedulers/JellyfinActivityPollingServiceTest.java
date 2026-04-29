@@ -10,6 +10,7 @@ import com.rattatarr.rattatarr.models.entities.MediaItem;
 import com.rattatarr.rattatarr.models.entities.Profile;
 import com.rattatarr.rattatarr.models.entities.WatchEvent;
 import com.rattatarr.rattatarr.repositories.WatchEventsRepository;
+import com.rattatarr.rattatarr.services.BackgroundJobService;
 import com.rattatarr.rattatarr.services.MediaEpisodesService;
 import com.rattatarr.rattatarr.services.MediaItemsService;
 import com.rattatarr.rattatarr.services.ProfilesService;
@@ -51,6 +52,8 @@ class JellyfinActivityPollingServiceTest {
     private MediaEpisodesService mediaEpisodesService;
     @Mock
     private WatchEventsRepository watchEventsRepository;
+    @Mock
+    private BackgroundJobService backgroundJobService;
 
     @InjectMocks
     private JellyfinActivityPollingService service;

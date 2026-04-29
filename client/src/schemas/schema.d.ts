@@ -228,6 +228,22 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/jellyfin/poll-activity': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: operations['pollActivity']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/agent/chat': {
     parameters: {
       query?: never
@@ -903,6 +919,7 @@ export interface components {
       /** @enum {string} */
       type?:
         | 'JELLYFIN_SYNC'
+        | 'JELLYFIN_ACTIVITY_POLL'
         | 'CSV_IMPORT'
         | 'RADARR_IMPORT'
         | 'RADARR_RATINGS_REFRESH'
@@ -1939,6 +1956,26 @@ export interface operations {
       }
     }
   }
+  pollActivity: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Accepted */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['BackgroundJobResponseDTO']
+        }
+      }
+    }
+  }
   chat: {
     parameters: {
       query?: {
@@ -2562,6 +2599,7 @@ export interface operations {
         /** @description Filter by job type (JELLYFIN_SYNC, CSV_IMPORT) */
         type?:
           | 'JELLYFIN_SYNC'
+          | 'JELLYFIN_ACTIVITY_POLL'
           | 'CSV_IMPORT'
           | 'RADARR_IMPORT'
           | 'RADARR_RATINGS_REFRESH'

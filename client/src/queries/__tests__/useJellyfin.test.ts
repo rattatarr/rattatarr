@@ -1,15 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { useJellyfinTest, useSyncJellyfinMedia, useSyncJellyfinProfiles } from '@/queries'
+import {
+  useJellyfinTest,
+  useSyncJellyfinMedia,
+  useSyncJellyfinProfiles,
+  usePollJellyfinActivity,
+} from '@/queries'
 
 // Mock API
 const mockTestJellyfinConnection = vi.fn()
 const mockSyncJellyfinMedia = vi.fn()
 const mockSyncJellyfinProfiles = vi.fn()
+const mockPollJellyfinActivity = vi.fn()
 
 vi.mock('@/api/jellyfin', () => ({
   testJellyfinConnection: () => mockTestJellyfinConnection(),
   syncJellyfinMedia: () => mockSyncJellyfinMedia(),
   syncJellyfinProfiles: () => mockSyncJellyfinProfiles(),
+  pollJellyfinActivity: () => mockPollJellyfinActivity(),
 }))
 
 // Mock TanStack Query
@@ -42,6 +49,9 @@ vi.mock('../queryKeys', () => ({
   },
   jobKeys: {
     all: ['jobs'],
+  },
+  watchActivityKeys: {
+    all: ['watch-activity'],
   },
 }))
 
@@ -184,5 +194,48 @@ describe('useSyncJellyfinProfiles', () => {
     const result = await call.mutationFn()
 
     expect(result).toEqual(response)
+  })
+})
+
+describe('usePollJellyfinActivity', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUseMutation.mockReturnValue({
+      mutate: vi.fn(),
+      mutateAsync: vi.fn(),
+      isPending: { value: false },
+    })
+  })
+
+  it('creates mutation with correct mutationFn', async () => {
+    const jobResponse = { id: 'job-1', type: 'JELLYFIN_ACTIVITY_POLL', status: 'PENDING' }
+    mockPollJellyfinActivity.mockResolvedValue(jobResponse)
+
+    usePollJellyfinActivity()
+
+    const call = mockUseMutation.mock.calls[0]![0]!
+    const result = await call.mutationFn()
+
+    expect(mockPollJellyfinActivity).toHaveBeenCalled()
+    expect(result).toEqual(jobResponse)
+  })
+
+  it('invalidates job queries on success', async () => {
+    usePollJellyfinActivity()
+
+    const call = mockUseMutation.mock.calls[0]![0]!
+    await call.onSuccess()
+
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['jobs'] })
+  })
+
+  it('does not invalidate movie or series queries on success', async () => {
+    usePollJellyfinActivity()
+
+    const call = mockUseMutation.mock.calls[0]![0]!
+    await call.onSuccess()
+
+    expect(mockInvalidateQueries).not.toHaveBeenCalledWith({ queryKey: ['movies'] })
+    expect(mockInvalidateQueries).not.toHaveBeenCalledWith({ queryKey: ['series'] })
   })
 })

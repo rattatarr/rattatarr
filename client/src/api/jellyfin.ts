@@ -11,6 +11,11 @@ export async function syncJellyfinProfiles(): Promise<ProfilesWrapper> {
   return handleResponse<ProfilesWrapper>(response)
 }
 
+export async function pollJellyfinActivity(): Promise<BackgroundJob> {
+  const response = await apiClient.POST('/api/v1/jellyfin/poll-activity')
+  return handleResponse<BackgroundJob>(response)
+}
+
 export async function testJellyfinConnection(): Promise<GenericResponse> {
   const response = await apiClient.GET('/api/v1/jellyfin/test')
   return handleResponse<GenericResponse>(response)
