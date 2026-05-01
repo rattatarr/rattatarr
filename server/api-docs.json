@@ -1003,6 +1003,67 @@
         }
       }
     },
+    "/api/v1/profiles/statistics/rewind": {
+      "get": {
+        "tags": [
+          "year-rewind-controller"
+        ],
+        "operationId": "getYearRewind",
+        "parameters": [
+          {
+            "name": "requestDTO",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/YearRewindRequestDTO"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/YearRewindWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profiles/statistics/rewind/years": {
+      "get": {
+        "tags": [
+          "year-rewind-controller"
+        ],
+        "operationId": "getAvailableYears",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/YearRewindAvailableYearsWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/logs": {
       "get": {
         "tags": [
@@ -3428,6 +3489,290 @@
           "shortestRuntime": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "YearRewindRequestDTO": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 2100,
+            "minimum": 1900
+          },
+          "ratingThreshold": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0.0
+          },
+          "minCount": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "genresLimit": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "actorsLimit": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "directorsLimit": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "producersLimit": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "profileImageSize": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "profileId",
+          "year"
+        ]
+      },
+      "RewindStreakDTO": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "YearRewindHighlightItemDTO": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "posterImageUrl": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "number",
+            "format": "float"
+          },
+          "eventAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "mediaType": {
+            "type": "string"
+          }
+        }
+      },
+      "YearRewindHighlightsDTO": {
+        "type": "object",
+        "properties": {
+          "firstRated": {
+            "$ref": "#/components/schemas/YearRewindHighlightItemDTO"
+          },
+          "lastRated": {
+            "$ref": "#/components/schemas/YearRewindHighlightItemDTO"
+          },
+          "highestRated": {
+            "$ref": "#/components/schemas/YearRewindHighlightItemDTO"
+          },
+          "lowestRated": {
+            "$ref": "#/components/schemas/YearRewindHighlightItemDTO"
+          },
+          "firstWatched": {
+            "$ref": "#/components/schemas/YearRewindHighlightItemDTO"
+          },
+          "lastWatched": {
+            "$ref": "#/components/schemas/YearRewindHighlightItemDTO"
+          },
+          "busiestDay": {
+            "type": "string"
+          },
+          "busiestDayCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "longestWatchStreak": {
+            "$ref": "#/components/schemas/RewindStreakDTO"
+          },
+          "totalWatchTimeMinutes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uniqueItemsWatched": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalMoviesWatched": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalSeriesWatched": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "YearRewindResponseDTO": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "highlights": {
+            "$ref": "#/components/schemas/YearRewindHighlightsDTO"
+          },
+          "overallStats": {
+            "$ref": "#/components/schemas/OverallStatsDTO"
+          },
+          "ratingDistribution": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RatingDistributionDTO"
+            }
+          },
+          "ratingDistributionByInteger": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RatingDistributionDTO"
+            }
+          },
+          "mediaTypeBreakdown": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaTypeBreakdownDTO"
+            }
+          },
+          "jellyfinMediaTypeBreakdown": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaTypeBreakdownDTO"
+            }
+          },
+          "topGenresByCount": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenreStatDTO"
+            }
+          },
+          "topGenresByScore": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenreStatDTO"
+            }
+          },
+          "jellyfinTopGenresByCount": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenreStatDTO"
+            }
+          },
+          "directorsByCount": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonStatDTO"
+            }
+          },
+          "directorsByScore": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonStatDTO"
+            }
+          },
+          "producersByCount": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonStatDTO"
+            }
+          },
+          "producersByScore": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonStatDTO"
+            }
+          },
+          "actorsByCount": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonStatDTO"
+            }
+          },
+          "actorsByScore": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonStatDTO"
+            }
+          },
+          "monthlyActivity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RatingActivityDTO"
+            }
+          },
+          "dayOfWeekActivity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayOfWeekActivityDTO"
+            }
+          },
+          "jellyfinDayOfWeekActivity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayOfWeekActivityDTO"
+            }
+          },
+          "decadePreferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecadeStatDTO"
+            }
+          },
+          "jellyfinDecadePreferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecadeStatDTO"
+            }
+          },
+          "runtimeStats": {
+            "$ref": "#/components/schemas/RuntimeStatsDTO"
+          }
+        }
+      },
+      "YearRewindWrapper": {
+        "type": "object",
+        "properties": {
+          "rewind": {
+            "$ref": "#/components/schemas/YearRewindResponseDTO"
+          }
+        }
+      },
+      "YearRewindAvailableYearsWrapper": {
+        "type": "object",
+        "properties": {
+          "years": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         }
       },

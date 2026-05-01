@@ -20,8 +20,8 @@
 
   const props = defineProps<Props>()
 
-  type ViewMode = 'count' | 'score' | 'jellyfin'
-  const viewMode = ref<ViewMode>('count')
+  type ViewMode = 'score' | 'jellyfin'
+  const viewMode = ref<ViewMode>('score')
 
   const hasPrimaryData = computed(() => props.decades.length > 0)
   const hasJellyfinData = computed(() => (props.jellyfinDecades?.length ?? 0) > 0)
@@ -33,7 +33,7 @@
     }
 
     if (viewMode.value === 'jellyfin' && !hasJellyfinData.value) {
-      viewMode.value = 'count'
+      viewMode.value = 'score'
     }
   })
 
@@ -90,9 +90,6 @@
         callbacks: {
           label: (ctx: { dataset: { label?: string }; raw: number | null }) => {
             if (ctx.dataset.label === 'Avg Rating') {
-              if (viewMode.value === 'jellyfin') {
-                return ''
-              }
               return ` Avg rating: ${ctx.raw?.toFixed(2) ?? '-'}`
             }
             return ` Titles: ${(ctx.raw as number).toLocaleString()}`
@@ -127,13 +124,12 @@
     },
   }))
 
-  const activeDatasets = computed(() =>
-    viewMode.value === 'jellyfin' ? chartData.value.datasets.slice(0, 1) : chartData.value.datasets,
-  )
-
   const displayChartData = computed(() => ({
     labels: chartData.value.labels,
-    datasets: activeDatasets.value,
+    datasets:
+      viewMode.value === 'jellyfin'
+        ? chartData.value.datasets.slice(0, 1)
+        : chartData.value.datasets,
   }))
 </script>
 
@@ -143,12 +139,6 @@
       <div class="card-header">
         <span>Decade Preferences</span>
         <div class="toggle-buttons">
-          <Button
-            label="Count"
-            size="small"
-            :severity="viewMode === 'count' ? 'primary' : 'secondary'"
-            @click="viewMode = 'count'"
-          />
           <Button
             label="Score"
             size="small"

@@ -912,6 +912,803 @@ public final class StatisticsSpecifications {
     }
 
 
+    // -------------------------------------------------------------------------
+    // Year Rewind — year-scoped overloads
+    // -------------------------------------------------------------------------
+
+    public static Tuple queryOverallStats(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
+
+        q.select(cb.tuple(
+                cb.count(root).alias("totalRatings"),
+                cb.avg(root.get("rating")).alias("averageRating"),
+                cb.min(root.get("rating")).alias("minRating"),
+                cb.max(root.get("rating")).alias("maxRating")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("ratedAt"), from),
+                cb.lessThan(root.get("ratedAt"), to)
+        );
+
+        return em.createQuery(q).getSingleResult();
+    }
+
+    public static List<Tuple> queryRatingDistribution(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
+
+        Expression<Object> ratingRange = cb.selectCase()
+                .when(cb.lessThan(root.get("rating"), 2.0f), "0-2")
+                .when(cb.lessThan(root.get("rating"), 4.0f), "2-4")
+                .when(cb.lessThan(root.get("rating"), 6.0f), "4-6")
+                .when(cb.lessThan(root.get("rating"), 8.0f), "6-8")
+                .otherwise("8-10");
+
+        q.select(cb.tuple(
+                ratingRange.alias("range"),
+                cb.count(root).alias("count")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("ratedAt"), from),
+                cb.lessThan(root.get("ratedAt"), to)
+        );
+        q.groupBy(ratingRange);
+        q.orderBy(cb.asc(ratingRange));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static List<Tuple> queryRatingDistributionByInteger(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
+
+        Expression<Integer> bucket = cb.function("ROUND", Integer.class, root.get("rating"));
+
+        q.select(cb.tuple(
+                bucket.alias("bucket"),
+                cb.count(root).alias("count")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("ratedAt"), from),
+                cb.lessThan(root.get("ratedAt"), to)
+        );
+        q.groupBy(bucket);
+        q.orderBy(cb.asc(bucket));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static List<Tuple> queryMediaTypeBreakdown(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
+        Join<MediaItemRating, MediaItem> mediaJoin = root.join("mediaItem");
+
+        q.select(cb.tuple(
+                mediaJoin.get("mediaType").alias("mediaType"),
+                cb.count(root).alias("count"),
+                cb.avg(root.get("rating")).alias("averageRating")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("ratedAt"), from),
+                cb.lessThan(root.get("ratedAt"), to)
+        );
+        q.groupBy(mediaJoin.get("mediaType"));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static List<Tuple> queryJellyfinMediaTypeBreakdown(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+        Join<WatchEvent, MediaItem> mediaJoin = root.join("mediaItem");
+        Expression<String> unitKey = watchedMediaItemKey(root);
+
+        q.select(cb.tuple(
+                mediaJoin.get("mediaType").alias("mediaType"),
+                cb.countDistinct(unitKey).alias("count"),
+                cb.literal(0.0d).alias("averageRating")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), from),
+                cb.lessThan(root.get("watchedAt"), to),
+                completionEquivalent(cb, root)
+        );
+        q.groupBy(mediaJoin.get("mediaType"));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static List<Tuple> queryTopGenresBy(
+            EntityManager em, UUID profileId, float ratingThreshold, int limit, SortBy sortBy,
+            Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
+        Join<MediaItemRating, MediaItem> mediaJoin = root.join("mediaItem");
+        Join<MediaItem, Genre> genreJoin = mediaJoin.join("genres");
+
+        q.select(cb.tuple(
+                genreJoin.get("name").alias("genreName"),
+                cb.count(root).alias("count"),
+                cb.avg(root.get("rating")).alias("averageRating")
+        ));
+
+        Predicate dateRange = cb.and(
+                cb.greaterThanOrEqualTo(root.get("ratedAt"), from),
+                cb.lessThan(root.get("ratedAt"), to)
+        );
+
+        if (sortBy == SortBy.SCORE) {
+            q.where(
+                    cb.equal(root.get("profile").get("id"), profileId),
+                    cb.greaterThanOrEqualTo(root.get("rating"), ratingThreshold),
+                    dateRange
+            );
+            q.orderBy(cb.desc(cb.avg(root.get("rating"))), cb.desc(cb.count(root)));
+        } else {
+            q.where(
+                    cb.equal(root.get("profile").get("id"), profileId),
+                    dateRange
+            );
+            q.orderBy(cb.desc(cb.count(root)), cb.desc(cb.avg(root.get("rating"))));
+        }
+
+        q.groupBy(genreJoin.get("name"));
+
+        return em.createQuery(q).setMaxResults(limit).getResultList();
+    }
+
+    public static List<Tuple> queryJellyfinTopGenresBy(
+            EntityManager em, UUID profileId, int limit, SortBy sortBy, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+        Join<WatchEvent, MediaItem> mediaJoin = root.join("mediaItem");
+        Join<MediaItem, Genre> genreJoin = mediaJoin.join("genres");
+        Expression<String> unitKey = watchedMediaItemKey(root);
+
+        q.select(cb.tuple(
+                genreJoin.get("name").alias("genreName"),
+                cb.countDistinct(unitKey).alias("count"),
+                cb.literal(0.0d).alias("averageRating")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), from),
+                cb.lessThan(root.get("watchedAt"), to),
+                completionEquivalent(cb, root)
+        );
+        q.groupBy(genreJoin.get("name"));
+        q.orderBy(cb.desc(cb.countDistinct(unitKey)), cb.asc(genreJoin.get("name")));
+
+        return em.createQuery(q).setMaxResults(limit).getResultList();
+    }
+
+    public static List<Tuple> queryFavoriteCrewByJob(
+            EntityManager em, UUID profileId, String job, int minCount, int limit, SortBy sortBy,
+            Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
+        Join<MediaItemRating, MediaItem> mediaJoin = root.join("mediaItem");
+        Join<MediaItem, MediaItemCrew> crewJoin = mediaJoin.join("crew");
+        Join<MediaItemCrew, Person> personJoin = crewJoin.join("person");
+
+        q.select(cb.tuple(
+                personJoin.get("id").alias("personId"),
+                personJoin.get("name").alias("name"),
+                personJoin.get("profilePathUrl").alias("profilePathUrl"),
+                cb.avg(root.get("rating")).alias("averageRating"),
+                cb.countDistinct(mediaJoin.get("id")).alias("itemCount")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.equal(crewJoin.get("job"), job),
+                cb.greaterThanOrEqualTo(root.get("ratedAt"), from),
+                cb.lessThan(root.get("ratedAt"), to)
+        );
+        q.groupBy(personJoin.get("id"), personJoin.get("name"), personJoin.get("profilePathUrl"));
+        q.having(cb.greaterThanOrEqualTo(cb.countDistinct(mediaJoin.get("id")), (long) minCount));
+        if (sortBy == SortBy.SCORE) {
+            q.orderBy(cb.desc(cb.avg(root.get("rating"))), cb.desc(cb.countDistinct(mediaJoin.get("id"))));
+        } else {
+            q.orderBy(cb.desc(cb.countDistinct(mediaJoin.get("id"))), cb.desc(cb.avg(root.get("rating"))));
+        }
+
+        return em.createQuery(q).setMaxResults(limit).getResultList();
+    }
+
+    public static List<Tuple> queryFavoriteActors(
+            EntityManager em, UUID profileId, int minCount, int limit, SortBy sortBy,
+            Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
+        Join<MediaItemRating, MediaItem> mediaJoin = root.join("mediaItem");
+        Join<MediaItem, MediaItemCast> castJoin = mediaJoin.join("cast");
+        Join<MediaItemCast, Person> personJoin = castJoin.join("person");
+
+        q.select(cb.tuple(
+                personJoin.get("id").alias("personId"),
+                personJoin.get("name").alias("name"),
+                personJoin.get("profilePathUrl").alias("profilePathUrl"),
+                cb.avg(root.get("rating")).alias("averageRating"),
+                cb.countDistinct(mediaJoin.get("id")).alias("itemCount")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("ratedAt"), from),
+                cb.lessThan(root.get("ratedAt"), to)
+        );
+        q.groupBy(personJoin.get("id"), personJoin.get("name"), personJoin.get("profilePathUrl"));
+        q.having(cb.greaterThanOrEqualTo(cb.countDistinct(mediaJoin.get("id")), (long) minCount));
+        if (sortBy == SortBy.SCORE) {
+            q.orderBy(cb.desc(cb.avg(root.get("rating"))), cb.desc(cb.countDistinct(mediaJoin.get("id"))));
+        } else {
+            q.orderBy(cb.desc(cb.countDistinct(mediaJoin.get("id"))), cb.desc(cb.avg(root.get("rating"))));
+        }
+
+        return em.createQuery(q).setMaxResults(limit).getResultList();
+    }
+
+    public static List<Tuple> queryDecadePreferences(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
+        Join<MediaItemRating, MediaItem> mediaJoin = root.join("mediaItem");
+
+        Expression<Integer> productionYear = mediaJoin.get("productionYear");
+        Expression<Number> decade = cb.prod(cb.quot(productionYear, 10), 10);
+
+        q.select(cb.tuple(
+                decade.alias("decade"),
+                cb.count(root).alias("count"),
+                cb.avg(root.get("rating")).alias("averageRating")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.isNotNull(mediaJoin.get("productionYear")),
+                cb.greaterThanOrEqualTo(root.get("ratedAt"), from),
+                cb.lessThan(root.get("ratedAt"), to)
+        );
+        q.groupBy(decade);
+        q.orderBy(cb.desc(decade));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static List<Tuple> queryMonthlyActivityForYear(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
+
+        Expression<String> yearMonth = cb.function(
+                "strftime", String.class,
+                cb.literal("%Y-%m"),
+                root.get("ratedAt")
+        );
+
+        q.select(cb.tuple(
+                yearMonth.alias("period"),
+                cb.count(root).alias("count"),
+                cb.avg(root.get("rating")).alias("averageRating")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("ratedAt"), from),
+                cb.lessThan(root.get("ratedAt"), to)
+        );
+        q.groupBy(yearMonth);
+        q.orderBy(cb.asc(yearMonth));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static List<Tuple> queryDayOfWeekActivity(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
+
+        Expression<Long> epochSeconds = cb.quot(
+                root.get("ratedAt").as(Long.class),
+                cb.literal(1000L)
+        ).as(Long.class);
+
+        Expression<String> dayOfWeek = cb.function(
+                "strftime", String.class,
+                cb.literal("%w"),
+                cb.function("datetime", String.class, epochSeconds, cb.literal("unixepoch"))
+        );
+
+        q.select(cb.tuple(
+                dayOfWeek.alias("dayOfWeek"),
+                cb.count(root).alias("count")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("ratedAt"), from),
+                cb.lessThan(root.get("ratedAt"), to)
+        );
+        q.groupBy(dayOfWeek);
+        q.orderBy(cb.asc(dayOfWeek));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static List<Tuple> queryJellyfinDayOfWeekActivity(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+
+        Expression<Long> epochSeconds = cb.quot(
+                root.get("watchedAt").as(Long.class),
+                cb.literal(1000L)
+        ).as(Long.class);
+
+        Expression<String> dateStr = cb.function(
+                "strftime", String.class,
+                cb.literal("%Y-%m-%d"),
+                cb.function("datetime", String.class, epochSeconds, cb.literal("unixepoch"))
+        );
+        Expression<String> dayUnitKey = cb.concat(dateStr, cb.concat(":", watchedMediaItemKey(root)));
+
+        Expression<String> dayOfWeek = cb.function(
+                "strftime", String.class,
+                cb.literal("%w"),
+                cb.function("datetime", String.class, epochSeconds, cb.literal("unixepoch"))
+        );
+
+        q.select(cb.tuple(
+                dayOfWeek.alias("dayOfWeek"),
+                cb.countDistinct(dayUnitKey).alias("count")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), from),
+                cb.lessThan(root.get("watchedAt"), to),
+                completionEquivalent(cb, root)
+        );
+        q.groupBy(dayOfWeek);
+        q.orderBy(cb.asc(dayOfWeek));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static List<Tuple> queryJellyfinDecadePreferences(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+        Expression<String> mediaItemKey = watchedMediaItemKey(root);
+
+        Expression<Integer> productionYear = root.get("mediaItem").get("productionYear");
+        Expression<Number> decade = cb.prod(cb.quot(productionYear, 10), 10);
+
+        q.select(cb.tuple(
+                decade.alias("decade"),
+                cb.countDistinct(mediaItemKey).alias("count"),
+                cb.literal(0.0d).alias("averageRating")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.isNotNull(root.get("mediaItem").get("productionYear")),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), from),
+                cb.lessThan(root.get("watchedAt"), to),
+                completionEquivalent(cb, root)
+        );
+        q.groupBy(decade);
+        q.orderBy(cb.desc(decade));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static Tuple queryRuntimeStatsForPeriod(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+
+        CriteriaQuery<Tuple> movieQuery = cb.createTupleQuery();
+        Root<WatchEvent> movieRoot = movieQuery.from(WatchEvent.class);
+
+        movieQuery.select(cb.tuple(
+                movieRoot.get("mediaItem").get("id").alias("unitId"),
+                movieRoot.get("mediaItem").get("runtimeMinutes").alias("runtime")
+        ));
+        movieQuery.where(
+                cb.equal(movieRoot.get("profile").get("id"), profileId),
+                cb.equal(movieRoot.get("mediaItem").get("mediaType"), MediaType.MOVIE),
+                cb.isNotNull(movieRoot.get("mediaItem").get("runtimeMinutes")),
+                cb.greaterThanOrEqualTo(movieRoot.get("watchedAt"), from),
+                cb.lessThan(movieRoot.get("watchedAt"), to),
+                completionEquivalent(cb, movieRoot)
+        );
+        movieQuery.groupBy(movieRoot.get("mediaItem").get("id"), movieRoot.get("mediaItem").get("runtimeMinutes"));
+
+        CriteriaQuery<Tuple> episodeQuery = cb.createTupleQuery();
+        Root<WatchEvent> episodeRoot = episodeQuery.from(WatchEvent.class);
+        Expression<Integer> episodeRuntime = cb.coalesce(
+                episodeRoot.get("episode").get("runtimeMinutes").as(Integer.class),
+                episodeRoot.get("mediaItem").get("runtimeMinutes").as(Integer.class)
+        );
+
+        episodeQuery.select(cb.tuple(
+                episodeRoot.get("episode").get("id").alias("unitId"),
+                episodeRuntime.alias("runtime")
+        ));
+        episodeQuery.where(
+                cb.equal(episodeRoot.get("profile").get("id"), profileId),
+                cb.equal(episodeRoot.get("mediaItem").get("mediaType"), MediaType.SERIES),
+                cb.isNotNull(episodeRoot.get("episode")),
+                cb.isNotNull(episodeRuntime),
+                cb.greaterThanOrEqualTo(episodeRoot.get("watchedAt"), from),
+                cb.lessThan(episodeRoot.get("watchedAt"), to),
+                completionEquivalent(cb, episodeRoot)
+        );
+        episodeQuery.groupBy(episodeRoot.get("episode").get("id"), episodeRuntime);
+
+        List<Tuple> movies = em.createQuery(movieQuery).getResultList();
+        List<Tuple> episodes = em.createQuery(episodeQuery).getResultList();
+
+        java.util.List<Integer> runtimes = new java.util.ArrayList<>();
+        for (Tuple tuple : movies) {
+            Integer runtime = tuple.get("runtime", Integer.class);
+            if (runtime != null) runtimes.add(runtime);
+        }
+        for (Tuple tuple : episodes) {
+            Integer runtime = tuple.get("runtime", Integer.class);
+            if (runtime != null) runtimes.add(runtime);
+        }
+
+        double avg = runtimes.isEmpty()
+                ? 0.0
+                : runtimes.stream().mapToInt(Integer::intValue).average().orElse(0.0);
+        int longest = runtimes.stream().mapToInt(Integer::intValue).max().orElse(0);
+        int shortest = runtimes.stream().mapToInt(Integer::intValue).min().orElse(0);
+
+        CriteriaQuery<Tuple> aggregate = cb.createTupleQuery();
+        aggregate.select(cb.tuple(
+                cb.literal(avg).alias("averageRuntime"),
+                cb.literal(longest).alias("longestRuntime"),
+                cb.literal(shortest).alias("shortestRuntime")
+        ));
+        return em.createQuery(aggregate).getSingleResult();
+    }
+
+    public static Long queryMoviesTotalRuntime(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+
+        q.select(cb.tuple(
+                root.get("mediaItem").get("id").alias("movieId"),
+                root.get("mediaItem").get("runtimeMinutes").alias("runtime")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.equal(root.get("mediaItem").get("mediaType"), MediaType.MOVIE),
+                cb.isNotNull(root.get("mediaItem").get("runtimeMinutes")),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), from),
+                cb.lessThan(root.get("watchedAt"), to),
+                completionEquivalent(cb, root)
+        );
+        q.groupBy(root.get("mediaItem").get("id"), root.get("mediaItem").get("runtimeMinutes"));
+
+        List<Tuple> rows = em.createQuery(q).getResultList();
+        long total = 0L;
+        for (Tuple row : rows) {
+            Integer runtime = row.get("runtime", Integer.class);
+            if (runtime != null) total += runtime;
+        }
+        return total;
+    }
+
+    public static Long querySeriesRuntimeTotal(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+        Expression<Integer> runtimeExpr = cb.coalesce(
+                root.get("episode").get("runtimeMinutes").as(Integer.class),
+                root.get("mediaItem").get("runtimeMinutes").as(Integer.class)
+        );
+
+        q.select(cb.tuple(
+                root.get("episode").get("id").alias("episodeId"),
+                runtimeExpr.alias("runtime")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.equal(root.get("mediaItem").get("mediaType"), MediaType.SERIES),
+                cb.isNotNull(root.get("episode")),
+                cb.isNotNull(runtimeExpr),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), from),
+                cb.lessThan(root.get("watchedAt"), to),
+                completionEquivalent(cb, root)
+        );
+        q.groupBy(root.get("episode").get("id"), runtimeExpr);
+
+        List<Tuple> rows = em.createQuery(q).getResultList();
+        long total = 0L;
+        for (Tuple row : rows) {
+            Integer runtime = row.get("runtime", Integer.class);
+            if (runtime != null) total += runtime;
+        }
+        return total;
+    }
+
+    // -------------------------------------------------------------------------
+    // Year Rewind — highlights
+    // -------------------------------------------------------------------------
+
+    public static List<Tuple> queryFirstRatedItem(EntityManager em, UUID profileId, Instant from, Instant to) {
+        return queryHighlightItem(em, profileId, from, to, HighlightSort.FIRST_RATED);
+    }
+
+    public static List<Tuple> queryLastRatedItem(EntityManager em, UUID profileId, Instant from, Instant to) {
+        return queryHighlightItem(em, profileId, from, to, HighlightSort.LAST_RATED);
+    }
+
+    public static List<Tuple> queryHighestRatedItem(EntityManager em, UUID profileId, Instant from, Instant to) {
+        return queryHighlightItem(em, profileId, from, to, HighlightSort.HIGHEST_RATED);
+    }
+
+    public static List<Tuple> queryLowestRatedItem(EntityManager em, UUID profileId, Instant from, Instant to) {
+        return queryHighlightItem(em, profileId, from, to, HighlightSort.LOWEST_RATED);
+    }
+
+    private static List<Tuple> queryHighlightItem(
+            EntityManager em, UUID profileId, Instant from, Instant to, HighlightSort sort) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
+        Join<MediaItemRating, MediaItem> mediaJoin = root.join("mediaItem");
+        Join<MediaItem, MediaItemMetadata> metadataJoin = mediaJoin.join("metadata", JoinType.LEFT);
+
+        q.select(cb.tuple(
+                mediaJoin.get("title").alias("title"),
+                metadataJoin.get("posterImageUrl").alias("posterImageUrl"),
+                root.get("rating").alias("rating"),
+                root.get("ratedAt").alias("eventAt"),
+                mediaJoin.get("mediaType").alias("mediaType")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("ratedAt"), from),
+                cb.lessThan(root.get("ratedAt"), to)
+        );
+
+        q.orderBy(switch (sort) {
+            case FIRST_RATED -> List.of(cb.asc(root.get("ratedAt")));
+            case LAST_RATED -> List.of(cb.desc(root.get("ratedAt")));
+            case HIGHEST_RATED -> List.of(cb.desc(root.get("rating")), cb.desc(root.get("ratedAt")));
+            case LOWEST_RATED -> List.of(cb.asc(root.get("rating")), cb.desc(root.get("ratedAt")));
+        });
+
+        return em.createQuery(q).setMaxResults(1).getResultList();
+    }
+
+    public static List<Tuple> queryFirstWatchedItem(EntityManager em, UUID profileId, Instant from, Instant to) {
+        return queryWatchHighlightItem(em, profileId, from, to, false);
+    }
+
+    public static List<Tuple> queryLastWatchedItem(EntityManager em, UUID profileId, Instant from, Instant to) {
+        return queryWatchHighlightItem(em, profileId, from, to, true);
+    }
+
+    private static List<Tuple> queryWatchHighlightItem(
+            EntityManager em, UUID profileId, Instant from, Instant to, boolean latest) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+        Join<WatchEvent, MediaItem> mediaJoin = root.join("mediaItem");
+        Join<MediaItem, MediaItemMetadata> metadataJoin = mediaJoin.join("metadata", JoinType.LEFT);
+
+        q.select(cb.tuple(
+                mediaJoin.get("title").alias("title"),
+                metadataJoin.get("posterImageUrl").alias("posterImageUrl"),
+                root.get("watchedAt").alias("eventAt"),
+                mediaJoin.get("mediaType").alias("mediaType")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), from),
+                cb.lessThan(root.get("watchedAt"), to),
+                completionEquivalent(cb, root)
+        );
+        q.orderBy(latest
+                ? cb.desc(root.get("watchedAt"))
+                : cb.asc(root.get("watchedAt")));
+
+        return em.createQuery(q).setMaxResults(1).getResultList();
+    }
+
+    public static List<Tuple> queryBusiestWatchDay(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Tuple> q = cb.createTupleQuery();
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+        Expression<String> unitKey = watchedUnitKey(cb, root);
+
+        Expression<Long> epochSeconds = cb.quot(
+                root.get("watchedAt").as(Long.class),
+                cb.literal(1000L)
+        ).as(Long.class);
+
+        Expression<String> dateStr = cb.function(
+                "strftime", String.class,
+                cb.literal("%Y-%m-%d"),
+                cb.function("datetime", String.class, epochSeconds, cb.literal("unixepoch"))
+        );
+
+        q.select(cb.tuple(
+                dateStr.alias("date"),
+                cb.countDistinct(unitKey).alias("count")
+        ));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), from),
+                cb.lessThan(root.get("watchedAt"), to),
+                completionEquivalent(cb, root)
+        );
+        q.groupBy(dateStr);
+        q.orderBy(cb.desc(cb.countDistinct(unitKey)));
+
+        return em.createQuery(q).setMaxResults(1).getResultList();
+    }
+
+    public static List<String> queryDistinctWatchDates(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<String> q = cb.createQuery(String.class);
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+
+        Expression<Long> epochSeconds = cb.quot(
+                root.get("watchedAt").as(Long.class),
+                cb.literal(1000L)
+        ).as(Long.class);
+
+        Expression<String> dateStr = cb.function(
+                "strftime", String.class,
+                cb.literal("%Y-%m-%d"),
+                cb.function("datetime", String.class, epochSeconds, cb.literal("unixepoch"))
+        );
+
+        q.select(dateStr).distinct(true);
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), from),
+                cb.lessThan(root.get("watchedAt"), to),
+                completionEquivalent(cb, root)
+        );
+        q.orderBy(cb.asc(dateStr));
+
+        return em.createQuery(q).getResultList();
+    }
+
+    public static List<Integer> queryAvailableRewindYears(EntityManager em, UUID profileId) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<String> q = cb.createQuery(String.class);
+        Root<MediaItemRating> root = q.from(MediaItemRating.class);
+
+        Expression<Long> epochSeconds = cb.quot(
+                root.get("ratedAt").as(Long.class),
+                cb.literal(1000L)
+        ).as(Long.class);
+
+        Expression<String> year = cb.function(
+                "strftime", String.class,
+                cb.literal("%Y"),
+                cb.function("datetime", String.class, epochSeconds, cb.literal("unixepoch"))
+        );
+
+        q.select(year).distinct(true);
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.isNotNull(root.get("ratedAt"))
+        );
+        q.orderBy(cb.desc(year));
+
+        List<String> yearStrings = em.createQuery(q).getResultList();
+        List<Integer> years = new java.util.ArrayList<>();
+        for (String y : yearStrings) {
+            if (y != null) years.add(Integer.parseInt(y));
+        }
+        return years;
+    }
+
+    public static List<Integer> queryAvailableWatchYears(EntityManager em, UUID profileId) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<String> q = cb.createQuery(String.class);
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+
+        Expression<Long> epochSeconds = cb.quot(
+                root.get("watchedAt").as(Long.class),
+                cb.literal(1000L)
+        ).as(Long.class);
+
+        Expression<String> year = cb.function(
+                "strftime", String.class,
+                cb.literal("%Y"),
+                cb.function("datetime", String.class, epochSeconds, cb.literal("unixepoch"))
+        );
+
+        q.select(year).distinct(true);
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.isNotNull(root.get("watchedAt"))
+        );
+
+        List<String> yearStrings = em.createQuery(q).getResultList();
+        List<Integer> years = new java.util.ArrayList<>();
+        for (String y : yearStrings) {
+            if (y != null) years.add(Integer.parseInt(y));
+        }
+        return years;
+    }
+
+    public static Long queryUniqueItemsWatched(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Long> q = cb.createQuery(Long.class);
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+        Expression<String> unitKey = watchedUnitKey(cb, root);
+
+        q.select(cb.countDistinct(unitKey));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), from),
+                cb.lessThan(root.get("watchedAt"), to),
+                completionEquivalent(cb, root)
+        );
+
+        Long result = em.createQuery(q).getSingleResult();
+        return result != null ? result : 0L;
+    }
+
+    public static Long queryMoviesWatched(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Long> q = cb.createQuery(Long.class);
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+
+        q.select(cb.countDistinct(root.get("mediaItem").get("id")));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.equal(root.get("mediaItem").get("mediaType"), MediaType.MOVIE),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), from),
+                cb.lessThan(root.get("watchedAt"), to),
+                completionEquivalent(cb, root)
+        );
+
+        Long result = em.createQuery(q).getSingleResult();
+        return result != null ? result : 0L;
+    }
+
+    public static Long querySeriesWatched(EntityManager em, UUID profileId, Instant from, Instant to) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Long> q = cb.createQuery(Long.class);
+        Root<WatchEvent> root = q.from(WatchEvent.class);
+
+        q.select(cb.countDistinct(root.get("mediaItem").get("id")));
+        q.where(
+                cb.equal(root.get("profile").get("id"), profileId),
+                cb.equal(root.get("mediaItem").get("mediaType"), MediaType.SERIES),
+                cb.greaterThanOrEqualTo(root.get("watchedAt"), from),
+                cb.lessThan(root.get("watchedAt"), to),
+                completionEquivalent(cb, root)
+        );
+
+        Long result = em.createQuery(q).getSingleResult();
+        return result != null ? result : 0L;
+    }
+
+    private enum HighlightSort {
+        FIRST_RATED, LAST_RATED, HIGHEST_RATED, LOWEST_RATED
+    }
+
     /**
      * Controls the primary sort order for people (actors/directors/producers) and genre queries.
      *

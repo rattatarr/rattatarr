@@ -140,6 +140,7 @@ export enum Icon {
   COPY = 'pi pi-copy',
   BRIEFCASE = 'pi pi-briefcase',
   HISTORY = 'pi pi-history',
+  REPLAY = 'pi pi-replay',
 }
 
 /**
