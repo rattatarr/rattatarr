@@ -90,7 +90,7 @@
 
       <!-- Rating Overlay (default) -->
       <div v-if="showRating && !$slots.overlay" class="rating-overlay" @click="handleRatingClick">
-        <i :class="Icon.STAR" class="star-icon" />
+        <i :class="myRating ? Icon.STAR_FILL : Icon.STAR" class="star-icon" />
         <span v-if="myRating" class="rating-value">{{ formatRating(myRating) }}</span>
         <span v-else class="rating-empty">Rate</span>
       </div>
