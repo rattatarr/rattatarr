@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, onMounted, ref, watch } from 'vue'
+  import { computed, onActivated, onMounted, ref, watch } from 'vue'
   import Card from 'primevue/card'
   import { useRoute } from 'vue-router'
   import { useProfileStore } from '@/stores'
@@ -35,16 +35,27 @@
     if (person) filterState.selectedPerson.value = person
   })
 
-  // Apply query params as initial filters (from person dialog or genre click navigation)
-  onMounted(() => {
+  // Apply query params as initial filters (from person dialog or genre click navigation).
+  // Called on both mount and KeepAlive activation so navigating to a different actor
+  // from the dashboard always reflects the new personId query param.
+  function syncFromRouteQuery() {
     const { personId, genre } = route.query
     if (personId && typeof personId === 'string') {
-      personIdFromQuery.value = personId
+      if (personIdFromQuery.value !== personId) {
+        filterState.selectedPerson.value = null
+        personIdFromQuery.value = personId
+      }
+    } else if (personIdFromQuery.value !== undefined) {
+      personIdFromQuery.value = undefined
+      filterState.selectedPerson.value = null
     }
     if (genre && typeof genre === 'string') {
       filterState.selectedGenres.value = [genre]
     }
-  })
+  }
+
+  onMounted(syncFromRouteQuery)
+  onActivated(syncFromRouteQuery)
 
   const hasActiveFilters = computed(() => {
     return (
