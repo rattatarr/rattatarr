@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.1](https://github.com/rattatarr/rattatarr/compare/v1.1.0...v1.1.1) (2026-05-01)
+
+
+### Bug Fixes
+
+* jellyfin runtime media tracks only watched/equivalent complete ([30df7ba](https://github.com/rattatarr/rattatarr/commit/30df7ba8addc6a954e6fb8e0bec2eead18dbc487))
+* on rated item fill the star ([90f6df9](https://github.com/rattatarr/rattatarr/commit/90f6df98ff00b1ce3e1b79952bac2d20c2dfaac0))
+* remove dead view from recent trends & default to jellyfin view if data for 365 is 0 ([e585529](https://github.com/rattatarr/rattatarr/commit/e585529aae0b43f1653f9f8fe6059a443d73eba0))
+* scroll restoration breaking query param people search ([be32719](https://github.com/rattatarr/rattatarr/commit/be32719f31c7eee8d5f84ebff30f7ae990db35a4))
+* scroll restoration for movies/series views ([8735915](https://github.com/rattatarr/rattatarr/commit/8735915d03bef482e24f015aee2d69ac06e525df))
+
 ## [1.1.0](https://github.com/rattatarr/rattatarr/compare/v1.0.0...v1.1.0) (2026-04-26)
 
 
