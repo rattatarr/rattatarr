@@ -135,7 +135,9 @@
       <template v-else-if="rewind && selectedYear">
         <!-- Highlights -->
         <Card v-if="rewind.highlights">
-          <template #title>{{ selectedYear }} Highlights</template>
+          <template #title>
+            <span class="highlights-title">{{ selectedYear }} Highlights</span>
+          </template>
           <template #content>
             <RewindHighlights :highlights="rewind.highlights" />
           </template>
@@ -224,6 +226,15 @@
     margin: 0;
     font-size: 1.5rem;
     font-weight: 700;
+  }
+
+  .highlights-title {
+    display: block;
+    text-align: center;
+    color: var(--p-primary-color);
+    text-shadow:
+      0 0 12px color-mix(in srgb, var(--p-primary-color) 60%, transparent),
+      0 0 24px color-mix(in srgb, var(--p-primary-color) 30%, transparent);
   }
 
   .year-select {
