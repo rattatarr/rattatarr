@@ -2,6 +2,7 @@ package com.rattatarr.rattatarr.services;
 
 import com.rattatarr.rattatarr.clients.sonarr.SonarrClient;
 import com.rattatarr.rattatarr.clients.sonarr.responses.SonarrSeriesResponseDTO;
+import com.rattatarr.rattatarr.models.ArrInstance;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.entities.BackgroundJob;
 import com.rattatarr.rattatarr.utils.ParallelAPIProcessor;
@@ -21,24 +22,31 @@ import java.util.concurrent.Executor;
 public class SonarrService {
     private static final Logger logger = LoggerFactory.getLogger(SonarrService.class);
 
-    private final SonarrClient sonarrClient;
+    private final SonarrClient defaultClient;
+    private final SonarrClient animeClient;
     private final TMDbService tmDbService;
     private final BackgroundJobService backgroundJobService;
     private final Executor tmdbApiExecutor;
 
     public SonarrService(
-            SonarrClient sonarrClient,
+            @Qualifier("sonarrDefaultClient") SonarrClient defaultClient,
+            @Qualifier("sonarrAnimeClient") SonarrClient animeClient,
             TMDbService tmDbService,
             BackgroundJobService backgroundJobService,
             @Qualifier("tmdbApiExecutor") Executor tmdbApiExecutor) {
-        this.sonarrClient = sonarrClient;
+        this.defaultClient = defaultClient;
+        this.animeClient = animeClient;
         this.tmDbService = tmDbService;
         this.backgroundJobService = backgroundJobService;
         this.tmdbApiExecutor = tmdbApiExecutor;
     }
 
-    public boolean testConnection() {
-        return sonarrClient.testConnection();
+    private SonarrClient clientFor(ArrInstance instance) {
+        return instance == ArrInstance.ANIME ? animeClient : defaultClient;
+    }
+
+    public boolean testConnection(ArrInstance instance) {
+        return clientFor(instance).testConnection();
     }
 
     @Nullable
@@ -65,25 +73,26 @@ public class SonarrService {
         );
     }
 
-    public void runImport() {
-        if (!sonarrClient.isConfigured()) {
-            logger.debug("Sonarr not configured, skipping import");
+    public void runImport(ArrInstance instance) {
+        var client = clientFor(instance);
+        if (!client.isConfigured()) {
+            logger.debug("Sonarr ({}) not configured, skipping import", instance);
             return;
         }
-        importAllSeries(sonarrClient.getMonitoredInternalSeries());
+        importAllSeries(client.getMonitoredInternalSeries());
     }
 
     @Async("backgroundTaskExecutor")
-    public void triggerBackgroundImport(BackgroundJob job) {
-        logger.info("Sonarr import started, jobId={}", job.id());
+    public void triggerBackgroundImport(BackgroundJob job, ArrInstance instance) {
+        logger.info("Sonarr ({}) import started, jobId={}", instance, job.id());
         backgroundJobService.markRunning(job);
         try {
-            runImport();
+            runImport(instance);
             backgroundJobService.markCompleted(job, "Sonarr import completed successfully");
-            logger.info("Sonarr import completed, jobId={}", job.id());
+            logger.info("Sonarr ({}) import completed, jobId={}", instance, job.id());
         } catch (Exception error) {
             backgroundJobService.markFailed(job, error.getMessage());
-            logger.error("Sonarr import failed, jobId={}", job.id(), error);
+            logger.error("Sonarr ({}) import failed, jobId={}", instance, job.id(), error);
         }
     }
 }

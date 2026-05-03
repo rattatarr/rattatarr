@@ -43,8 +43,10 @@ rattatarr:
     radarr-initial-delay: PT15M
     radarr-ratings-interval: PT24H
     radarr-ratings-initial-delay: PT30M
+    radarr-between-instances-delay: PT5M # delay between DEFAULT and ANIME instance runs to avoid SQLite write contention
     sonarr-interval: PT24H
     sonarr-initial-delay: PT40M
+    sonarr-between-instances-delay: PT5M # delay between DEFAULT and ANIME instance runs to avoid SQLite write contention
   cors:
     allowed-origins:
       - http://localhost:3000

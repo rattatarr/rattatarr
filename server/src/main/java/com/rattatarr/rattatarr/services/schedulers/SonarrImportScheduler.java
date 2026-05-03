@@ -1,10 +1,12 @@
 package com.rattatarr.rattatarr.services.schedulers;
 
-import com.rattatarr.rattatarr.services.SonarrService;
+import com.rattatarr.rattatarr.models.ArrInstance;
 import com.rattatarr.rattatarr.services.SettingsService;
+import com.rattatarr.rattatarr.services.SonarrService;
 import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -18,10 +20,15 @@ public class SonarrImportScheduler {
 
     private final SonarrService sonarrService;
     private final SettingsService settingsService;
+    private final Duration betweenInstancesDelay;
 
-    public SonarrImportScheduler(SonarrService sonarrService, SettingsService settingsService) {
+    public SonarrImportScheduler(
+            SonarrService sonarrService,
+            SettingsService settingsService,
+            @Value("${rattatarr.sync.sonarr-between-instances-delay:PT2M}") Duration betweenInstancesDelay) {
         this.sonarrService = sonarrService;
         this.settingsService = settingsService;
+        this.betweenInstancesDelay = betweenInstancesDelay;
     }
 
     @Scheduled(
@@ -29,27 +36,44 @@ public class SonarrImportScheduler {
             initialDelayString = "${rattatarr.sync.sonarr-initial-delay:PT10M}"
     )
     public void scheduledSonarrImport() {
-        boolean enabled = settingsService.getBooleanSetting(
-                SettingsService.SYNC_SONARR_ENABLED,
-                false
-        );
+        boolean ranPrevious = false;
+        for (ArrInstance instance : ArrInstance.values()) {
+            if (!settingsService.getBooleanSetting(importEnabledKey(instance), false)) {
+                logger.debug("Sonarr ({}) scheduled import is disabled via settings", instance);
+                continue;
+            }
 
-        if (!enabled) {
-            logger.debug("Sonarr scheduled import is disabled via settings");
-            return;
+            sleepIfPreviousInstanceIsRunning(ranPrevious, instance);
+
+            Instant startTime = Instant.now();
+            logger.info("Starting scheduled Sonarr ({}) import", instance);
+
+            try {
+                sonarrService.runImport(instance);
+                Duration duration = Duration.between(startTime, Instant.now());
+                logger.info("Scheduled Sonarr ({}) import completed successfully in {} seconds", instance, duration.getSeconds());
+                ranPrevious = true;
+            } catch (Exception e) {
+                logger.error("Scheduled Sonarr ({}) import failed", instance, e);
+                ranPrevious = true;
+            }
         }
+    }
 
-        Instant startTime = Instant.now();
-        logger.info("Starting scheduled Sonarr import");
-
+    private void sleepIfPreviousInstanceIsRunning(boolean ranPrevious, ArrInstance instance) {
+        if (!ranPrevious) return;
         try {
-            sonarrService.runImport();
-
-            Duration duration = Duration.between(startTime, Instant.now());
-            logger.info("Scheduled Sonarr import completed successfully in {} seconds",
-                    duration.getSeconds());
-        } catch (Exception e) {
-            logger.error("Scheduled Sonarr import failed", e);
+            logger.debug("Sonarr: waiting {}s before starting {} instance run", betweenInstancesDelay.getSeconds(), instance);
+            Thread.sleep(betweenInstancesDelay.toMillis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("Sonarr inter-instance delay interrupted before {} run", instance);
         }
+    }
+
+    private String importEnabledKey(ArrInstance instance) {
+        return instance == ArrInstance.ANIME
+                ? SettingsService.SYNC_SONARR_ANIME_ENABLED
+                : SettingsService.SYNC_SONARR_ENABLED;
     }
 }

@@ -8,6 +8,8 @@
     autoRefresh: 'sync.auto_refresh_on_read',
     radarrEnabled: 'sync.radarr_enabled',
     sonarrEnabled: 'sync.sonarr_enabled',
+    radarrAnimeEnabled: 'sync.radarr.anime.enabled',
+    sonarrAnimeEnabled: 'sync.sonarr.anime.enabled',
   }
 </script>
 
@@ -41,6 +43,22 @@
           type="checkbox"
           description="Periodically import newly added series from Sonarr into your library"
           @update:model-value="(v) => updateSetting(configKeys.sonarrEnabled, v)"
+        />
+        <SettingInput
+          :model-value="getSetting(configKeys.radarrAnimeEnabled)"
+          label="Enable Radarr Anime Sync"
+          :setting-key="configKeys.radarrAnimeEnabled"
+          type="checkbox"
+          description="Periodically fetch ratings and import newly added anime movies from your Radarr Anime instance"
+          @update:model-value="(v) => updateSetting(configKeys.radarrAnimeEnabled, v)"
+        />
+        <SettingInput
+          :model-value="getSetting(configKeys.sonarrAnimeEnabled)"
+          label="Enable Sonarr Anime Sync"
+          :setting-key="configKeys.sonarrAnimeEnabled"
+          type="checkbox"
+          description="Periodically import newly added anime series from your Sonarr Anime instance"
+          @update:model-value="(v) => updateSetting(configKeys.sonarrAnimeEnabled, v)"
         />
       </SettingsCard>
     </div>

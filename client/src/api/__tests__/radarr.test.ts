@@ -32,13 +32,15 @@ describe('radarr API', () => {
   })
 
   describe('importRadarrMovies', () => {
-    it('calls POST /api/v1/radarr/import with no body', async () => {
+    it('calls POST /api/v1/radarr/import with instance=DEFAULT', async () => {
       mockPOST.mockResolvedValue({ data: mockJob })
       mockHandleResponse.mockReturnValue(mockJob)
 
       await importRadarrMovies()
 
-      expect(mockPOST).toHaveBeenCalledWith('/api/v1/radarr/import')
+      expect(mockPOST).toHaveBeenCalledWith('/api/v1/radarr/import', {
+        params: { query: { instance: 'DEFAULT' } },
+      })
     })
 
     it('returns the job from handleResponse', async () => {
@@ -59,14 +61,16 @@ describe('radarr API', () => {
   })
 
   describe('refreshRadarrRatings', () => {
-    it('calls POST /api/v1/radarr/refresh-ratings', async () => {
+    it('calls POST /api/v1/radarr/refresh-ratings with instance=DEFAULT', async () => {
       const refreshJob: BackgroundJob = { ...mockJob, type: 'RADARR_RATINGS_REFRESH' }
       mockPOST.mockResolvedValue({ data: refreshJob })
       mockHandleResponse.mockReturnValue(refreshJob)
 
       await refreshRadarrRatings()
 
-      expect(mockPOST).toHaveBeenCalledWith('/api/v1/radarr/refresh-ratings')
+      expect(mockPOST).toHaveBeenCalledWith('/api/v1/radarr/refresh-ratings', {
+        params: { query: { instance: 'DEFAULT' } },
+      })
     })
 
     it('returns the job from handleResponse', async () => {
@@ -88,13 +92,15 @@ describe('radarr API', () => {
   })
 
   describe('testRadarrConnection', () => {
-    it('calls GET /api/v1/radarr/test', async () => {
+    it('calls GET /api/v1/radarr/test with instance=DEFAULT', async () => {
       mockGET.mockResolvedValue({ data: mockConnectionOk })
       mockHandleResponse.mockReturnValue(mockConnectionOk)
 
       await testRadarrConnection()
 
-      expect(mockGET).toHaveBeenCalledWith('/api/v1/radarr/test')
+      expect(mockGET).toHaveBeenCalledWith('/api/v1/radarr/test', {
+        params: { query: { instance: 'DEFAULT' } },
+      })
     })
 
     it('returns the response from handleResponse', async () => {

@@ -8,8 +8,13 @@
     usePollJellyfinActivity,
   } from '@/queries/useJellyfin'
   import { useImportIMDbRatings, useExportRatingsCsv } from '@/queries/useRatings'
-  import { useImportRadarrMovies, useRefreshRadarrRatings } from '@/queries/useRadarr'
-  import { useImportSonarrSeries } from '@/queries/useSonarr'
+  import {
+    useImportRadarrMovies,
+    useRefreshRadarrRatings,
+    useImportRadarrAnimeMovies,
+    useRefreshRadarrAnimeRatings,
+  } from '@/queries/useRadarr'
+  import { useImportSonarrSeries, useImportSonarrAnimeSeries } from '@/queries/useSonarr'
   import { useProfileManagement } from '@/composables/useProfileManagement'
   import { useSyncOperation } from '@/composables/useSyncOperation'
   import { useToast } from '@/composables/useToast'
@@ -32,8 +37,12 @@
     tmdbKey: 'tmdb.api_key',
     radarrUrl: 'radarr.base_url',
     radarrKey: 'radarr.api_key',
+    radarrAnimeUrl: 'radarr.anime.base_url',
+    radarrAnimeKey: 'radarr.anime.api_key',
     sonarrUrl: 'sonarr.base_url',
     sonarrKey: 'sonarr.api_key',
+    sonarrAnimeUrl: 'sonarr.anime.base_url',
+    sonarrAnimeKey: 'sonarr.anime.api_key',
   }
 
   // Jellyfin Profiles Sync
@@ -276,6 +285,94 @@
     }
   }
 
+  // Radarr Anime Import
+  const importRadarrAnimeMutation = useImportRadarrAnimeMovies()
+  const radarrAnimeImportStatus = ref<OperationStatus>(OperationStatus.IDLE)
+  const radarrAnimeImportButtonProps = computed(() => {
+    switch (radarrAnimeImportStatus.value) {
+      case OperationStatus.LOADING:
+        return { loading: true }
+      case OperationStatus.SUCCESS:
+        return { severity: ButtonSeverity.SUCCESS, icon: Icon.CHECK, loading: false }
+      case OperationStatus.ERROR:
+        return { severity: ButtonSeverity.DANGER, icon: Icon.TIMES, loading: false }
+      default:
+        return { loading: false }
+    }
+  })
+
+  async function executeRadarrAnimeImport() {
+    jobTrackingStore.lockJob(JOB_TYPE.RADARR_ANIME_IMPORT)
+    radarrAnimeImportStatus.value = OperationStatus.LOADING
+
+    try {
+      const data = await importRadarrAnimeMutation.mutateAsync()
+      radarrAnimeImportStatus.value = OperationStatus.SUCCESS
+
+      toast.success('Radarr Anime import started', {
+        description: 'Anime movie import is running in the background',
+      })
+
+      void jobTrackingStore.startTracking(data)
+
+      setTimeout(() => {
+        radarrAnimeImportStatus.value = OperationStatus.IDLE
+      }, 3000)
+    } catch (error) {
+      jobTrackingStore.unlockJob(JOB_TYPE.RADARR_ANIME_IMPORT)
+      radarrAnimeImportStatus.value = OperationStatus.ERROR
+      toast.error(error as Error, { fallbackMessage: 'Failed to import from Radarr Anime' })
+
+      setTimeout(() => {
+        radarrAnimeImportStatus.value = OperationStatus.IDLE
+      }, 3000)
+    }
+  }
+
+  // Radarr Anime Ratings Refresh
+  const refreshRadarrAnimeRatingsMutation = useRefreshRadarrAnimeRatings()
+  const radarrAnimeRatingsRefreshStatus = ref<OperationStatus>(OperationStatus.IDLE)
+  const radarrAnimeRatingsRefreshButtonProps = computed(() => {
+    switch (radarrAnimeRatingsRefreshStatus.value) {
+      case OperationStatus.LOADING:
+        return { loading: true }
+      case OperationStatus.SUCCESS:
+        return { severity: ButtonSeverity.SUCCESS, icon: Icon.CHECK, loading: false }
+      case OperationStatus.ERROR:
+        return { severity: ButtonSeverity.DANGER, icon: Icon.TIMES, loading: false }
+      default:
+        return { loading: false }
+    }
+  })
+
+  async function executeRadarrAnimeRatingsRefresh() {
+    jobTrackingStore.lockJob(JOB_TYPE.RADARR_ANIME_RATINGS_REFRESH)
+    radarrAnimeRatingsRefreshStatus.value = OperationStatus.LOADING
+
+    try {
+      const data = await refreshRadarrAnimeRatingsMutation.mutateAsync()
+      radarrAnimeRatingsRefreshStatus.value = OperationStatus.SUCCESS
+
+      toast.success('Radarr Anime ratings refresh started', {
+        description: 'Anime ratings refresh is running in the background',
+      })
+
+      void jobTrackingStore.startTracking(data)
+
+      setTimeout(() => {
+        radarrAnimeRatingsRefreshStatus.value = OperationStatus.IDLE
+      }, 3000)
+    } catch (error) {
+      jobTrackingStore.unlockJob(JOB_TYPE.RADARR_ANIME_RATINGS_REFRESH)
+      radarrAnimeRatingsRefreshStatus.value = OperationStatus.ERROR
+      toast.error(error as Error, { fallbackMessage: 'Failed to refresh Radarr Anime ratings' })
+
+      setTimeout(() => {
+        radarrAnimeRatingsRefreshStatus.value = OperationStatus.IDLE
+      }, 3000)
+    }
+  }
+
   // Sonarr Import
   const importSonarrMutation = useImportSonarrSeries()
   const sonarrImportStatus = ref<OperationStatus>(OperationStatus.IDLE)
@@ -316,6 +413,50 @@
 
       setTimeout(() => {
         sonarrImportStatus.value = OperationStatus.IDLE
+      }, 3000)
+    }
+  }
+
+  // Sonarr Anime Import
+  const importSonarrAnimeMutation = useImportSonarrAnimeSeries()
+  const sonarrAnimeImportStatus = ref<OperationStatus>(OperationStatus.IDLE)
+  const sonarrAnimeImportButtonProps = computed(() => {
+    switch (sonarrAnimeImportStatus.value) {
+      case OperationStatus.LOADING:
+        return { loading: true }
+      case OperationStatus.SUCCESS:
+        return { severity: ButtonSeverity.SUCCESS, icon: Icon.CHECK, loading: false }
+      case OperationStatus.ERROR:
+        return { severity: ButtonSeverity.DANGER, icon: Icon.TIMES, loading: false }
+      default:
+        return { loading: false }
+    }
+  })
+
+  async function executeSonarrAnimeImport() {
+    jobTrackingStore.lockJob(JOB_TYPE.SONARR_ANIME_IMPORT)
+    sonarrAnimeImportStatus.value = OperationStatus.LOADING
+
+    try {
+      const data = await importSonarrAnimeMutation.mutateAsync()
+      sonarrAnimeImportStatus.value = OperationStatus.SUCCESS
+
+      toast.success('Sonarr Anime import started', {
+        description: 'Anime series import is running in the background',
+      })
+
+      void jobTrackingStore.startTracking(data)
+
+      setTimeout(() => {
+        sonarrAnimeImportStatus.value = OperationStatus.IDLE
+      }, 3000)
+    } catch (error) {
+      jobTrackingStore.unlockJob(JOB_TYPE.SONARR_ANIME_IMPORT)
+      sonarrAnimeImportStatus.value = OperationStatus.ERROR
+      toast.error(error as Error, { fallbackMessage: 'Failed to import from Sonarr Anime' })
+
+      setTimeout(() => {
+        sonarrAnimeImportStatus.value = OperationStatus.IDLE
       }, 3000)
     }
   }
@@ -557,6 +698,83 @@
           :disabled="jobTrackingStore.isAnyJobRunning"
           info-message="Scans Sonarr's internal database for series and imports any that are not yet in your Rattatarr library. Runs in the background — you will be notified when complete."
           @click="executeSonarrImport"
+        />
+      </SettingsCard>
+    </div>
+
+    <!-- Row 3: Anime Arr -->
+    <h3 class="subsection-title">Anime Arr Integrations</h3>
+    <div class="settings-grid">
+      <!-- Radarr Anime Movie Import -->
+      <SettingsCard
+        title="Radarr Anime Movie Import"
+        description="Import anime movies from your Radarr Anime instance into your library"
+      >
+        <SyncButton
+          label="Import from Radarr Anime"
+          :required-settings="[
+            { key: integrationKeys.radarrAnimeUrl, displayName: 'Radarr Anime URL' },
+            { key: integrationKeys.radarrAnimeKey, displayName: 'Radarr Anime API Key' },
+          ]"
+          :settings="savedSettings"
+          :status="radarrAnimeImportStatus"
+          :severity="radarrAnimeImportButtonProps.severity"
+          :icon="radarrAnimeImportButtonProps.icon"
+          :loading="
+            radarrAnimeImportButtonProps.loading || jobTrackingStore.isRadarrAnimeImportRunning
+          "
+          :disabled="jobTrackingStore.isAnyJobRunning"
+          info-message="Scans your Radarr Anime instance for anime movies and imports any that are not yet in your library. Runs in the background — you will be notified when complete."
+          @click="executeRadarrAnimeImport"
+        />
+      </SettingsCard>
+
+      <!-- Radarr Anime Ratings Refresh -->
+      <SettingsCard
+        title="Radarr Anime Ratings Refresh"
+        description="Fetch IMDb and Rotten Tomatoes ratings for anime movies via Radarr Anime"
+      >
+        <SyncButton
+          label="Refresh Anime Ratings"
+          :required-settings="[
+            { key: integrationKeys.radarrAnimeUrl, displayName: 'Radarr Anime URL' },
+            { key: integrationKeys.radarrAnimeKey, displayName: 'Radarr Anime API Key' },
+          ]"
+          :settings="savedSettings"
+          :status="radarrAnimeRatingsRefreshStatus"
+          :severity="radarrAnimeRatingsRefreshButtonProps.severity"
+          :icon="radarrAnimeRatingsRefreshButtonProps.icon"
+          :loading="
+            radarrAnimeRatingsRefreshButtonProps.loading ||
+            jobTrackingStore.isRadarrAnimeRatingsRefreshRunning
+          "
+          :disabled="jobTrackingStore.isAnyJobRunning"
+          info-message="Goes through all anime movies in your library and updates their IMDb and Rotten Tomatoes ratings using data from Radarr Anime. Runs in the background — you will be notified when complete."
+          @click="executeRadarrAnimeRatingsRefresh"
+        />
+      </SettingsCard>
+
+      <!-- Sonarr Anime Series Import -->
+      <SettingsCard
+        title="Sonarr Anime Series Import"
+        description="Import anime series from your Sonarr Anime instance into your library"
+      >
+        <SyncButton
+          label="Import from Sonarr Anime"
+          :required-settings="[
+            { key: integrationKeys.sonarrAnimeUrl, displayName: 'Sonarr Anime URL' },
+            { key: integrationKeys.sonarrAnimeKey, displayName: 'Sonarr Anime API Key' },
+          ]"
+          :settings="savedSettings"
+          :status="sonarrAnimeImportStatus"
+          :severity="sonarrAnimeImportButtonProps.severity"
+          :icon="sonarrAnimeImportButtonProps.icon"
+          :loading="
+            sonarrAnimeImportButtonProps.loading || jobTrackingStore.isSonarrAnimeImportRunning
+          "
+          :disabled="jobTrackingStore.isAnyJobRunning"
+          info-message="Scans your Sonarr Anime instance for anime series and imports any that are not yet in your library. Runs in the background — you will be notified when complete."
+          @click="executeSonarrAnimeImport"
         />
       </SettingsCard>
     </div>

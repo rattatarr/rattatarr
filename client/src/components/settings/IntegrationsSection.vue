@@ -4,8 +4,8 @@
   import { useToast } from '@/composables/useToast'
   import { useSettingsForm } from '@/composables/useSettingsForm'
   import { useJellyfinTest, useTMDbTest } from '@/queries'
-  import { useRadarrTest } from '@/queries/useRadarr'
-  import { useSonarrTest } from '@/queries/useSonarr'
+  import { useRadarrTest, useRadarrAnimeTest } from '@/queries/useRadarr'
+  import { useSonarrTest, useSonarrAnimeTest } from '@/queries/useSonarr'
 
   const toast = useToast()
   const { updateSetting, getSetting, saveSpecificSettings } = useSettingsForm()
@@ -13,7 +13,9 @@
   const jellyfinTest = useJellyfinTest()
   const tmdbTest = useTMDbTest()
   const radarrTest = useRadarrTest()
+  const radarrAnimeTest = useRadarrAnimeTest()
   const sonarrTest = useSonarrTest()
+  const sonarrAnimeTest = useSonarrAnimeTest()
 
   const integrationKeys = {
     jellyfinUrl: 'jellyfin.base_url',
@@ -21,8 +23,12 @@
     tmdbKey: 'tmdb.api_key',
     sonarrUrl: 'sonarr.base_url',
     sonarrKey: 'sonarr.api_key',
+    sonarrAnimeUrl: 'sonarr.anime.base_url',
+    sonarrAnimeKey: 'sonarr.anime.api_key',
     radarrUrl: 'radarr.base_url',
     radarrKey: 'radarr.api_key',
+    radarrAnimeUrl: 'radarr.anime.base_url',
+    radarrAnimeKey: 'radarr.anime.api_key',
     ollamaUrl: 'agents.ollama.base_url',
     ollamaModel: 'agents.ollama.model',
     ollamaApiKey: 'agents.ollama.api_key',
@@ -132,6 +138,58 @@
       return response || { status: '500', message: 'Unknown error' }
     },
   }
+
+  const radarrAnimeConnectionTest: ConnectionTestConfig = {
+    preSaveKeys: [integrationKeys.radarrAnimeUrl, integrationKeys.radarrAnimeKey],
+    saveSpecificSettings,
+    testFn: async () => {
+      await radarrAnimeTest.refetch()
+
+      const response = radarrAnimeTest.data?.value
+      const error = radarrAnimeTest.error?.value
+
+      if (error) {
+        toast.error('Failed to connect to Radarr Anime', error.message)
+        return { status: '500', message: error.message }
+      }
+
+      if (
+        response?.status?.includes('200') ||
+        (!response?.message?.toLowerCase().includes('failed') &&
+          !response?.message?.toLowerCase().includes('error'))
+      ) {
+        toast.success('Radarr Anime connected', 'Connection test successful')
+      }
+
+      return response || { status: '500', message: 'Unknown error' }
+    },
+  }
+
+  const sonarrAnimeConnectionTest: ConnectionTestConfig = {
+    preSaveKeys: [integrationKeys.sonarrAnimeUrl, integrationKeys.sonarrAnimeKey],
+    saveSpecificSettings,
+    testFn: async () => {
+      await sonarrAnimeTest.refetch()
+
+      const response = sonarrAnimeTest.data?.value
+      const error = sonarrAnimeTest.error?.value
+
+      if (error) {
+        toast.error('Failed to connect to Sonarr Anime', error.message)
+        return { status: '500', message: error.message }
+      }
+
+      if (
+        response?.status?.includes('200') ||
+        (!response?.message?.toLowerCase().includes('failed') &&
+          !response?.message?.toLowerCase().includes('error'))
+      ) {
+        toast.success('Sonarr Anime connected', 'Connection test successful')
+      }
+
+      return response || { status: '500', message: 'Unknown error' }
+    },
+  }
 </script>
 
 <template>
@@ -179,6 +237,52 @@
         />
       </SettingsCard>
 
+      <!-- Radarr -->
+      <SettingsCard
+        title="Radarr"
+        description="Connect to Radarr for movie management"
+        :connection-test="radarrConnectionTest"
+      >
+        <SettingUrlInput
+          :model-value="getSetting(integrationKeys.radarrUrl)"
+          label="Base URL"
+          :setting-key="integrationKeys.radarrUrl"
+          placeholder="localhost:7878"
+          @update:model-value="(v) => updateSetting(integrationKeys.radarrUrl, v)"
+        />
+        <SettingInput
+          :model-value="getSetting(integrationKeys.radarrKey)"
+          label="API Key"
+          :setting-key="integrationKeys.radarrKey"
+          type="password"
+          placeholder="Your Radarr API key"
+          @update:model-value="(v) => updateSetting(integrationKeys.radarrKey, v)"
+        />
+      </SettingsCard>
+
+      <!-- Radarr Anime -->
+      <SettingsCard
+        title="Radarr Anime"
+        description="Connect to a separate Radarr instance for anime movies"
+        :connection-test="radarrAnimeConnectionTest"
+      >
+        <SettingUrlInput
+          :model-value="getSetting(integrationKeys.radarrAnimeUrl)"
+          label="Base URL"
+          :setting-key="integrationKeys.radarrAnimeUrl"
+          placeholder="localhost:7878"
+          @update:model-value="(v) => updateSetting(integrationKeys.radarrAnimeUrl, v)"
+        />
+        <SettingInput
+          :model-value="getSetting(integrationKeys.radarrAnimeKey)"
+          label="API Key"
+          :setting-key="integrationKeys.radarrAnimeKey"
+          type="password"
+          placeholder="Your Radarr Anime API key"
+          @update:model-value="(v) => updateSetting(integrationKeys.radarrAnimeKey, v)"
+        />
+      </SettingsCard>
+
       <!-- Sonarr -->
       <SettingsCard
         title="Sonarr"
@@ -202,26 +306,26 @@
         />
       </SettingsCard>
 
-      <!-- Radarr -->
+      <!-- Sonarr Anime -->
       <SettingsCard
-        title="Radarr"
-        description="Connect to Radarr for movie management"
-        :connection-test="radarrConnectionTest"
+        title="Sonarr Anime"
+        description="Connect to a separate Sonarr instance for anime series"
+        :connection-test="sonarrAnimeConnectionTest"
       >
         <SettingUrlInput
-          :model-value="getSetting(integrationKeys.radarrUrl)"
+          :model-value="getSetting(integrationKeys.sonarrAnimeUrl)"
           label="Base URL"
-          :setting-key="integrationKeys.radarrUrl"
-          placeholder="localhost:7878"
-          @update:model-value="(v) => updateSetting(integrationKeys.radarrUrl, v)"
+          :setting-key="integrationKeys.sonarrAnimeUrl"
+          placeholder="localhost:8989"
+          @update:model-value="(v) => updateSetting(integrationKeys.sonarrAnimeUrl, v)"
         />
         <SettingInput
-          :model-value="getSetting(integrationKeys.radarrKey)"
+          :model-value="getSetting(integrationKeys.sonarrAnimeKey)"
           label="API Key"
-          :setting-key="integrationKeys.radarrKey"
+          :setting-key="integrationKeys.sonarrAnimeKey"
           type="password"
-          placeholder="Your Radarr API key"
-          @update:model-value="(v) => updateSetting(integrationKeys.radarrKey, v)"
+          placeholder="Your Sonarr Anime API key"
+          @update:model-value="(v) => updateSetting(integrationKeys.sonarrAnimeKey, v)"
         />
       </SettingsCard>
 

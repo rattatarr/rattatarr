@@ -6,7 +6,16 @@ import type { BackgroundJob, GenericResponse } from '@/types'
 export function useSonarrTest() {
   return useQuery<GenericResponse>({
     queryKey: sonarrKeys.test(),
-    queryFn: testSonarrConnection,
+    queryFn: () => testSonarrConnection('DEFAULT'),
+    enabled: false,
+    retry: false,
+  })
+}
+
+export function useSonarrAnimeTest() {
+  return useQuery<GenericResponse>({
+    queryKey: sonarrKeys.animeTest(),
+    queryFn: () => testSonarrConnection('ANIME'),
     enabled: false,
     retry: false,
   })
@@ -14,6 +23,12 @@ export function useSonarrTest() {
 
 export function useImportSonarrSeries() {
   return useMutation<BackgroundJob, Error>({
-    mutationFn: importSonarrSeries,
+    mutationFn: () => importSonarrSeries('DEFAULT'),
+  })
+}
+
+export function useImportSonarrAnimeSeries() {
+  return useMutation<BackgroundJob, Error>({
+    mutationFn: () => importSonarrSeries('ANIME'),
   })
 }

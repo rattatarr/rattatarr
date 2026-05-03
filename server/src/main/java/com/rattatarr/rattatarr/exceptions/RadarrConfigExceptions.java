@@ -1,5 +1,7 @@
 package com.rattatarr.rattatarr.exceptions;
 
+import com.rattatarr.rattatarr.models.ArrInstance;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 
 public class RadarrConfigExceptions extends BaseRattatarrExceptions {
@@ -8,8 +10,8 @@ public class RadarrConfigExceptions extends BaseRattatarrExceptions {
     }
 
     public static class RadarrIsNotConfiguredException extends RadarrConfigExceptions {
-        public RadarrIsNotConfiguredException(String baseUrl, String apiKey) {
-            super(String.format("Radarr is not properly configured. Base URL: '%s', API Key: '%s'", baseUrl, apiKey), HttpStatus.BAD_REQUEST);
+        public RadarrIsNotConfiguredException(ArrInstance instance, @Nullable String baseUrl, @Nullable String apiKey) {
+            super(String.format("Radarr (%s) is not properly configured. Base URL: '%s', API Key: '%s'", instance, baseUrl, apiKey), HttpStatus.BAD_REQUEST);
         }
     }
 }
