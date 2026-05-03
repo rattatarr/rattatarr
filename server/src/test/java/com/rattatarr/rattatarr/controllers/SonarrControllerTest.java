@@ -1,5 +1,6 @@
 package com.rattatarr.rattatarr.controllers;
 
+import com.rattatarr.rattatarr.models.ArrInstance;
 import com.rattatarr.rattatarr.models.JobStatus;
 import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.entities.BackgroundJob;
@@ -30,22 +31,22 @@ class SonarrControllerTest {
 
     @Test
     void testConnection_whenSuccessful_shouldReturnSuccess() {
-        when(sonarrService.testConnection()).thenReturn(true);
+        when(sonarrService.testConnection(ArrInstance.DEFAULT)).thenReturn(true);
 
-        var result = sonarrController.testConnection();
+        var result = sonarrController.testConnection(ArrInstance.DEFAULT);
 
         assertEquals(HttpStatus.OK, result.status());
-        verify(sonarrService).testConnection();
+        verify(sonarrService).testConnection(ArrInstance.DEFAULT);
     }
 
     @Test
     void testConnection_whenFailed_shouldReturnFailure() {
-        when(sonarrService.testConnection()).thenReturn(false);
+        when(sonarrService.testConnection(ArrInstance.DEFAULT)).thenReturn(false);
 
-        var result = sonarrController.testConnection();
+        var result = sonarrController.testConnection(ArrInstance.DEFAULT);
 
         assertEquals(HttpStatus.BAD_REQUEST, result.status());
-        verify(sonarrService).testConnection();
+        verify(sonarrService).testConnection(ArrInstance.DEFAULT);
     }
 
     @Test
@@ -53,12 +54,25 @@ class SonarrControllerTest {
         var job = new BackgroundJob(JobType.SONARR_IMPORT, null);
         when(backgroundJobService.create(eq(JobType.SONARR_IMPORT), eq(null))).thenReturn(job);
 
-        var result = sonarrController.importSeries();
+        var result = sonarrController.importSeries(ArrInstance.DEFAULT);
 
         assertNotNull(result);
         assertEquals(JobType.SONARR_IMPORT, result.type());
         assertEquals(JobStatus.PENDING, result.status());
         verify(backgroundJobService).create(JobType.SONARR_IMPORT, null);
-        verify(sonarrService).triggerBackgroundImport(job);
+        verify(sonarrService).triggerBackgroundImport(job, ArrInstance.DEFAULT);
+    }
+
+    @Test
+    void importSeries_anime_shouldCreateAnimeJobAndTriggerBackgroundImport() {
+        var job = new BackgroundJob(JobType.SONARR_ANIME_IMPORT, null);
+        when(backgroundJobService.create(eq(JobType.SONARR_ANIME_IMPORT), eq(null))).thenReturn(job);
+
+        var result = sonarrController.importSeries(ArrInstance.ANIME);
+
+        assertNotNull(result);
+        assertEquals(JobType.SONARR_ANIME_IMPORT, result.type());
+        verify(backgroundJobService).create(JobType.SONARR_ANIME_IMPORT, null);
+        verify(sonarrService).triggerBackgroundImport(job, ArrInstance.ANIME);
     }
 }

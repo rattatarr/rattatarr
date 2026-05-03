@@ -1,6 +1,7 @@
 package com.rattatarr.rattatarr.controllers;
 
 import com.rattatarr.rattatarr.configs.ApiVersion;
+import com.rattatarr.rattatarr.models.ArrInstance;
 import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.dtos.responses.BackgroundJobResponseDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.GenericResponseDTO;
@@ -24,9 +25,10 @@ public class SonarrController extends BaseController {
     }
 
     @GetMapping("/test")
-    public GenericResponseDTO testConnection() {
-        logger.info("Testing Sonarr connection");
-        boolean success = sonarrService.testConnection();
+    public GenericResponseDTO testConnection(
+            @RequestParam(defaultValue = "DEFAULT") ArrInstance instance) {
+        logger.info("Testing Sonarr ({}) connection", instance);
+        boolean success = sonarrService.testConnection(instance);
         if (!success)
             return GenericResponseDTO.failure("Sonarr connection failed");
         return GenericResponseDTO.success("Sonarr connection successful", null);
@@ -34,10 +36,12 @@ public class SonarrController extends BaseController {
 
     @PostMapping("/import")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public BackgroundJobResponseDTO importSeries() {
-        logger.info("Starting Sonarr series import");
-        var job = backgroundJobService.create(JobType.SONARR_IMPORT, null);
-        sonarrService.triggerBackgroundImport(job);
+    public BackgroundJobResponseDTO importSeries(
+            @RequestParam(defaultValue = "DEFAULT") ArrInstance instance) {
+        logger.info("Starting Sonarr ({}) series import", instance);
+        var jobType = instance == ArrInstance.ANIME ? JobType.SONARR_ANIME_IMPORT : JobType.SONARR_IMPORT;
+        var job = backgroundJobService.create(jobType, null);
+        sonarrService.triggerBackgroundImport(job, instance);
         return BackgroundJobResponseDTO.fromEntity(job);
     }
 }

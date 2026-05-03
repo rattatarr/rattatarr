@@ -1,16 +1,19 @@
 package com.rattatarr.rattatarr.services.schedulers;
 
+import com.rattatarr.rattatarr.models.ArrInstance;
 import com.rattatarr.rattatarr.services.RadarrService;
 import com.rattatarr.rattatarr.services.SettingsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Duration;
+
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -24,71 +27,87 @@ class RadarrImportSchedulerTest {
     @Mock
     private SettingsService settingsService;
 
-    @InjectMocks
     private RadarrImportScheduler scheduler;
 
     @BeforeEach
     void setUp() {
-        when(settingsService.getBooleanSetting(
-                eq(SettingsService.SYNC_RADARR_ENABLED), eq(false)
-        )).thenReturn(true);
+        scheduler = new RadarrImportScheduler(radarrService, settingsService, Duration.ZERO);
+        when(settingsService.getBooleanSetting(eq(SettingsService.SYNC_RADARR_ENABLED), eq(false))).thenReturn(true);
+        when(settingsService.getBooleanSetting(eq(SettingsService.SYNC_RADARR_ANIME_ENABLED), eq(false))).thenReturn(false);
     }
 
     @Test
-    void scheduledRadarrImport_shouldRunImportWhenEnabled() {
+    void scheduledRadarrImport_shouldRunDefaultImportWhenEnabled() {
         scheduler.scheduledRadarrImport();
 
         verify(settingsService).getBooleanSetting(eq(SettingsService.SYNC_RADARR_ENABLED), eq(false));
-        verify(radarrService).runImport();
+        verify(radarrService).runImport(ArrInstance.DEFAULT);
+        verify(radarrService, never()).runImport(ArrInstance.ANIME);
     }
 
     @Test
-    void scheduledRadarrImport_shouldSkipWhenDisabled() {
-        when(settingsService.getBooleanSetting(
-                eq(SettingsService.SYNC_RADARR_ENABLED), eq(false)
-        )).thenReturn(false);
+    void scheduledRadarrImport_shouldRunAnimeImportWhenEnabled() {
+        when(settingsService.getBooleanSetting(eq(SettingsService.SYNC_RADARR_ENABLED), eq(false))).thenReturn(false);
+        when(settingsService.getBooleanSetting(eq(SettingsService.SYNC_RADARR_ANIME_ENABLED), eq(false))).thenReturn(true);
 
         scheduler.scheduledRadarrImport();
 
-        verify(radarrService, never()).runImport();
+        verify(radarrService, never()).runImport(ArrInstance.DEFAULT);
+        verify(radarrService).runImport(ArrInstance.ANIME);
+    }
+
+    @Test
+    void scheduledRadarrImport_shouldRunBothWhenBothEnabled() {
+        when(settingsService.getBooleanSetting(eq(SettingsService.SYNC_RADARR_ANIME_ENABLED), eq(false))).thenReturn(true);
+
+        scheduler.scheduledRadarrImport();
+
+        verify(radarrService).runImport(ArrInstance.DEFAULT);
+        verify(radarrService).runImport(ArrInstance.ANIME);
+    }
+
+    @Test
+    void scheduledRadarrImport_shouldSkipWhenAllDisabled() {
+        when(settingsService.getBooleanSetting(eq(SettingsService.SYNC_RADARR_ENABLED), eq(false))).thenReturn(false);
+
+        scheduler.scheduledRadarrImport();
+
+        verify(radarrService, never()).runImport(any());
     }
 
     @Test
     void scheduledRadarrImport_shouldHandleImportError() {
-        doThrow(new RuntimeException("Radarr unreachable")).when(radarrService).runImport();
+        doThrow(new RuntimeException("Radarr unreachable")).when(radarrService).runImport(ArrInstance.DEFAULT);
 
-        // Should not propagate — caught internally
         scheduler.scheduledRadarrImport();
 
-        verify(radarrService).runImport();
+        verify(radarrService).runImport(ArrInstance.DEFAULT);
     }
 
     @Test
-    void scheduledRadarrRatingsRefresh_shouldRunRefreshWhenEnabled() {
+    void scheduledRadarrRatingsRefresh_shouldRunDefaultRefreshWhenEnabled() {
         scheduler.scheduledRadarrRatingsRefresh();
 
         verify(settingsService).getBooleanSetting(eq(SettingsService.SYNC_RADARR_ENABLED), eq(false));
-        verify(radarrService).runRatingsRefresh();
+        verify(radarrService).runRatingsRefresh(ArrInstance.DEFAULT);
+        verify(radarrService, never()).runRatingsRefresh(ArrInstance.ANIME);
     }
 
     @Test
     void scheduledRadarrRatingsRefresh_shouldSkipWhenDisabled() {
-        when(settingsService.getBooleanSetting(
-                eq(SettingsService.SYNC_RADARR_ENABLED), eq(false)
-        )).thenReturn(false);
+        when(settingsService.getBooleanSetting(eq(SettingsService.SYNC_RADARR_ENABLED), eq(false))).thenReturn(false);
 
         scheduler.scheduledRadarrRatingsRefresh();
 
-        verify(radarrService, never()).runRatingsRefresh();
+        verify(radarrService, never()).runRatingsRefresh(any());
     }
 
     @Test
     void scheduledRadarrRatingsRefresh_shouldHandleRefreshError() {
-        doThrow(new RuntimeException("Radarr unreachable")).when(radarrService).runRatingsRefresh();
+        doThrow(new RuntimeException("Radarr unreachable")).when(radarrService).runRatingsRefresh(ArrInstance.DEFAULT);
 
-        // Should not propagate — caught internally
         scheduler.scheduledRadarrRatingsRefresh();
 
-        verify(radarrService).runRatingsRefresh();
+        verify(radarrService).runRatingsRefresh(ArrInstance.DEFAULT);
     }
 }

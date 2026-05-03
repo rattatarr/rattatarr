@@ -6,7 +6,16 @@ import type { BackgroundJob, GenericResponse } from '@/types'
 export function useRadarrTest() {
   return useQuery<GenericResponse>({
     queryKey: radarrKeys.test(),
-    queryFn: testRadarrConnection,
+    queryFn: () => testRadarrConnection('DEFAULT'),
+    enabled: false,
+    retry: false,
+  })
+}
+
+export function useRadarrAnimeTest() {
+  return useQuery<GenericResponse>({
+    queryKey: radarrKeys.animeTest(),
+    queryFn: () => testRadarrConnection('ANIME'),
     enabled: false,
     retry: false,
   })
@@ -14,12 +23,24 @@ export function useRadarrTest() {
 
 export function useImportRadarrMovies() {
   return useMutation<BackgroundJob, Error>({
-    mutationFn: importRadarrMovies,
+    mutationFn: () => importRadarrMovies('DEFAULT'),
+  })
+}
+
+export function useImportRadarrAnimeMovies() {
+  return useMutation<BackgroundJob, Error>({
+    mutationFn: () => importRadarrMovies('ANIME'),
   })
 }
 
 export function useRefreshRadarrRatings() {
   return useMutation<BackgroundJob, Error>({
-    mutationFn: refreshRadarrRatings,
+    mutationFn: () => refreshRadarrRatings('DEFAULT'),
+  })
+}
+
+export function useRefreshRadarrAnimeRatings() {
+  return useMutation<BackgroundJob, Error>({
+    mutationFn: () => refreshRadarrRatings('ANIME'),
   })
 }

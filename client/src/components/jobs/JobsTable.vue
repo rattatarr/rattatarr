@@ -20,12 +20,22 @@
     switch (type) {
       case JOB_TYPE.JELLYFIN_SYNC:
         return 'Jellyfin Sync'
+      case JOB_TYPE.JELLYFIN_ACTIVITY_POLL:
+        return 'Jellyfin Activity Poll'
       case JOB_TYPE.CSV_IMPORT:
         return 'CSV Import'
       case JOB_TYPE.RADARR_IMPORT:
         return 'Radarr Import'
       case JOB_TYPE.RADARR_RATINGS_REFRESH:
         return 'Radarr Ratings Refresh'
+      case JOB_TYPE.RADARR_ANIME_IMPORT:
+        return 'Radarr Anime Import'
+      case JOB_TYPE.RADARR_ANIME_RATINGS_REFRESH:
+        return 'Radarr Anime Ratings Refresh'
+      case JOB_TYPE.SONARR_IMPORT:
+        return 'Sonarr Import'
+      case JOB_TYPE.SONARR_ANIME_IMPORT:
+        return 'Sonarr Anime Import'
       default:
         return type ?? '—'
     }

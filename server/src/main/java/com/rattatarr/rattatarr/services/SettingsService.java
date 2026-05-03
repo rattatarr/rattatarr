@@ -33,10 +33,16 @@ public class SettingsService extends BaseService<Setting, SettingsRepository> {
     public static final String RADARR_BASE_URL = "radarr.base_url";
     public static final String RADARR_API_KEY = "radarr.api_key";
     public static final String SYNC_RADARR_ENABLED = "sync.radarr_enabled";
+    public static final String RADARR_ANIME_BASE_URL = "radarr.anime.base_url";
+    public static final String RADARR_ANIME_API_KEY = "radarr.anime.api_key";
+    public static final String SYNC_RADARR_ANIME_ENABLED = "sync.radarr.anime.enabled";
 
     public static final String SONARR_BASE_URL = "sonarr.base_url";
     public static final String SONARR_API_KEY = "sonarr.api_key";
     public static final String SYNC_SONARR_ENABLED = "sync.sonarr_enabled";
+    public static final String SONARR_ANIME_BASE_URL = "sonarr.anime.base_url";
+    public static final String SONARR_ANIME_API_KEY = "sonarr.anime.api_key";
+    public static final String SYNC_SONARR_ANIME_ENABLED = "sync.sonarr.anime.enabled";
 
     public static final String AGENTS_OLLAMA_BASE_URL = "agents.ollama.base_url";
     public static final String AGENTS_OLLAMA_API_KEY = "agents.ollama.api_key";
@@ -88,11 +94,17 @@ public class SettingsService extends BaseService<Setting, SettingsRepository> {
         createSettingIfNotExists(RADARR_BASE_URL, null, "Radarr server base URL (e.g. http://radarr:7878)");
         createSettingIfNotExists(RADARR_API_KEY, null, "Radarr API key");
         createSettingIfNotExists(SYNC_RADARR_ENABLED, "true", "Enable scheduled Radarr import synchronization");
+        createSettingIfNotExists(RADARR_ANIME_BASE_URL, null, "Radarr Anime server base URL (e.g. http://radarr-anime:7878)");
+        createSettingIfNotExists(RADARR_ANIME_API_KEY, null, "Radarr Anime API key");
+        createSettingIfNotExists(SYNC_RADARR_ANIME_ENABLED, "false", "Enable scheduled Radarr Anime import synchronization");
 
         // Sonarr settings
         createSettingIfNotExists(SONARR_BASE_URL, null, "Sonarr server base URL (e.g. http://sonarr:8989)");
         createSettingIfNotExists(SONARR_API_KEY, null, "Sonarr API key");
         createSettingIfNotExists(SYNC_SONARR_ENABLED, "true", "Enable scheduled Sonarr import synchronization");
+        createSettingIfNotExists(SONARR_ANIME_BASE_URL, null, "Sonarr Anime server base URL (e.g. http://sonarr-anime:8989)");
+        createSettingIfNotExists(SONARR_ANIME_API_KEY, null, "Sonarr Anime API key");
+        createSettingIfNotExists(SYNC_SONARR_ANIME_ENABLED, "false", "Enable scheduled Sonarr Anime import synchronization");
 
         // Ollama agent settings
         createSettingIfNotExists(AGENTS_OLLAMA_BASE_URL, null, "Ollama base URL (e.g. http://localhost:11434)");

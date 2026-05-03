@@ -955,7 +955,10 @@ export interface components {
         | 'CSV_IMPORT'
         | 'RADARR_IMPORT'
         | 'RADARR_RATINGS_REFRESH'
+        | 'RADARR_ANIME_IMPORT'
+        | 'RADARR_ANIME_RATINGS_REFRESH'
         | 'SONARR_IMPORT'
+        | 'SONARR_ANIME_IMPORT'
       /** @enum {string} */
       status?: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
       message?: string
@@ -1917,7 +1920,9 @@ export interface operations {
   }
   importSeries: {
     parameters: {
-      query?: never
+      query?: {
+        instance?: 'DEFAULT' | 'ANIME'
+      }
       header?: never
       path?: never
       cookie?: never
@@ -1966,7 +1971,9 @@ export interface operations {
   }
   refreshRatings: {
     parameters: {
-      query?: never
+      query?: {
+        instance?: 'DEFAULT' | 'ANIME'
+      }
       header?: never
       path?: never
       cookie?: never
@@ -1986,7 +1993,9 @@ export interface operations {
   }
   importMovies: {
     parameters: {
-      query?: never
+      query?: {
+        instance?: 'DEFAULT' | 'ANIME'
+      }
       header?: never
       path?: never
       cookie?: never
@@ -2320,7 +2329,9 @@ export interface operations {
   }
   testConnection_1: {
     parameters: {
-      query?: never
+      query?: {
+        instance?: 'DEFAULT' | 'ANIME'
+      }
       header?: never
       path?: never
       cookie?: never
@@ -2384,7 +2395,9 @@ export interface operations {
   }
   testConnection_2: {
     parameters: {
-      query?: never
+      query?: {
+        instance?: 'DEFAULT' | 'ANIME'
+      }
       header?: never
       path?: never
       cookie?: never
@@ -2406,6 +2419,7 @@ export interface operations {
     parameters: {
       query: {
         tmdbId: number
+        instance?: 'DEFAULT' | 'ANIME'
       }
       header?: never
       path?: never
@@ -2764,7 +2778,10 @@ export interface operations {
           | 'CSV_IMPORT'
           | 'RADARR_IMPORT'
           | 'RADARR_RATINGS_REFRESH'
+          | 'RADARR_ANIME_IMPORT'
+          | 'RADARR_ANIME_RATINGS_REFRESH'
           | 'SONARR_IMPORT'
+          | 'SONARR_ANIME_IMPORT'
         /** @description Filter by job status (PENDING, RUNNING, COMPLETED, FAILED) */
         status?: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
         /**

@@ -5,6 +5,7 @@ import com.rattatarr.rattatarr.clients.radarr.responses.RadarrInternalMovieRespo
 import com.rattatarr.rattatarr.clients.radarr.responses.RadarrMovieLookupResponseDTO;
 import com.rattatarr.rattatarr.clients.radarr.responses.RadarrRatingEntry;
 import com.rattatarr.rattatarr.clients.radarr.responses.RadarrRatings;
+import com.rattatarr.rattatarr.models.ArrInstance;
 import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.entities.BackgroundJob;
@@ -12,7 +13,6 @@ import com.rattatarr.rattatarr.models.entities.MediaItem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -30,7 +30,10 @@ import static org.mockito.Mockito.*;
 class RadarrServiceTest {
 
     @Mock
-    private RadarrClient radarrClient;
+    private RadarrClient defaultClient;
+
+    @Mock
+    private RadarrClient animeClient;
 
     @Mock
     private TMDbService tmDbService;
@@ -47,24 +50,27 @@ class RadarrServiceTest {
     @Mock
     private Executor tmdbApiExecutor;
 
-    @InjectMocks
     private RadarrService radarrService;
 
     private MediaItem movieItem;
     private UUID movieId;
 
-    // Internal DTOs — used for getMovies / importAllMovies paths
     private RadarrInternalMovieResponseDTO radarrMovieWithRatings;
     private RadarrInternalMovieResponseDTO radarrMovieNoRatings;
     private RadarrInternalMovieResponseDTO radarrMovieNoTmdbId;
 
-    // Lookup DTOs — used for lookupByTmdbId / enrichMovieFromRadarrIfStale paths
     private RadarrMovieLookupResponseDTO radarrLookupWithRatings;
     private RadarrMovieLookupResponseDTO radarrLookupNoRatings;
     private RadarrMovieLookupResponseDTO radarrLookupNoTmdbId;
 
     @BeforeEach
     void setUp() {
+        radarrService = new RadarrService(
+                defaultClient, animeClient,
+                tmDbService, mediaItemMetadataService, mediaItemsService,
+                backgroundJobService, tmdbApiExecutor
+        );
+
         movieId = UUID.randomUUID();
         movieItem = new MediaItem(
                 MediaType.MOVIE, "Inception", null, "27205", "tt1375666",
@@ -108,22 +114,20 @@ class RadarrServiceTest {
 
     @Test
     void enrichMovieFromRadarrIfStale_whenRadarrNotConfigured_shouldSkip() {
-        when(radarrClient.isConfigured()).thenReturn(false);
+        when(defaultClient.isConfigured()).thenReturn(false);
 
         radarrService.enrichMovieFromRadarrIfStale(movieId);
 
         verify(mediaItemsService, never()).findById(any());
-        verify(radarrClient, never()).getMonitoredInternalMovies(any());
     }
 
     @Test
     void enrichMovieFromRadarrIfStale_whenMovieNotFound_shouldSkip() {
-        when(radarrClient.isConfigured()).thenReturn(true);
+        when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findById(movieId)).thenReturn(Optional.empty());
 
         radarrService.enrichMovieFromRadarrIfStale(movieId);
 
-        verify(radarrClient, never()).getMonitoredInternalMovies(any());
         verify(mediaItemMetadataService, never()).updateExternalRatings(any(), any(), any());
     }
 
@@ -133,50 +137,44 @@ class RadarrServiceTest {
                 MediaType.MOVIE, "No TMDb Movie", null, null, null,
                 2020, 90, Set.of(), Set.of(), Set.of(), Set.of()
         );
-        when(radarrClient.isConfigured()).thenReturn(true);
+        when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findById(movieId)).thenReturn(Optional.of(noTmdbItem));
 
         radarrService.enrichMovieFromRadarrIfStale(movieId);
 
-        verify(radarrClient, never()).getMonitoredInternalMovies(any());
         verify(mediaItemMetadataService, never()).updateExternalRatings(any(), any(), any());
     }
 
     @Test
     void enrichMovieFromRadarrIfStale_whenRatingIsFresh_shouldSkip() {
-        when(radarrClient.isConfigured()).thenReturn(true);
+        when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findById(movieId)).thenReturn(Optional.of(movieItem));
         when(mediaItemMetadataService.isRatingFresh(movieId)).thenReturn(true);
 
         radarrService.enrichMovieFromRadarrIfStale(movieId);
 
-        verify(radarrClient, never()).getMonitoredInternalMovies(any());
         verify(mediaItemMetadataService, never()).updateExternalRatings(any(), any(), any());
     }
 
     @Test
     void enrichMovieFromRadarrIfStale_whenNoRatings_shouldFetchAndUpdate() {
-        when(radarrClient.isConfigured()).thenReturn(true);
+        when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findById(movieId)).thenReturn(Optional.of(movieItem));
         when(mediaItemMetadataService.isRatingFresh(movieId)).thenReturn(false);
-        when(radarrClient.lookupByTmdbId(27205)).thenReturn(radarrLookupWithRatings);
+        when(defaultClient.lookupByTmdbId(27205)).thenReturn(radarrLookupWithRatings);
 
         radarrService.enrichMovieFromRadarrIfStale(movieId);
 
-        verify(radarrClient).lookupByTmdbId(27205);
-        verify(mediaItemMetadataService).updateExternalRatings(
-                eq(movieItem),
-                eq(8.8f),
-                eq(87)
-        );
+        verify(defaultClient).lookupByTmdbId(27205);
+        verify(mediaItemMetadataService).updateExternalRatings(eq(movieItem), eq(8.8f), eq(87));
     }
 
     @Test
     void enrichMovieFromRadarrIfStale_whenRatingStale_shouldRefetch() {
-        when(radarrClient.isConfigured()).thenReturn(true);
+        when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findById(movieId)).thenReturn(Optional.of(movieItem));
         when(mediaItemMetadataService.isRatingFresh(movieId)).thenReturn(false);
-        when(radarrClient.lookupByTmdbId(27205)).thenReturn(radarrLookupWithRatings);
+        when(defaultClient.lookupByTmdbId(27205)).thenReturn(radarrLookupWithRatings);
 
         radarrService.enrichMovieFromRadarrIfStale(movieId);
 
@@ -185,10 +183,10 @@ class RadarrServiceTest {
 
     @Test
     void enrichMovieFromRadarrIfStale_whenRadarrMovieNotFound_shouldSkipUpdate() {
-        when(radarrClient.isConfigured()).thenReturn(true);
+        when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findById(movieId)).thenReturn(Optional.of(movieItem));
         when(mediaItemMetadataService.isRatingFresh(movieId)).thenReturn(false);
-        when(radarrClient.lookupByTmdbId(27205)).thenThrow(new RuntimeException("404 Not Found"));
+        when(defaultClient.lookupByTmdbId(27205)).thenThrow(new RuntimeException("404 Not Found"));
 
         radarrService.enrichMovieFromRadarrIfStale(movieId);
 
@@ -197,10 +195,10 @@ class RadarrServiceTest {
 
     @Test
     void enrichMovieFromRadarrIfStale_whenRadarrMovieHasNoTmdbId_shouldSkipUpdate() {
-        when(radarrClient.isConfigured()).thenReturn(true);
+        when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findById(movieId)).thenReturn(Optional.of(movieItem));
         when(mediaItemMetadataService.isRatingFresh(movieId)).thenReturn(false);
-        when(radarrClient.lookupByTmdbId(27205)).thenReturn(radarrLookupNoTmdbId);
+        when(defaultClient.lookupByTmdbId(27205)).thenReturn(radarrLookupNoTmdbId);
 
         radarrService.enrichMovieFromRadarrIfStale(movieId);
 
@@ -209,10 +207,10 @@ class RadarrServiceTest {
 
     @Test
     void enrichMovieFromRadarrIfStale_whenRadarrThrows_shouldNotPropagate() {
-        when(radarrClient.isConfigured()).thenReturn(true);
+        when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findById(movieId)).thenReturn(Optional.of(movieItem));
         when(mediaItemMetadataService.isRatingFresh(movieId)).thenReturn(false);
-        when(radarrClient.lookupByTmdbId(27205)).thenThrow(new RuntimeException("Radarr unreachable"));
+        when(defaultClient.lookupByTmdbId(27205)).thenThrow(new RuntimeException("Radarr unreachable"));
 
         radarrService.enrichMovieFromRadarrIfStale(movieId);
 
@@ -225,10 +223,10 @@ class RadarrServiceTest {
                 MediaType.MOVIE, "Unknown Movie", null, "99999", null,
                 2020, 90, Set.of(), Set.of(), Set.of(), Set.of()
         );
-        when(radarrClient.isConfigured()).thenReturn(true);
+        when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findById(movieId)).thenReturn(Optional.of(itemWithOtherTmdbId));
         when(mediaItemMetadataService.isRatingFresh(movieId)).thenReturn(false);
-        when(radarrClient.lookupByTmdbId(99999)).thenReturn(radarrLookupNoRatings);
+        when(defaultClient.lookupByTmdbId(99999)).thenReturn(radarrLookupNoRatings);
 
         radarrService.enrichMovieFromRadarrIfStale(movieId);
 
@@ -244,11 +242,7 @@ class RadarrServiceTest {
         radarrService.importAllMovies(List.of(radarrMovieWithRatings));
 
         verify(tmDbService).importMediaItem("27205", MediaType.MOVIE);
-        verify(mediaItemMetadataService).updateExternalRatings(
-                eq(movieItem),
-                eq(8.8f),
-                eq(87)
-        );
+        verify(mediaItemMetadataService).updateExternalRatings(eq(movieItem), eq(8.8f), eq(87));
     }
 
     @Test
@@ -281,11 +275,11 @@ class RadarrServiceTest {
     @Test
     void triggerBackgroundImport_onSuccess_shouldMarkCompleted() {
         BackgroundJob job = new BackgroundJob(JobType.RADARR_IMPORT, null);
-        when(radarrClient.isConfigured()).thenReturn(true);
-        when(radarrClient.getMonitoredInternalMovies(null)).thenReturn(List.of(radarrMovieWithRatings));
+        when(defaultClient.isConfigured()).thenReturn(true);
+        when(defaultClient.getMonitoredInternalMovies(null)).thenReturn(List.of(radarrMovieWithRatings));
         when(tmDbService.importMediaItem("27205", MediaType.MOVIE)).thenReturn(movieItem);
 
-        radarrService.triggerBackgroundImport(job);
+        radarrService.triggerBackgroundImport(job, ArrInstance.DEFAULT);
 
         verify(backgroundJobService).markRunning(job);
         verify(backgroundJobService).markCompleted(eq(job), anyString());
@@ -295,10 +289,10 @@ class RadarrServiceTest {
     @Test
     void triggerBackgroundImport_onFailure_shouldMarkFailed() {
         BackgroundJob job = new BackgroundJob(JobType.RADARR_IMPORT, null);
-        when(radarrClient.isConfigured()).thenReturn(true);
-        when(radarrClient.getMonitoredInternalMovies(null)).thenThrow(new RuntimeException("Connection refused"));
+        when(defaultClient.isConfigured()).thenReturn(true);
+        when(defaultClient.getMonitoredInternalMovies(null)).thenThrow(new RuntimeException("Connection refused"));
 
-        radarrService.triggerBackgroundImport(job);
+        radarrService.triggerBackgroundImport(job, ArrInstance.DEFAULT);
 
         verify(backgroundJobService).markRunning(job);
         verify(backgroundJobService).markFailed(eq(job), anyString());
@@ -309,22 +303,22 @@ class RadarrServiceTest {
 
     @Test
     void runImport_whenNotConfigured_shouldSkip() {
-        when(radarrClient.isConfigured()).thenReturn(false);
+        when(defaultClient.isConfigured()).thenReturn(false);
 
-        radarrService.runImport();
+        radarrService.runImport(ArrInstance.DEFAULT);
 
-        verify(radarrClient, never()).getMonitoredInternalMovies(any());
+        verify(defaultClient, never()).getMonitoredInternalMovies(any());
     }
 
     @Test
     void runImport_whenConfigured_shouldFetchAndImport() {
-        when(radarrClient.isConfigured()).thenReturn(true);
-        when(radarrClient.getMonitoredInternalMovies(null)).thenReturn(List.of(radarrMovieWithRatings));
+        when(defaultClient.isConfigured()).thenReturn(true);
+        when(defaultClient.getMonitoredInternalMovies(null)).thenReturn(List.of(radarrMovieWithRatings));
         when(tmDbService.importMediaItem("27205", MediaType.MOVIE)).thenReturn(movieItem);
 
-        radarrService.runImport();
+        radarrService.runImport(ArrInstance.DEFAULT);
 
-        verify(radarrClient).getMonitoredInternalMovies(null);
+        verify(defaultClient).getMonitoredInternalMovies(null);
         verify(tmDbService).importMediaItem("27205", MediaType.MOVIE);
     }
 
@@ -332,24 +326,24 @@ class RadarrServiceTest {
 
     @Test
     void runRatingsRefresh_whenNotConfigured_shouldSkip() {
-        when(radarrClient.isConfigured()).thenReturn(false);
+        when(defaultClient.isConfigured()).thenReturn(false);
 
-        radarrService.runRatingsRefresh();
+        radarrService.runRatingsRefresh(ArrInstance.DEFAULT);
 
         verify(mediaItemsService, never()).findAllMoviesWithTmdbId();
-        verify(radarrClient, never()).lookupByTmdbId(anyInt());
+        verify(defaultClient, never()).lookupByTmdbId(anyInt());
     }
 
     @Test
     void runRatingsRefresh_whenConfigured_shouldEnrichAllMovies() {
-        when(radarrClient.isConfigured()).thenReturn(true);
+        when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findAllMoviesWithTmdbId()).thenReturn(List.of(movieItem));
-        when(radarrClient.lookupByTmdbId(27205)).thenReturn(radarrLookupWithRatings);
+        when(defaultClient.lookupByTmdbId(27205)).thenReturn(radarrLookupWithRatings);
 
-        radarrService.runRatingsRefresh();
+        radarrService.runRatingsRefresh(ArrInstance.DEFAULT);
 
         verify(mediaItemsService).findAllMoviesWithTmdbId();
-        verify(radarrClient).lookupByTmdbId(27205);
+        verify(defaultClient).lookupByTmdbId(27205);
         verify(mediaItemMetadataService).updateExternalRatings(eq(movieItem), anyFloat(), anyInt());
     }
 
@@ -360,9 +354,9 @@ class RadarrServiceTest {
         when(mediaItemsService.findAllMoviesWithTmdbId()).thenReturn(List.of(movieItem));
         when(mediaItemMetadataService.isRatingFresh(any())).thenReturn(true);
 
-        radarrService.enrichAllMoviesWithRadarrRatings();
+        radarrService.enrichAllMoviesWithRadarrRatings(ArrInstance.DEFAULT);
 
-        verify(radarrClient, never()).lookupByTmdbId(anyInt());
+        verify(defaultClient, never()).lookupByTmdbId(anyInt());
         verify(mediaItemMetadataService, never()).updateExternalRatings(any(), any(), any());
     }
 
@@ -370,11 +364,11 @@ class RadarrServiceTest {
     void enrichAllMoviesWithRadarrRatings_withStaleRating_shouldLookupAndApply() {
         when(mediaItemsService.findAllMoviesWithTmdbId()).thenReturn(List.of(movieItem));
         when(mediaItemMetadataService.isRatingFresh(any())).thenReturn(false);
-        when(radarrClient.lookupByTmdbId(27205)).thenReturn(radarrLookupWithRatings);
+        when(defaultClient.lookupByTmdbId(27205)).thenReturn(radarrLookupWithRatings);
 
-        radarrService.enrichAllMoviesWithRadarrRatings();
+        radarrService.enrichAllMoviesWithRadarrRatings(ArrInstance.DEFAULT);
 
-        verify(radarrClient).lookupByTmdbId(27205);
+        verify(defaultClient).lookupByTmdbId(27205);
         verify(mediaItemMetadataService).updateExternalRatings(eq(movieItem), eq(8.8f), eq(87));
     }
 
@@ -382,9 +376,9 @@ class RadarrServiceTest {
     void enrichAllMoviesWithRadarrRatings_whenLookupFails_shouldSkipAndContinue() {
         when(mediaItemsService.findAllMoviesWithTmdbId()).thenReturn(List.of(movieItem));
         when(mediaItemMetadataService.isRatingFresh(any())).thenReturn(false);
-        when(radarrClient.lookupByTmdbId(27205)).thenThrow(new RuntimeException("Radarr unreachable"));
+        when(defaultClient.lookupByTmdbId(27205)).thenThrow(new RuntimeException("Radarr unreachable"));
 
-        radarrService.enrichAllMoviesWithRadarrRatings();
+        radarrService.enrichAllMoviesWithRadarrRatings(ArrInstance.DEFAULT);
 
         verify(mediaItemMetadataService, never()).updateExternalRatings(any(), any(), any());
     }
@@ -393,9 +387,9 @@ class RadarrServiceTest {
     void enrichAllMoviesWithRadarrRatings_whenLookupReturnsNoTmdbId_shouldSkip() {
         when(mediaItemsService.findAllMoviesWithTmdbId()).thenReturn(List.of(movieItem));
         when(mediaItemMetadataService.isRatingFresh(any())).thenReturn(false);
-        when(radarrClient.lookupByTmdbId(27205)).thenReturn(radarrLookupNoTmdbId);
+        when(defaultClient.lookupByTmdbId(27205)).thenReturn(radarrLookupNoTmdbId);
 
-        radarrService.enrichAllMoviesWithRadarrRatings();
+        radarrService.enrichAllMoviesWithRadarrRatings(ArrInstance.DEFAULT);
 
         verify(mediaItemMetadataService, never()).updateExternalRatings(any(), any(), any());
     }
@@ -404,9 +398,9 @@ class RadarrServiceTest {
     void enrichAllMoviesWithRadarrRatings_withEmptyMovieList_shouldNotProcess() {
         when(mediaItemsService.findAllMoviesWithTmdbId()).thenReturn(List.of());
 
-        radarrService.enrichAllMoviesWithRadarrRatings();
+        radarrService.enrichAllMoviesWithRadarrRatings(ArrInstance.DEFAULT);
 
-        verify(radarrClient, never()).lookupByTmdbId(anyInt());
+        verify(defaultClient, never()).lookupByTmdbId(anyInt());
         verify(mediaItemMetadataService, never()).updateExternalRatings(any(), any(), any());
     }
 
@@ -415,10 +409,10 @@ class RadarrServiceTest {
     @Test
     void triggerBackgroundRatingsRefresh_onSuccess_shouldMarkCompleted() {
         BackgroundJob job = new BackgroundJob(JobType.RADARR_RATINGS_REFRESH, null);
-        when(radarrClient.isConfigured()).thenReturn(true);
+        when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findAllMoviesWithTmdbId()).thenReturn(List.of());
 
-        radarrService.triggerBackgroundRatingsRefresh(job);
+        radarrService.triggerBackgroundRatingsRefresh(job, ArrInstance.DEFAULT);
 
         verify(backgroundJobService).markRunning(job);
         verify(backgroundJobService).markCompleted(eq(job), anyString());
@@ -428,10 +422,10 @@ class RadarrServiceTest {
     @Test
     void triggerBackgroundRatingsRefresh_onFailure_shouldMarkFailed() {
         BackgroundJob job = new BackgroundJob(JobType.RADARR_RATINGS_REFRESH, null);
-        when(radarrClient.isConfigured()).thenReturn(true);
+        when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findAllMoviesWithTmdbId()).thenThrow(new RuntimeException("DB error"));
 
-        radarrService.triggerBackgroundRatingsRefresh(job);
+        radarrService.triggerBackgroundRatingsRefresh(job, ArrInstance.DEFAULT);
 
         verify(backgroundJobService).markRunning(job);
         verify(backgroundJobService).markFailed(eq(job), anyString());

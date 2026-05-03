@@ -125,7 +125,8 @@ export const jellyfinKeys = {
  */
 export const radarrKeys = {
   all: ['radarr'] as const,
-  test: () => [...radarrKeys.all, 'test'] as const,
+  test: () => [...radarrKeys.all, 'test', 'default'] as const,
+  animeTest: () => [...radarrKeys.all, 'test', 'anime'] as const,
 }
 
 /**
@@ -133,7 +134,8 @@ export const radarrKeys = {
  */
 export const sonarrKeys = {
   all: ['sonarr'] as const,
-  test: () => [...sonarrKeys.all, 'test'] as const,
+  test: () => [...sonarrKeys.all, 'test', 'default'] as const,
+  animeTest: () => [...sonarrKeys.all, 'test', 'anime'] as const,
 }
 
 /**
