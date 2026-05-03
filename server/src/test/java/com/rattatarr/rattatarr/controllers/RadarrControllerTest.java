@@ -1,6 +1,7 @@
 package com.rattatarr.rattatarr.controllers;
 
 import com.rattatarr.rattatarr.clients.radarr.responses.RadarrMovieLookupResponseDTO;
+import com.rattatarr.rattatarr.models.ArrInstance;
 import com.rattatarr.rattatarr.models.JobStatus;
 import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.dtos.responses.BackgroundJobResponseDTO;
@@ -13,8 +14,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,37 +34,37 @@ class RadarrControllerTest {
 
     @Test
     void testConnection_whenSuccessful_shouldReturnSuccess() {
-        when(radarrService.testConnection()).thenReturn(true);
+        when(radarrService.testConnection(ArrInstance.DEFAULT)).thenReturn(true);
 
-        var result = radarrController.testConnection();
+        var result = radarrController.testConnection(ArrInstance.DEFAULT);
 
         assertEquals(HttpStatus.OK, result.status());
-        verify(radarrService).testConnection();
+        verify(radarrService).testConnection(ArrInstance.DEFAULT);
     }
 
     @Test
     void testConnection_whenFailed_shouldReturnFailure() {
-        when(radarrService.testConnection()).thenReturn(false);
+        when(radarrService.testConnection(ArrInstance.DEFAULT)).thenReturn(false);
 
-        var result = radarrController.testConnection();
+        var result = radarrController.testConnection(ArrInstance.DEFAULT);
 
         assertEquals(HttpStatus.BAD_REQUEST, result.status());
-        verify(radarrService).testConnection();
+        verify(radarrService).testConnection(ArrInstance.DEFAULT);
     }
 
     @Test
     void lookupMovieByTmdbId_shouldReturnLookupResult() {
         var dto = new RadarrMovieLookupResponseDTO("Inception", 2010, 27205, "tt1375666", true, null);
-        when(radarrService.lookupByTmdbId(27205)).thenReturn(dto);
+        when(radarrService.lookupByTmdbId(27205, ArrInstance.DEFAULT)).thenReturn(dto);
 
-        var response = radarrController.lookupMovieByTmdbId(27205);
+        var response = radarrController.lookupMovieByTmdbId(27205, ArrInstance.DEFAULT);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         var body = response.getBody();
         assertNotNull(body);
         assertEquals("Inception", body.title());
         assertEquals(27205, body.tmdbId());
-        verify(radarrService).lookupByTmdbId(27205);
+        verify(radarrService).lookupByTmdbId(27205, ArrInstance.DEFAULT);
     }
 
     @Test
@@ -73,13 +72,26 @@ class RadarrControllerTest {
         var job = new BackgroundJob(JobType.RADARR_IMPORT, null);
         when(backgroundJobService.create(eq(JobType.RADARR_IMPORT), eq(null))).thenReturn(job);
 
-        var result = radarrController.importMovies();
+        var result = radarrController.importMovies(ArrInstance.DEFAULT);
 
         assertNotNull(result);
         assertEquals(JobType.RADARR_IMPORT, result.type());
         assertEquals(JobStatus.PENDING, result.status());
         verify(backgroundJobService).create(JobType.RADARR_IMPORT, null);
-        verify(radarrService).triggerBackgroundImport(job);
+        verify(radarrService).triggerBackgroundImport(job, ArrInstance.DEFAULT);
+    }
+
+    @Test
+    void importMovies_anime_shouldCreateAnimeJobAndTriggerBackgroundImport() {
+        var job = new BackgroundJob(JobType.RADARR_ANIME_IMPORT, null);
+        when(backgroundJobService.create(eq(JobType.RADARR_ANIME_IMPORT), eq(null))).thenReturn(job);
+
+        var result = radarrController.importMovies(ArrInstance.ANIME);
+
+        assertNotNull(result);
+        assertEquals(JobType.RADARR_ANIME_IMPORT, result.type());
+        verify(backgroundJobService).create(JobType.RADARR_ANIME_IMPORT, null);
+        verify(radarrService).triggerBackgroundImport(job, ArrInstance.ANIME);
     }
 
     @Test
@@ -87,12 +99,25 @@ class RadarrControllerTest {
         var job = new BackgroundJob(JobType.RADARR_RATINGS_REFRESH, null);
         when(backgroundJobService.create(eq(JobType.RADARR_RATINGS_REFRESH), eq(null))).thenReturn(job);
 
-        var result = radarrController.refreshRatings();
+        var result = radarrController.refreshRatings(ArrInstance.DEFAULT);
 
         assertNotNull(result);
         assertEquals(JobType.RADARR_RATINGS_REFRESH, result.type());
         assertEquals(JobStatus.PENDING, result.status());
         verify(backgroundJobService).create(JobType.RADARR_RATINGS_REFRESH, null);
-        verify(radarrService).triggerBackgroundRatingsRefresh(job);
+        verify(radarrService).triggerBackgroundRatingsRefresh(job, ArrInstance.DEFAULT);
+    }
+
+    @Test
+    void refreshRatings_anime_shouldCreateAnimeJobAndTriggerBackgroundRefresh() {
+        var job = new BackgroundJob(JobType.RADARR_ANIME_RATINGS_REFRESH, null);
+        when(backgroundJobService.create(eq(JobType.RADARR_ANIME_RATINGS_REFRESH), eq(null))).thenReturn(job);
+
+        var result = radarrController.refreshRatings(ArrInstance.ANIME);
+
+        assertNotNull(result);
+        assertEquals(JobType.RADARR_ANIME_RATINGS_REFRESH, result.type());
+        verify(backgroundJobService).create(JobType.RADARR_ANIME_RATINGS_REFRESH, null);
+        verify(radarrService).triggerBackgroundRatingsRefresh(job, ArrInstance.ANIME);
     }
 }

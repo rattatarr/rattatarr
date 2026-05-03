@@ -4,6 +4,7 @@ import com.rattatarr.rattatarr.clients.radarr.RadarrClient;
 import com.rattatarr.rattatarr.clients.radarr.responses.RadarrInternalMovieResponseDTO;
 import com.rattatarr.rattatarr.clients.radarr.responses.RadarrMovieLookupResponseDTO;
 import com.rattatarr.rattatarr.clients.radarr.responses.RadarrRatings;
+import com.rattatarr.rattatarr.models.ArrInstance;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.entities.BackgroundJob;
 import com.rattatarr.rattatarr.models.entities.MediaItem;
@@ -25,7 +26,8 @@ import java.util.concurrent.Executor;
 public class RadarrService {
     private static final Logger logger = LoggerFactory.getLogger(RadarrService.class);
 
-    private final RadarrClient radarrClient;
+    private final RadarrClient defaultClient;
+    private final RadarrClient animeClient;
     private final TMDbService tmDbService;
     private final MediaItemMetadataService mediaItemMetadataService;
     private final MediaItemsService mediaItemsService;
@@ -33,13 +35,15 @@ public class RadarrService {
     private final Executor tmdbApiExecutor;
 
     public RadarrService(
-            RadarrClient radarrClient,
+            @Qualifier("radarrDefaultClient") RadarrClient defaultClient,
+            @Qualifier("radarrAnimeClient") RadarrClient animeClient,
             TMDbService tmDbService,
             MediaItemMetadataService mediaItemMetadataService,
             MediaItemsService mediaItemsService,
             BackgroundJobService backgroundJobService,
             @Qualifier("tmdbApiExecutor") Executor tmdbApiExecutor) {
-        this.radarrClient = radarrClient;
+        this.defaultClient = defaultClient;
+        this.animeClient = animeClient;
         this.tmDbService = tmDbService;
         this.mediaItemMetadataService = mediaItemMetadataService;
         this.mediaItemsService = mediaItemsService;
@@ -47,16 +51,26 @@ public class RadarrService {
         this.tmdbApiExecutor = tmdbApiExecutor;
     }
 
-    public boolean testConnection() {
-        return radarrClient.testConnection();
+    private RadarrClient clientFor(ArrInstance instance) {
+        return instance == ArrInstance.ANIME ? animeClient : defaultClient;
     }
 
-    public RadarrMovieLookupResponseDTO lookupByTmdbId(int tmdbId) {
-        return radarrClient.lookupByTmdbId(tmdbId);
+    public boolean testConnection(ArrInstance instance) {
+        return clientFor(instance).testConnection();
+    }
+
+    public RadarrMovieLookupResponseDTO lookupByTmdbId(int tmdbId, ArrInstance instance) {
+        return clientFor(instance).lookupByTmdbId(tmdbId);
     }
 
     public void enrichMovieFromRadarrIfStale(UUID mediaItemId) {
-        if (!radarrClient.isConfigured()) return;
+        // We don't care which instance we use for enrichment. Radarr uses TMDbID and that doesn't depends on any type of instance
+        enrichMovieFromRadarrIfStale(mediaItemId, ArrInstance.DEFAULT);
+    }
+
+    public void enrichMovieFromRadarrIfStale(UUID mediaItemId, ArrInstance instance) {
+        var client = clientFor(instance);
+        if (!client.isConfigured()) return;
 
         var mediaItemOpt = mediaItemsService.findById(mediaItemId);
         if (mediaItemOpt.isEmpty()) return;
@@ -67,23 +81,23 @@ public class RadarrService {
 
         try {
             int tmdbId = Integer.parseInt(mediaItem.TMDbId());
-            var movie = lookupByTmdbId(tmdbId);
+            var movie = lookupByTmdbId(tmdbId, instance);
 
             if (movie == null) {
-                logger.warn("No Radarr movie found for TMDb ID {}, cannot enrich MediaItem ID {}", tmdbId, mediaItemId);
+                logger.warn("No Radarr ({}) movie found for TMDb ID {}, cannot enrich MediaItem ID {}", instance, tmdbId, mediaItemId);
                 return;
             }
 
             if (movie.tmdbId() == null) {
-                logger.warn("Radarr lookup for TMDb ID {} returned movie '{}' with no TMDb ID, skipping", tmdbId, movie.title());
+                logger.warn("Radarr ({}) lookup for TMDb ID {} returned movie '{}' with no TMDb ID, skipping", instance, tmdbId, movie.title());
                 return;
             }
 
             var ratings = extractRatings(movie.ratings());
             mediaItemMetadataService.updateExternalRatings(mediaItem, ratings.imdbRating(), ratings.rottenTomatoesRating());
-            logger.info("Radarr ratings refreshed for MediaItem ID: {}", mediaItemId);
+            logger.info("Radarr ({}) ratings refreshed for MediaItem ID: {}", instance, mediaItemId);
         } catch (Exception e) {
-            logger.warn("Failed to enrich movie {} from Radarr: {}", mediaItemId, e.getMessage());
+            logger.warn("Failed to enrich movie {} from Radarr ({}): {}", mediaItemId, instance, e.getMessage());
         }
     }
 
@@ -126,11 +140,11 @@ public class RadarrService {
         );
     }
 
-    public void enrichAllMoviesWithRadarrRatings() {
+    public void enrichAllMoviesWithRadarrRatings(ArrInstance instance) {
         var movies = mediaItemsService.findAllMoviesWithTmdbId();
         ParallelAPIProcessor.processInParallel(
                 movies,
-                this::fetchRadarrRatings,
+                movie -> fetchRadarrRatings(movie, instance),
                 this::applyRadarrRatings,
                 tmdbApiExecutor,
                 logger,
@@ -139,17 +153,17 @@ public class RadarrService {
     }
 
     @Nullable
-    private MovieEnrichmentResult fetchRadarrRatings(MediaItem movie) {
+    private MovieEnrichmentResult fetchRadarrRatings(MediaItem movie, ArrInstance instance) {
         UUID mediaItemId = movie.id();
         if (mediaItemId == null) return null;
         if (mediaItemMetadataService.isRatingFresh(mediaItemId)) return null;
         try {
             int tmdbId = Integer.parseInt(movie.TMDbId());
-            var lookup = radarrClient.lookupByTmdbId(tmdbId);
+            var lookup = clientFor(instance).lookupByTmdbId(tmdbId);
             if (lookup == null || lookup.tmdbId() == null) return null;
             return new MovieEnrichmentResult(movie, lookup);
         } catch (Exception e) {
-            logger.warn("Radarr lookup failed for MediaItem {}: {}", mediaItemId, e.getMessage());
+            logger.warn("Radarr ({}) lookup failed for MediaItem {}: {}", instance, mediaItemId, e.getMessage());
             return null;
         }
     }
@@ -160,52 +174,49 @@ public class RadarrService {
         logger.info("Radarr ratings refreshed for MediaItem ID: {}", result.movie().id());
     }
 
-    public void runRatingsRefresh() {
-        if (!radarrClient.isConfigured()) {
-            logger.debug("Radarr not configured, skipping ratings refresh");
+    public void runRatingsRefresh(ArrInstance instance) {
+        if (!clientFor(instance).isConfigured()) {
+            logger.debug("Radarr ({}) not configured, skipping ratings refresh", instance);
             return;
         }
-        enrichAllMoviesWithRadarrRatings();
+        enrichAllMoviesWithRadarrRatings(instance);
     }
 
-    public void runImport() {
-        if (!radarrClient.isConfigured()) {
-            logger.debug("Radarr not configured, skipping import");
+    public void runImport(ArrInstance instance) {
+        var client = clientFor(instance);
+        if (!client.isConfigured()) {
+            logger.debug("Radarr ({}) not configured, skipping import", instance);
             return;
         }
-        importAllMovies(getTrackedMovies());
+        importAllMovies(client.getMonitoredInternalMovies(null));
     }
 
     @Async("backgroundTaskExecutor")
-    public void triggerBackgroundImport(BackgroundJob job) {
-        logger.info("Radarr import started, jobId={}", job.id());
+    public void triggerBackgroundImport(BackgroundJob job, ArrInstance instance) {
+        logger.info("Radarr ({}) import started, jobId={}", instance, job.id());
         backgroundJobService.markRunning(job);
         try {
-            runImport();
+            runImport(instance);
             backgroundJobService.markCompleted(job, "Radarr import completed successfully");
-            logger.info("Radarr import completed, jobId={}", job.id());
+            logger.info("Radarr ({}) import completed, jobId={}", instance, job.id());
         } catch (Exception error) {
             backgroundJobService.markFailed(job, error.getMessage());
-            logger.error("Radarr import failed, jobId={}", job.id(), error);
+            logger.error("Radarr ({}) import failed, jobId={}", instance, job.id(), error);
         }
     }
 
     @Async("backgroundTaskExecutor")
-    public void triggerBackgroundRatingsRefresh(BackgroundJob job) {
-        logger.info("Radarr ratings refresh started, jobId={}", job.id());
+    public void triggerBackgroundRatingsRefresh(BackgroundJob job, ArrInstance instance) {
+        logger.info("Radarr ({}) ratings refresh started, jobId={}", instance, job.id());
         backgroundJobService.markRunning(job);
         try {
-            runRatingsRefresh();
+            runRatingsRefresh(instance);
             backgroundJobService.markCompleted(job, "Radarr ratings refresh completed successfully");
-            logger.info("Radarr ratings refresh completed, jobId={}", job.id());
+            logger.info("Radarr ({}) ratings refresh completed, jobId={}", instance, job.id());
         } catch (Exception error) {
             backgroundJobService.markFailed(job, error.getMessage());
-            logger.error("Radarr ratings refresh failed, jobId={}", job.id(), error);
+            logger.error("Radarr ({}) ratings refresh failed, jobId={}", instance, job.id(), error);
         }
-    }
-
-    private List<RadarrInternalMovieResponseDTO> getTrackedMovies() {
-        return radarrClient.getMonitoredInternalMovies(null);
     }
 
     private record MovieEnrichmentResult(

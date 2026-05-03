@@ -273,7 +273,11 @@ describe('radarrKeys', () => {
   })
 
   it('should generate test key', () => {
-    expect(radarrKeys.test()).toEqual(['radarr', 'test'])
+    expect(radarrKeys.test()).toEqual(['radarr', 'test', 'default'])
+  })
+
+  it('should generate anime test key', () => {
+    expect(radarrKeys.animeTest()).toEqual(['radarr', 'test', 'anime'])
   })
 })
 
@@ -283,7 +287,11 @@ describe('sonarrKeys', () => {
   })
 
   it('should generate test key', () => {
-    expect(sonarrKeys.test()).toEqual(['sonarr', 'test'])
+    expect(sonarrKeys.test()).toEqual(['sonarr', 'test', 'default'])
+  })
+
+  it('should generate anime test key', () => {
+    expect(sonarrKeys.animeTest()).toEqual(['sonarr', 'test', 'anime'])
   })
 })
 

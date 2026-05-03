@@ -275,6 +275,21 @@
           "sonarr-controller"
         ],
         "operationId": "importSeries",
+        "parameters": [
+          {
+            "name": "instance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "DEFAULT",
+              "enum": [
+                "DEFAULT",
+                "ANIME"
+              ]
+            }
+          }
+        ],
         "responses": {
           "202": {
             "description": "Accepted",
@@ -344,6 +359,21 @@
           "radarr-controller"
         ],
         "operationId": "refreshRatings",
+        "parameters": [
+          {
+            "name": "instance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "DEFAULT",
+              "enum": [
+                "DEFAULT",
+                "ANIME"
+              ]
+            }
+          }
+        ],
         "responses": {
           "202": {
             "description": "Accepted",
@@ -364,6 +394,21 @@
           "radarr-controller"
         ],
         "operationId": "importMovies",
+        "parameters": [
+          {
+            "name": "instance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "DEFAULT",
+              "enum": [
+                "DEFAULT",
+                "ANIME"
+              ]
+            }
+          }
+        ],
         "responses": {
           "202": {
             "description": "Accepted",
@@ -815,6 +860,21 @@
           "sonarr-controller"
         ],
         "operationId": "testConnection_1",
+        "parameters": [
+          {
+            "name": "instance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "DEFAULT",
+              "enum": [
+                "DEFAULT",
+                "ANIME"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -897,6 +957,21 @@
           "radarr-controller"
         ],
         "operationId": "testConnection_2",
+        "parameters": [
+          {
+            "name": "instance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "DEFAULT",
+              "enum": [
+                "DEFAULT",
+                "ANIME"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -925,6 +1000,19 @@
             "schema": {
               "type": "integer",
               "format": "int32"
+            }
+          },
+          {
+            "name": "instance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "DEFAULT",
+              "enum": [
+                "DEFAULT",
+                "ANIME"
+              ]
             }
           }
         ],
@@ -1479,7 +1567,10 @@
                 "CSV_IMPORT",
                 "RADARR_IMPORT",
                 "RADARR_RATINGS_REFRESH",
-                "SONARR_IMPORT"
+                "RADARR_ANIME_IMPORT",
+                "RADARR_ANIME_RATINGS_REFRESH",
+                "SONARR_IMPORT",
+                "SONARR_ANIME_IMPORT"
               ]
             }
           },
@@ -2018,7 +2109,10 @@
               "CSV_IMPORT",
               "RADARR_IMPORT",
               "RADARR_RATINGS_REFRESH",
-              "SONARR_IMPORT"
+              "RADARR_ANIME_IMPORT",
+              "RADARR_ANIME_RATINGS_REFRESH",
+              "SONARR_IMPORT",
+              "SONARR_ANIME_IMPORT"
             ]
           },
           "status": {
@@ -4135,4 +4229,4 @@
       }
     }
   }
-} D
+}

@@ -2,6 +2,7 @@ package com.rattatarr.rattatarr.services;
 
 import com.rattatarr.rattatarr.clients.sonarr.SonarrClient;
 import com.rattatarr.rattatarr.clients.sonarr.responses.SonarrSeriesResponseDTO;
+import com.rattatarr.rattatarr.models.ArrInstance;
 import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.entities.BackgroundJob;
@@ -9,7 +10,6 @@ import com.rattatarr.rattatarr.models.entities.MediaItem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -26,7 +26,10 @@ import static org.mockito.Mockito.*;
 class SonarrServiceTest {
 
     @Mock
-    private SonarrClient sonarrClient;
+    private SonarrClient defaultClient;
+
+    @Mock
+    private SonarrClient animeClient;
 
     @Mock
     private TMDbService tmDbService;
@@ -37,7 +40,6 @@ class SonarrServiceTest {
     @Mock
     private Executor tmdbApiExecutor;
 
-    @InjectMocks
     private SonarrService sonarrService;
 
     private MediaItem seriesItem;
@@ -47,6 +49,11 @@ class SonarrServiceTest {
 
     @BeforeEach
     void setUp() {
+        sonarrService = new SonarrService(
+                defaultClient, animeClient,
+                tmDbService, backgroundJobService, tmdbApiExecutor
+        );
+
         seriesItem = new MediaItem(
                 MediaType.SERIES, "Breaking Bad", null, "1396", null,
                 2008, null, Set.of(), Set.of(), Set.of(), Set.of()
@@ -102,22 +109,22 @@ class SonarrServiceTest {
 
     @Test
     void runImport_whenNotConfigured_shouldSkip() {
-        when(sonarrClient.isConfigured()).thenReturn(false);
+        when(defaultClient.isConfigured()).thenReturn(false);
 
-        sonarrService.runImport();
+        sonarrService.runImport(ArrInstance.DEFAULT);
 
-        verify(sonarrClient, never()).getMonitoredInternalSeries();
+        verify(defaultClient, never()).getMonitoredInternalSeries();
     }
 
     @Test
     void runImport_whenConfigured_shouldFetchAndImport() {
-        when(sonarrClient.isConfigured()).thenReturn(true);
-        when(sonarrClient.getMonitoredInternalSeries()).thenReturn(List.of(seriesWithTmdbId));
+        when(defaultClient.isConfigured()).thenReturn(true);
+        when(defaultClient.getMonitoredInternalSeries()).thenReturn(List.of(seriesWithTmdbId));
         when(tmDbService.importMediaItem("1396", MediaType.SERIES)).thenReturn(seriesItem);
 
-        sonarrService.runImport();
+        sonarrService.runImport(ArrInstance.DEFAULT);
 
-        verify(sonarrClient).getMonitoredInternalSeries();
+        verify(defaultClient).getMonitoredInternalSeries();
         verify(tmDbService).importMediaItem("1396", MediaType.SERIES);
     }
 
@@ -126,11 +133,11 @@ class SonarrServiceTest {
     @Test
     void triggerBackgroundImport_onSuccess_shouldMarkCompleted() {
         BackgroundJob job = new BackgroundJob(JobType.SONARR_IMPORT, null);
-        when(sonarrClient.isConfigured()).thenReturn(true);
-        when(sonarrClient.getMonitoredInternalSeries()).thenReturn(List.of(seriesWithTmdbId));
+        when(defaultClient.isConfigured()).thenReturn(true);
+        when(defaultClient.getMonitoredInternalSeries()).thenReturn(List.of(seriesWithTmdbId));
         when(tmDbService.importMediaItem("1396", MediaType.SERIES)).thenReturn(seriesItem);
 
-        sonarrService.triggerBackgroundImport(job);
+        sonarrService.triggerBackgroundImport(job, ArrInstance.DEFAULT);
 
         verify(backgroundJobService).markRunning(job);
         verify(backgroundJobService).markCompleted(eq(job), anyString());
@@ -140,10 +147,10 @@ class SonarrServiceTest {
     @Test
     void triggerBackgroundImport_onFailure_shouldMarkFailed() {
         BackgroundJob job = new BackgroundJob(JobType.SONARR_IMPORT, null);
-        when(sonarrClient.isConfigured()).thenReturn(true);
-        when(sonarrClient.getMonitoredInternalSeries()).thenThrow(new RuntimeException("Connection refused"));
+        when(defaultClient.isConfigured()).thenReturn(true);
+        when(defaultClient.getMonitoredInternalSeries()).thenThrow(new RuntimeException("Connection refused"));
 
-        sonarrService.triggerBackgroundImport(job);
+        sonarrService.triggerBackgroundImport(job, ArrInstance.DEFAULT);
 
         verify(backgroundJobService).markRunning(job);
         verify(backgroundJobService).markFailed(eq(job), anyString());

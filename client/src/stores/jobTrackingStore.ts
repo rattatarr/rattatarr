@@ -55,7 +55,16 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
   const isRadarrRatingsRefreshRunning = computed(() =>
     runningJobs.value.has(JOB_TYPE.RADARR_RATINGS_REFRESH),
   )
+  const isRadarrAnimeImportRunning = computed(() =>
+    runningJobs.value.has(JOB_TYPE.RADARR_ANIME_IMPORT),
+  )
+  const isRadarrAnimeRatingsRefreshRunning = computed(() =>
+    runningJobs.value.has(JOB_TYPE.RADARR_ANIME_RATINGS_REFRESH),
+  )
   const isSonarrImportRunning = computed(() => runningJobs.value.has(JOB_TYPE.SONARR_IMPORT))
+  const isSonarrAnimeImportRunning = computed(() =>
+    runningJobs.value.has(JOB_TYPE.SONARR_ANIME_IMPORT),
+  )
   const isAnyJobRunning = computed(() => runningJobs.value.size > 0 || pendingJobs.value.size > 0)
 
   function lockJob(type: JobType) {
@@ -97,7 +106,10 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
         [JOB_TYPE.CSV_IMPORT]: 'CSV import',
         [JOB_TYPE.RADARR_IMPORT]: 'Radarr import',
         [JOB_TYPE.RADARR_RATINGS_REFRESH]: 'Radarr ratings refresh',
+        [JOB_TYPE.RADARR_ANIME_IMPORT]: 'Radarr anime import',
+        [JOB_TYPE.RADARR_ANIME_RATINGS_REFRESH]: 'Radarr anime ratings refresh',
         [JOB_TYPE.SONARR_IMPORT]: 'Sonarr import',
+        [JOB_TYPE.SONARR_ANIME_IMPORT]: 'Sonarr anime import',
       }
       toast.warning('Job timed out', {
         description: `${jobLabels[type]} did not finish within 10 minutes`,
@@ -137,7 +149,10 @@ export const useJobTrackingStore = defineStore('jobTracking', () => {
     isImdbImportRunning,
     isRadarrImportRunning,
     isRadarrRatingsRefreshRunning,
+    isRadarrAnimeImportRunning,
+    isRadarrAnimeRatingsRefreshRunning,
     isSonarrImportRunning,
+    isSonarrAnimeImportRunning,
     isAnyJobRunning,
     lockJob,
     unlockJob,

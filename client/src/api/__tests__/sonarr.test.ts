@@ -32,13 +32,15 @@ describe('sonarr API', () => {
   })
 
   describe('importSonarrSeries', () => {
-    it('calls POST /api/v1/sonarr/import with no body', async () => {
+    it('calls POST /api/v1/sonarr/import with instance=DEFAULT', async () => {
       mockPOST.mockResolvedValue({ data: mockJob })
       mockHandleResponse.mockReturnValue(mockJob)
 
       await importSonarrSeries()
 
-      expect(mockPOST).toHaveBeenCalledWith('/api/v1/sonarr/import')
+      expect(mockPOST).toHaveBeenCalledWith('/api/v1/sonarr/import', {
+        params: { query: { instance: 'DEFAULT' } },
+      })
     })
 
     it('returns the job from handleResponse', async () => {
@@ -59,13 +61,15 @@ describe('sonarr API', () => {
   })
 
   describe('testSonarrConnection', () => {
-    it('calls GET /api/v1/sonarr/test', async () => {
+    it('calls GET /api/v1/sonarr/test with instance=DEFAULT', async () => {
       mockGET.mockResolvedValue({ data: mockConnectionOk })
       mockHandleResponse.mockReturnValue(mockConnectionOk)
 
       await testSonarrConnection()
 
-      expect(mockGET).toHaveBeenCalledWith('/api/v1/sonarr/test')
+      expect(mockGET).toHaveBeenCalledWith('/api/v1/sonarr/test', {
+        params: { query: { instance: 'DEFAULT' } },
+      })
     })
 
     it('returns the response from handleResponse', async () => {

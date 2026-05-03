@@ -8,14 +8,12 @@ import com.rattatarr.rattatarr.exceptions.SonarrClientExceptions;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.net.URI;
 import java.util.List;
 
-@Component
 @NullMarked
 public class SonarrClient extends BaseClient<SonarrClientExceptions> implements Warmable {
     private final SonarrConfig config;

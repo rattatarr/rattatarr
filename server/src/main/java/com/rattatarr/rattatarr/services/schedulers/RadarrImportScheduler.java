@@ -1,5 +1,6 @@
 package com.rattatarr.rattatarr.services.schedulers;
 
+import com.rattatarr.rattatarr.models.ArrInstance;
 import com.rattatarr.rattatarr.services.RadarrService;
 import com.rattatarr.rattatarr.services.SettingsService;
 import org.jspecify.annotations.NullMarked;
@@ -29,27 +30,22 @@ public class RadarrImportScheduler {
             initialDelayString = "${rattatarr.sync.radarr-initial-delay:PT10M}"
     )
     public void scheduledRadarrImport() {
-        boolean enabled = settingsService.getBooleanSetting(
-                SettingsService.SYNC_RADARR_ENABLED,
-                false
-        );
+        for (ArrInstance instance : ArrInstance.values()) {
+            if (!settingsService.getBooleanSetting(importEnabledKey(instance), false)) {
+                logger.debug("Radarr ({}) scheduled import is disabled via settings", instance);
+                continue;
+            }
 
-        if (!enabled) {
-            logger.debug("Radarr scheduled import is disabled via settings");
-            return;
-        }
+            Instant startTime = Instant.now();
+            logger.info("Starting scheduled Radarr ({}) import", instance);
 
-        Instant startTime = Instant.now();
-        logger.info("Starting scheduled Radarr import");
-
-        try {
-            radarrService.runImport();
-
-            Duration duration = Duration.between(startTime, Instant.now());
-            logger.info("Scheduled Radarr import completed successfully in {} seconds",
-                    duration.getSeconds());
-        } catch (Exception e) {
-            logger.error("Scheduled Radarr import failed", e);
+            try {
+                radarrService.runImport(instance);
+                Duration duration = Duration.between(startTime, Instant.now());
+                logger.info("Scheduled Radarr ({}) import completed successfully in {} seconds", instance, duration.getSeconds());
+            } catch (Exception e) {
+                logger.error("Scheduled Radarr ({}) import failed", instance, e);
+            }
         }
     }
 
@@ -58,27 +54,28 @@ public class RadarrImportScheduler {
             initialDelayString = "${rattatarr.sync.radarr-ratings-initial-delay:PT15M}"
     )
     public void scheduledRadarrRatingsRefresh() {
-        boolean enabled = settingsService.getBooleanSetting(
-                SettingsService.SYNC_RADARR_ENABLED,
-                false
-        );
+        for (ArrInstance instance : ArrInstance.values()) {
+            if (!settingsService.getBooleanSetting(importEnabledKey(instance), false)) {
+                logger.debug("Radarr ({}) ratings refresh is disabled via settings", instance);
+                continue;
+            }
 
-        if (!enabled) {
-            logger.debug("Radarr ratings refresh is disabled via settings");
-            return;
+            Instant startTime = Instant.now();
+            logger.info("Starting scheduled Radarr ({}) ratings refresh", instance);
+
+            try {
+                radarrService.runRatingsRefresh(instance);
+                Duration duration = Duration.between(startTime, Instant.now());
+                logger.info("Scheduled Radarr ({}) ratings refresh completed successfully in {} seconds", instance, duration.getSeconds());
+            } catch (Exception e) {
+                logger.error("Scheduled Radarr ({}) ratings refresh failed", instance, e);
+            }
         }
+    }
 
-        Instant startTime = Instant.now();
-        logger.info("Starting scheduled Radarr ratings refresh");
-
-        try {
-            radarrService.runRatingsRefresh();
-
-            Duration duration = Duration.between(startTime, Instant.now());
-            logger.info("Scheduled Radarr ratings refresh completed successfully in {} seconds",
-                    duration.getSeconds());
-        } catch (Exception e) {
-            logger.error("Scheduled Radarr ratings refresh failed", e);
-        }
+    private String importEnabledKey(ArrInstance instance) {
+        return instance == ArrInstance.ANIME
+                ? SettingsService.SYNC_RADARR_ANIME_ENABLED
+                : SettingsService.SYNC_RADARR_ENABLED;
     }
 }
