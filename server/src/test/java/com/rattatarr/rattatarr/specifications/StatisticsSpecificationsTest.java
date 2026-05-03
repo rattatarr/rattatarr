@@ -29,13 +29,13 @@ class StatisticsSpecificationsTest {
     @Test
     void queryTopGenresBy_countSort_methodExists() {
         assertThrows(NullPointerException.class, () ->
-                StatisticsSpecifications.queryTopGenresBy(null, UUID.randomUUID(), 0f, 10, StatisticsSpecifications.SortBy.COUNT));
+                StatisticsSpecifications.queryTopGenresBy(null, UUID.randomUUID(), 0f, 10, StatisticsSpecifications.SortBy.COUNT, null, null));
     }
 
     @Test
     void queryTopGenresBy_scoreSort_methodExists() {
         assertThrows(NullPointerException.class, () ->
-                StatisticsSpecifications.queryTopGenresBy(null, UUID.randomUUID(), 7.0f, 10, StatisticsSpecifications.SortBy.SCORE));
+                StatisticsSpecifications.queryTopGenresBy(null, UUID.randomUUID(), 7.0f, 10, StatisticsSpecifications.SortBy.SCORE, null, null));
     }
 
     // ---------------------------------------------------------------------------
@@ -47,7 +47,7 @@ class StatisticsSpecificationsTest {
         assertThrows(NullPointerException.class, () ->
                 StatisticsSpecifications.queryFavoriteCrewByJob(
                         null, UUID.randomUUID(), "Director", 1, 10,
-                        StatisticsSpecifications.SortBy.COUNT));
+                        StatisticsSpecifications.SortBy.COUNT, null, null));
     }
 
     @Test
@@ -55,7 +55,7 @@ class StatisticsSpecificationsTest {
         assertThrows(NullPointerException.class, () ->
                 StatisticsSpecifications.queryFavoriteCrewByJob(
                         null, UUID.randomUUID(), "Director", 1, 10,
-                        StatisticsSpecifications.SortBy.SCORE));
+                        StatisticsSpecifications.SortBy.SCORE, null, null));
     }
 
     // ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ class StatisticsSpecificationsTest {
         assertThrows(NullPointerException.class, () ->
                 StatisticsSpecifications.queryFavoriteActors(
                         null, UUID.randomUUID(), 1, 10,
-                        StatisticsSpecifications.SortBy.COUNT));
+                        StatisticsSpecifications.SortBy.COUNT, null, null));
     }
 
     @Test
@@ -75,7 +75,7 @@ class StatisticsSpecificationsTest {
         assertThrows(NullPointerException.class, () ->
                 StatisticsSpecifications.queryFavoriteActors(
                         null, UUID.randomUUID(), 1, 10,
-                        StatisticsSpecifications.SortBy.SCORE));
+                        StatisticsSpecifications.SortBy.SCORE, null, null));
     }
 
     // ---------------------------------------------------------------------------
@@ -98,7 +98,7 @@ class StatisticsSpecificationsTest {
     void queryRatingDistributionByInteger_methodExists() {
         // Must accept (EntityManager, UUID) — no extra params needed.
         assertThrows(NullPointerException.class, () ->
-                StatisticsSpecifications.queryRatingDistributionByInteger(null, UUID.randomUUID()));
+                StatisticsSpecifications.queryRatingDistributionByInteger(null, UUID.randomUUID(), null, null));
     }
 
     // ---------------------------------------------------------------------------
@@ -117,7 +117,7 @@ class StatisticsSpecificationsTest {
         assertThrows(NullPointerException.class, () ->
                 StatisticsSpecifications.queryFavoriteCrewByJob(
                         null, UUID.randomUUID(), "Director", 1, 10,
-                        StatisticsSpecifications.SortBy.SCORE));
+                        StatisticsSpecifications.SortBy.SCORE, null, null));
     }
 
     @Test
@@ -126,7 +126,7 @@ class StatisticsSpecificationsTest {
         assertThrows(NullPointerException.class, () ->
                 StatisticsSpecifications.queryFavoriteActors(
                         null, UUID.randomUUID(), 1, 10,
-                        StatisticsSpecifications.SortBy.SCORE));
+                        StatisticsSpecifications.SortBy.SCORE, null, null));
     }
 
     // ---------------------------------------------------------------------------

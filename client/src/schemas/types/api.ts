@@ -134,6 +134,15 @@ export type AgentPromptResponse = Schemas['AgentPromptResponseDTO']
 export type AgentConversationMessage = Schemas['AgentConversationMessageResponseDTO']
 export type AgentConversationWrapper = Schemas['AgentConversationWrapper']
 
+// --- Year Rewind ---
+export type YearRewindRequest = Schemas['YearRewindRequestDTO']
+export type YearRewindWrapper = Schemas['YearRewindWrapper']
+export type YearRewindResponse = Schemas['YearRewindResponseDTO']
+export type YearRewindHighlights = Schemas['YearRewindHighlightsDTO']
+export type YearRewindHighlightItem = Schemas['YearRewindHighlightItemDTO']
+export type RewindStreak = Schemas['RewindStreakDTO']
+export type YearRewindAvailableYearsWrapper = Schemas['YearRewindAvailableYearsWrapper']
+
 // --- Background Jobs ---
 export type BackgroundJob = Schemas['BackgroundJobResponseDTO']
 export type BackgroundJobsWrapper = Schemas['BackgroundJobsWrapper']
