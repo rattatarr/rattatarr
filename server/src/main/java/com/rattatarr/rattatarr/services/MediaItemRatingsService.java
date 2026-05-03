@@ -117,42 +117,42 @@ public class MediaItemRatingsService extends BaseService<MediaItemRating, MediaI
     @Transactional(readOnly = true)
     public List<Tuple> findTopGenresByWatchCount(UUID profileId, int limit) {
         try (EntityManager em = entityManagerFactory.createEntityManager()) {
-            return StatisticsSpecifications.queryTopGenresBy(em, profileId, 0f, limit, StatisticsSpecifications.SortBy.COUNT);
+            return StatisticsSpecifications.queryTopGenresBy(em, profileId, 0f, limit, StatisticsSpecifications.SortBy.COUNT, null, null);
         }
     }
 
     @Transactional(readOnly = true)
     public List<Tuple> findTopGenresByAverageRating(UUID profileId, float ratingThreshold, int limit) {
         try (EntityManager em = entityManagerFactory.createEntityManager()) {
-            return StatisticsSpecifications.queryTopGenresBy(em, profileId, ratingThreshold, limit, StatisticsSpecifications.SortBy.SCORE);
+            return StatisticsSpecifications.queryTopGenresBy(em, profileId, ratingThreshold, limit, StatisticsSpecifications.SortBy.SCORE, null, null);
         }
     }
 
     @Transactional(readOnly = true)
     public List<Tuple> findJellyfinTopGenresByCount(UUID profileId, int limit) {
         try (EntityManager em = entityManagerFactory.createEntityManager()) {
-            return StatisticsSpecifications.queryJellyfinTopGenresBy(em, profileId, limit, StatisticsSpecifications.SortBy.COUNT);
+            return StatisticsSpecifications.queryJellyfinTopGenresBy(em, profileId, limit, StatisticsSpecifications.SortBy.COUNT, null, null);
         }
     }
 
     @Transactional(readOnly = true)
     public List<Tuple> findTopActors(UUID profileId, int minCount, int limit, StatisticsSpecifications.SortBy sortBy) {
         try (EntityManager em = entityManagerFactory.createEntityManager()) {
-            return StatisticsSpecifications.queryFavoriteActors(em, profileId, minCount, limit, sortBy);
+            return StatisticsSpecifications.queryFavoriteActors(em, profileId, minCount, limit, sortBy, null, null);
         }
     }
 
     @Transactional(readOnly = true)
     public List<Tuple> findTopDirectors(UUID profileId, int minCount, int limit, StatisticsSpecifications.SortBy sortBy) {
         try (EntityManager em = entityManagerFactory.createEntityManager()) {
-            return StatisticsSpecifications.queryFavoriteCrewByJob(em, profileId, "Director", minCount, limit, sortBy);
+            return StatisticsSpecifications.queryFavoriteCrewByJob(em, profileId, "Director", minCount, limit, sortBy, null, null);
         }
     }
 
     @Transactional(readOnly = true)
     public List<Tuple> findTopProducers(UUID profileId, int minCount, int limit, StatisticsSpecifications.SortBy sortBy) {
         try (EntityManager em = entityManagerFactory.createEntityManager()) {
-            return StatisticsSpecifications.queryFavoriteCrewByJob(em, profileId, "Producer", minCount, limit, sortBy);
+            return StatisticsSpecifications.queryFavoriteCrewByJob(em, profileId, "Producer", minCount, limit, sortBy, null, null);
         }
     }
 

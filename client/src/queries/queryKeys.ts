@@ -187,6 +187,16 @@ export const statisticsKeys = {
 }
 
 /**
+ * Query key factory for year rewind
+ */
+export const rewindKeys = {
+  all: ['rewind'] as const,
+  availableYears: (profileId: string) => [...rewindKeys.all, profileId, 'years'] as const,
+  detail: (profileId: string, year: number) =>
+    [...rewindKeys.all, profileId, 'year', year] as const,
+}
+
+/**
  * Query key factory for background jobs
  */
 export const jobKeys = {

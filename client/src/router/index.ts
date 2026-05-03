@@ -46,6 +46,11 @@ const router = createRouter({
       component: () => import('@/views/ActivityView.vue'),
     },
     {
+      path: '/rewind',
+      name: 'rewind',
+      component: () => import('@/views/RewindView.vue'),
+    },
+    {
       path: '/broken',
       name: 'broken',
       component: () => import('@/views/BrokenView.vue'),
