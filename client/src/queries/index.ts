@@ -47,3 +47,6 @@ export * from './useAgent'
 
 // Jobs Queries
 export * from './useJobs'
+
+// GitHub Queries
+export * from './useGitHub'

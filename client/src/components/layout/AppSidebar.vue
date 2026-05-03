@@ -1,11 +1,18 @@
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { ref, computed } from 'vue'
   import Menu from 'primevue/menu'
   import { navigationItems } from '@/config/navigation'
-  import { getAppVersion } from '@/utils'
+  import { getAppVersion, isNewerVersion } from '@/utils'
+  import { useLatestRelease } from '@/queries'
 
   const menuItems = ref(navigationItems)
   const appVersion = getAppVersion()
+
+  const { data: latestRelease } = useLatestRelease()
+
+  const updateAvailable = computed(
+    () => !!latestRelease.value && isNewerVersion(appVersion, latestRelease.value.tag_name),
+  )
 </script>
 
 <template>
@@ -35,6 +42,16 @@
 
     <div class="app-sidebar__footer">
       <span class="app-sidebar__version">Version: {{ appVersion }}</span>
+      <a
+        v-if="updateAvailable && latestRelease"
+        :href="latestRelease.html_url"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="app-sidebar__update-badge"
+      >
+        <span class="pi pi-arrow-circle-up" />
+        <span>{{ latestRelease.tag_name }} available</span>
+      </a>
     </div>
   </aside>
 </template>
@@ -116,6 +133,9 @@
 
   .app-sidebar__footer {
     padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .app-sidebar__version {
@@ -124,5 +144,30 @@
     opacity: 0.7;
     text-align: center;
     display: block;
+  }
+
+  .app-sidebar__update-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-decoration: none;
+    background-color: color-mix(in srgb, var(--p-primary-color) 15%, transparent);
+    color: var(--p-primary-color);
+    transition: background-color 0.2s;
+  }
+
+  .app-sidebar__update-badge:hover {
+    background-color: color-mix(in srgb, var(--p-primary-color) 25%, transparent);
+  }
+
+  .app-sidebar__update-badge .pi {
+    font-size: 0.8rem;
   }
 </style>

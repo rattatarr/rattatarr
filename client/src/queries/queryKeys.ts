@@ -221,6 +221,14 @@ export const watchActivityKeys = {
 }
 
 /**
+ * Query key factory for GitHub release checks
+ */
+export const githubKeys = {
+  all: ['github'] as const,
+  latestRelease: () => [...githubKeys.all, 'latest-release'] as const,
+}
+
+/**
  * Utility to invalidate all queries for a specific domain
  */
 export const invalidateAll = {
