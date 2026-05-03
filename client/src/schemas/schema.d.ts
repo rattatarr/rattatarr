@@ -516,6 +516,38 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/profiles/statistics/rewind': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['getYearRewind']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/profiles/statistics/rewind/years': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations['getAvailableYears']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/logs': {
     parameters: {
       query?: never
@@ -1450,6 +1482,91 @@ export interface components {
       /** Format: int32 */
       shortestRuntime?: number
     }
+    YearRewindRequestDTO: {
+      /** Format: uuid */
+      profileId: string
+      /** Format: int32 */
+      year: number
+      /** Format: float */
+      ratingThreshold?: number
+      /** Format: int32 */
+      minCount?: number
+      /** Format: int32 */
+      genresLimit?: number
+      /** Format: int32 */
+      actorsLimit?: number
+      /** Format: int32 */
+      directorsLimit?: number
+      /** Format: int32 */
+      producersLimit?: number
+      profileImageSize?: string
+    }
+    RewindStreakDTO: {
+      startDate?: string
+      endDate?: string
+      /** Format: int32 */
+      days?: number
+    }
+    YearRewindHighlightItemDTO: {
+      title?: string
+      posterImageUrl?: string
+      /** Format: float */
+      rating?: number
+      /** Format: date-time */
+      eventAt?: string
+      mediaType?: string
+    }
+    YearRewindHighlightsDTO: {
+      firstRated?: components['schemas']['YearRewindHighlightItemDTO']
+      lastRated?: components['schemas']['YearRewindHighlightItemDTO']
+      highestRated?: components['schemas']['YearRewindHighlightItemDTO']
+      lowestRated?: components['schemas']['YearRewindHighlightItemDTO']
+      firstWatched?: components['schemas']['YearRewindHighlightItemDTO']
+      lastWatched?: components['schemas']['YearRewindHighlightItemDTO']
+      busiestDay?: string
+      /** Format: int64 */
+      busiestDayCount?: number
+      longestWatchStreak?: components['schemas']['RewindStreakDTO']
+      /** Format: int64 */
+      totalWatchTimeMinutes?: number
+      /** Format: int64 */
+      uniqueItemsWatched?: number
+      /** Format: int64 */
+      totalMoviesWatched?: number
+      /** Format: int64 */
+      totalSeriesWatched?: number
+    }
+    YearRewindResponseDTO: {
+      /** Format: int32 */
+      year?: number
+      highlights?: components['schemas']['YearRewindHighlightsDTO']
+      overallStats?: components['schemas']['OverallStatsDTO']
+      ratingDistribution?: components['schemas']['RatingDistributionDTO'][]
+      ratingDistributionByInteger?: components['schemas']['RatingDistributionDTO'][]
+      mediaTypeBreakdown?: components['schemas']['MediaTypeBreakdownDTO'][]
+      jellyfinMediaTypeBreakdown?: components['schemas']['MediaTypeBreakdownDTO'][]
+      topGenresByCount?: components['schemas']['GenreStatDTO'][]
+      topGenresByScore?: components['schemas']['GenreStatDTO'][]
+      jellyfinTopGenresByCount?: components['schemas']['GenreStatDTO'][]
+      directorsByCount?: components['schemas']['PersonStatDTO'][]
+      directorsByScore?: components['schemas']['PersonStatDTO'][]
+      producersByCount?: components['schemas']['PersonStatDTO'][]
+      producersByScore?: components['schemas']['PersonStatDTO'][]
+      actorsByCount?: components['schemas']['PersonStatDTO'][]
+      actorsByScore?: components['schemas']['PersonStatDTO'][]
+      monthlyActivity?: components['schemas']['RatingActivityDTO'][]
+      dayOfWeekActivity?: components['schemas']['DayOfWeekActivityDTO'][]
+      jellyfinDayOfWeekActivity?: components['schemas']['DayOfWeekActivityDTO'][]
+      decadePreferences?: components['schemas']['DecadeStatDTO'][]
+      jellyfinDecadePreferences?: components['schemas']['DecadeStatDTO'][]
+      runtimeStats?: components['schemas']['RuntimeStatsDTO']
+    }
+    YearRewindWrapper: {
+      rewind?: components['schemas']['YearRewindResponseDTO']
+    }
+    YearRewindAvailableYearsWrapper: {
+      years?: number[]
+    }
     LogEvent: {
       /** Format: int64 */
       timestamp?: number
@@ -2347,6 +2464,50 @@ export interface operations {
         }
         content: {
           '*/*': components['schemas']['ProfileStatisticsWrapper']
+        }
+      }
+    }
+  }
+  getYearRewind: {
+    parameters: {
+      query: {
+        requestDTO: components['schemas']['YearRewindRequestDTO']
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['YearRewindWrapper']
+        }
+      }
+    }
+  }
+  getAvailableYears: {
+    parameters: {
+      query: {
+        profileId: string
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['YearRewindAvailableYearsWrapper']
         }
       }
     }

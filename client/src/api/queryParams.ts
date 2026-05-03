@@ -16,6 +16,7 @@ import type {
   PeopleFilters,
   ProfileStatisticsRequest,
   SearchFilters,
+  YearRewindRequest,
 } from '@/types'
 import type { LogsFilters } from '@/api/logs.ts'
 
@@ -144,6 +145,23 @@ export function buildStatisticsQueryParams(filters: ProfileStatisticsRequest) {
     directorsLimit: filters.directorsLimit,
     producersLimit: filters.producersLimit,
     profileImageSize: filters.profileImageSize,
+  }
+}
+
+/**
+ * Build flat query parameters for year rewind endpoint
+ */
+export function buildYearRewindQueryParams(request: YearRewindRequest) {
+  return {
+    profileId: request.profileId,
+    year: request.year,
+    ratingThreshold: request.ratingThreshold,
+    minCount: request.minCount,
+    genresLimit: request.genresLimit,
+    actorsLimit: request.actorsLimit,
+    directorsLimit: request.directorsLimit,
+    producersLimit: request.producersLimit,
+    profileImageSize: request.profileImageSize,
   }
 }
 

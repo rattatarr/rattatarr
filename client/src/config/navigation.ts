@@ -23,6 +23,11 @@ export const navigationItems: MenuItem[] = [
     route: '/activity',
   },
   {
+    label: 'Year Rewind',
+    icon: Icon.REPLAY,
+    route: '/rewind',
+  },
+  {
     label: 'Recommendations',
     icon: Icon.COMMENTS,
     route: '/agent',
