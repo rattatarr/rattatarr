@@ -6,6 +6,7 @@ import com.rattatarr.rattatarr.services.SettingsService;
 import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -19,10 +20,15 @@ public class RadarrImportScheduler {
 
     private final RadarrService radarrService;
     private final SettingsService settingsService;
+    private final Duration betweenInstancesDelay;
 
-    public RadarrImportScheduler(RadarrService radarrService, SettingsService settingsService) {
+    public RadarrImportScheduler(
+            RadarrService radarrService,
+            SettingsService settingsService,
+            @Value("${rattatarr.sync.radarr-between-instances-delay:PT5M}") Duration betweenInstancesDelay) {
         this.radarrService = radarrService;
         this.settingsService = settingsService;
+        this.betweenInstancesDelay = betweenInstancesDelay;
     }
 
     @Scheduled(
@@ -30,11 +36,14 @@ public class RadarrImportScheduler {
             initialDelayString = "${rattatarr.sync.radarr-initial-delay:PT10M}"
     )
     public void scheduledRadarrImport() {
+        boolean ranPrevious = false;
         for (ArrInstance instance : ArrInstance.values()) {
             if (!settingsService.getBooleanSetting(importEnabledKey(instance), false)) {
                 logger.debug("Radarr ({}) scheduled import is disabled via settings", instance);
                 continue;
             }
+
+            sleepIfPreviousInstanceIsRunning(ranPrevious, instance);
 
             Instant startTime = Instant.now();
             logger.info("Starting scheduled Radarr ({}) import", instance);
@@ -43,8 +52,10 @@ public class RadarrImportScheduler {
                 radarrService.runImport(instance);
                 Duration duration = Duration.between(startTime, Instant.now());
                 logger.info("Scheduled Radarr ({}) import completed successfully in {} seconds", instance, duration.getSeconds());
+                ranPrevious = true;
             } catch (Exception e) {
                 logger.error("Scheduled Radarr ({}) import failed", instance, e);
+                ranPrevious = true;
             }
         }
     }
@@ -54,11 +65,14 @@ public class RadarrImportScheduler {
             initialDelayString = "${rattatarr.sync.radarr-ratings-initial-delay:PT15M}"
     )
     public void scheduledRadarrRatingsRefresh() {
+        boolean ranPrevious = false;
         for (ArrInstance instance : ArrInstance.values()) {
             if (!settingsService.getBooleanSetting(importEnabledKey(instance), false)) {
                 logger.debug("Radarr ({}) ratings refresh is disabled via settings", instance);
                 continue;
             }
+
+            sleepIfPreviousInstanceIsRunning(ranPrevious, instance);
 
             Instant startTime = Instant.now();
             logger.info("Starting scheduled Radarr ({}) ratings refresh", instance);
@@ -67,9 +81,22 @@ public class RadarrImportScheduler {
                 radarrService.runRatingsRefresh(instance);
                 Duration duration = Duration.between(startTime, Instant.now());
                 logger.info("Scheduled Radarr ({}) ratings refresh completed successfully in {} seconds", instance, duration.getSeconds());
+                ranPrevious = true;
             } catch (Exception e) {
                 logger.error("Scheduled Radarr ({}) ratings refresh failed", instance, e);
+                ranPrevious = true;
             }
+        }
+    }
+
+    private void sleepIfPreviousInstanceIsRunning(boolean ranPrevious, ArrInstance instance) {
+        if (!ranPrevious) return;
+        try {
+            logger.debug("Radarr: waiting {}s before starting {} instance run", betweenInstancesDelay.getSeconds(), instance);
+            Thread.sleep(betweenInstancesDelay.toMillis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("Radarr inter-instance delay interrupted before {} run", instance);
         }
     }
 

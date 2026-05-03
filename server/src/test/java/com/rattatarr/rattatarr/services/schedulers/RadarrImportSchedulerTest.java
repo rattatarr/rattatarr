@@ -6,12 +6,14 @@ import com.rattatarr.rattatarr.services.SettingsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Duration;
+
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -25,11 +27,11 @@ class RadarrImportSchedulerTest {
     @Mock
     private SettingsService settingsService;
 
-    @InjectMocks
     private RadarrImportScheduler scheduler;
 
     @BeforeEach
     void setUp() {
+        scheduler = new RadarrImportScheduler(radarrService, settingsService, Duration.ZERO);
         when(settingsService.getBooleanSetting(eq(SettingsService.SYNC_RADARR_ENABLED), eq(false))).thenReturn(true);
         when(settingsService.getBooleanSetting(eq(SettingsService.SYNC_RADARR_ANIME_ENABLED), eq(false))).thenReturn(false);
     }

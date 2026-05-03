@@ -6,11 +6,12 @@ import com.rattatarr.rattatarr.services.SonarrService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+
+import java.time.Duration;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -26,11 +27,11 @@ class SonarrImportSchedulerTest {
     @Mock
     private SettingsService settingsService;
 
-    @InjectMocks
     private SonarrImportScheduler scheduler;
 
     @BeforeEach
     void setUp() {
+        scheduler = new SonarrImportScheduler(sonarrService, settingsService, Duration.ZERO);
         when(settingsService.getBooleanSetting(eq(SettingsService.SYNC_SONARR_ENABLED), eq(false))).thenReturn(true);
         when(settingsService.getBooleanSetting(eq(SettingsService.SYNC_SONARR_ANIME_ENABLED), eq(false))).thenReturn(false);
     }
