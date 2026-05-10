@@ -122,6 +122,7 @@
     { label: 'Rating', value: 'ratings' },
     { label: 'Title', value: 'title' },
     { label: 'Year', value: 'productionYear' },
+    { label: 'Last Watched', value: 'lastWatched' },
   ]
 
   const sortOrderOptions: { label: string; value: SortOrder }[] = [
@@ -137,7 +138,14 @@
     { label: 'Unrated', value: true },
   ]
 
-  type FieldOption = { label: string; value: SortField; disabled: boolean }
+  type FieldOption = { label: string; value: SortField; disabled: boolean; reason?: string }
+
+  const MUTUALLY_EXCLUSIVE: Partial<Record<SortField, SortField>> = {
+    ratings: 'lastWatched',
+    lastWatched: 'ratings',
+  }
+  const MUTUAL_EXCLUSION_REASON =
+    'Rating and Last Watched cannot be combined — both depend on per-profile data and conflict in the sort pipeline'
 
   // Fields already used in other sort rows (for disabling duplicates)
   function usedFieldsExcept(index: number): SortField[] {
@@ -146,10 +154,14 @@
 
   function fieldOptionsFor(index: number): FieldOption[] {
     const used = usedFieldsExcept(index)
-    return sortFieldOptions.map((opt) => ({
-      ...opt,
-      disabled: used.includes(opt.value),
-    }))
+    return sortFieldOptions.map((opt) => {
+      if (used.includes(opt.value)) return { ...opt, disabled: true }
+      const counterpart = MUTUALLY_EXCLUSIVE[opt.value]
+      if (counterpart && used.includes(counterpart)) {
+        return { ...opt, disabled: true, reason: MUTUAL_EXCLUSION_REASON }
+      }
+      return { ...opt, disabled: false }
+    })
   }
 
   function isOptionDisabled(opt: FieldOption): boolean {
@@ -159,7 +171,12 @@
   function addSort() {
     if (draftSorts.value.length >= MAX_SORTS) return
     const usedFields = draftSorts.value.map((s) => s.field)
-    const nextField = sortFieldOptions.find((o) => !usedFields.includes(o.value))
+    const excluded = new Set<SortField>(usedFields)
+    for (const f of usedFields) {
+      const counterpart = MUTUALLY_EXCLUSIVE[f]
+      if (counterpart) excluded.add(counterpart)
+    }
+    const nextField = sortFieldOptions.find((o) => !excluded.has(o.value))
     if (!nextField) return
     draftSorts.value = [...draftSorts.value, { field: nextField.value, order: 'desc' }]
   }
@@ -276,7 +293,15 @@
                   :option-disabled="isOptionDisabled"
                   class="sort-field-select"
                   :aria-label="`Sort field ${index + 1}`"
-                />
+                >
+                  <template #option="{ option }">
+                    <span
+                      v-tooltip.right="(option as FieldOption).reason"
+                      class="sort-field-option"
+                      >{{ (option as FieldOption).label }}</span
+                    >
+                  </template>
+                </Select>
 
                 <!-- Order selector -->
                 <Select
@@ -496,6 +521,11 @@
   .sort-field-select {
     flex: 1 1 0;
     min-width: 0;
+  }
+
+  .sort-field-option {
+    display: block;
+    width: 100%;
   }
 
   .sort-order-select {

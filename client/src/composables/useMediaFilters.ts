@@ -5,7 +5,7 @@ import { useProfileStore } from '@/stores'
 /**
  * Sort field options for movies and series
  */
-export type SortField = 'title' | 'ratings' | 'productionYear'
+export type SortField = 'title' | 'ratings' | 'productionYear' | 'lastWatched'
 
 /**
  * Sort order options

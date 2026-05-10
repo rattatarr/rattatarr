@@ -61,9 +61,8 @@ public class SeriesService extends BaseService<MediaItem, MediaItemsRepository> 
         boolean loadEpisodes = BooleanUtils.toBoolean(filters.withEpisodes());
         boolean loadCredits = ObjectUtils.isNotEmpty(filters.id());
 
-        // Check what is going on with pageable inside of this
-        // Short: returns normal if not rating, if rating then returns an unsorted pageable to keep a custom order by for rating table.
         var ratingSort = MediaItemSpecifications.resolveRatingSort(pageable, filters.profileId());
+        var lastWatchedSort = MediaItemSpecifications.resolveLastWatchedSort(ratingSort.pageable(), filters.profileId());
 
         Specification<MediaItem> spec = Specification.allOf(
                 GenericSpecifications.notDeleted(),
@@ -77,10 +76,11 @@ public class SeriesService extends BaseService<MediaItem, MediaItemsRepository> 
                 MediaItemSpecifications.ratingInRange(filters.profileId(), filters.ratingMin(), filters.ratingMax()),
                 MediaItemSpecifications.hasCastOrCrewMember(filters.personId()),
                 MediaItemSpecifications.unrated(filters.profileId(), filters.unrated()),
-                ratingSort.spec()
+                ratingSort.spec(),
+                lastWatchedSort.spec()
         );
 
-        Page<MediaItem> page = repository.findAll(spec, ratingSort.pageable());
+        Page<MediaItem> page = repository.findAll(spec, lastWatchedSort.pageable());
 
         // Auto-refresh stale series if enabled and fetching a single series.
         // Works for both TMDb-imported and Jellyfin-sourced series.
@@ -99,7 +99,7 @@ public class SeriesService extends BaseService<MediaItem, MediaItemsRepository> 
             if (!refreshedSeries.equals(series)) {
                 // Series was refreshed, update the page content
                 List<MediaItem> updatedContent = Collections.singletonList(refreshedSeries);
-                page = new PageImpl<>(updatedContent, ratingSort.pageable(), page.getTotalElements());
+                page = new PageImpl<>(updatedContent, lastWatchedSort.pageable(), page.getTotalElements());
             }
         }
 
@@ -125,10 +125,10 @@ public class SeriesService extends BaseService<MediaItem, MediaItemsRepository> 
 
         List<UUID> seasonIds = loadSeasons
                 ? page.getContent().stream()
-                        .filter(item -> Hibernate.isInitialized(item.seasons()))
-                        .flatMap(item -> item.seasons().stream())
-                        .map(MediaSeason::id)
-                        .toList()
+                .filter(item -> Hibernate.isInitialized(item.seasons()))
+                .flatMap(item -> item.seasons().stream())
+                .map(MediaSeason::id)
+                .toList()
                 : List.of();
         Map<UUID, Float> seasonRatingsMap = mediaSeasonRatingsService.batchFetchRatingsMap(seasonIds, filters.profileId());
 
@@ -136,7 +136,7 @@ public class SeriesService extends BaseService<MediaItem, MediaItemsRepository> 
                 .map(item -> ShowResponseDTO.fromEntity(item, ratingsMap.get(item.id()), loadCredits, seasonRatingsMap))
                 .toList();
 
-        return new PageImpl<>(series, ratingSort.pageable(), page.getTotalElements());
+        return new PageImpl<>(series, lastWatchedSort.pageable(), page.getTotalElements());
     }
 
     @Transactional(readOnly = true)
