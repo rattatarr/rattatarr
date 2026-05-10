@@ -209,6 +209,7 @@ public class MediaItemSpecifications {
                     : cb.desc(ratingJoin.<Float>get("rating")));
 
             for (Sort.Order o : otherOrders) {
+                if (o.getProperty().equalsIgnoreCase("lastWatched")) continue;
                 orders.add(o.isAscending()
                         ? cb.asc(root.get(o.getProperty()))
                         : cb.desc(root.get(o.getProperty())));
@@ -220,6 +221,63 @@ public class MediaItemSpecifications {
 
         // Unsorted pageable: prevents Spring Data from calling query.orderBy() again
         // and overwriting the ORDER BY set above.
+        return new CustomSortResult(spec, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.unsorted()));
+    }
+
+    /**
+     * Same pattern as resolveRatingSort but for sort=lastWatched,asc|desc.
+     * Uses MAX(watchedAt) subquery per mediaItem+profile. Items never watched sort last (DESC) / first (ASC).
+     * profileId absent → sort silently dropped.
+     */
+    public static CustomSortResult resolveLastWatchedSort(Pageable pageable, @Nullable UUID profileId) {
+        Sort.Order lastWatchedOrder = pageable.getSort().stream()
+                .filter(o -> o.getProperty().equalsIgnoreCase("lastWatched"))
+                .findFirst()
+                .orElse(null);
+
+        if (lastWatchedOrder == null) {
+            return new CustomSortResult((root, query, cb) -> null, pageable);
+        }
+
+        List<Sort.Order> otherOrders = pageable.getSort().stream()
+                .filter(o -> !o.getProperty().equalsIgnoreCase("lastWatched"))
+                .toList();
+
+        if (profileId == null) {
+            return new CustomSortResult(
+                    (root, query, cb) -> null,
+                    PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(otherOrders))
+            );
+        }
+
+        Specification<MediaItem> spec = (root, query, cb) -> {
+            if (!MediaItem.class.equals(query.getResultType())) {
+                return null;
+            }
+
+            Subquery<Instant> lastWatchedSubquery = query.subquery(Instant.class);
+            var watchRoot = lastWatchedSubquery.from(WatchEvent.class);
+            lastWatchedSubquery.select(cb.greatest(watchRoot.get("watchedAt").as(Instant.class)));
+            lastWatchedSubquery.where(cb.and(
+                    cb.equal(watchRoot.get("mediaItem").get("id"), root.get("id")),
+                    cb.equal(watchRoot.get("profile").get("id"), profileId)
+            ));
+
+            List<Order> orders = new ArrayList<>();
+            orders.add(lastWatchedOrder.isAscending()
+                    ? cb.asc(lastWatchedSubquery)
+                    : cb.desc(lastWatchedSubquery));
+
+            for (Sort.Order o : otherOrders) {
+                orders.add(o.isAscending()
+                        ? cb.asc(root.get(o.getProperty()))
+                        : cb.desc(root.get(o.getProperty())));
+            }
+
+            query.orderBy(orders);
+            return null;
+        };
+
         return new CustomSortResult(spec, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.unsorted()));
     }
 

@@ -46,9 +46,8 @@ public class MoviesService extends BaseService<MediaItem, MediaItemsRepository> 
     public Page<MovieResponseDTO> filterMovies(MoviesFiltersDTO filters, Pageable pageable) {
         boolean loadCredits = ObjectUtils.isNotEmpty(filters.id());
 
-        // Check what is going on with pageable inside of this
-        // Short: returns normal if not rating, if rating then returns an unsorted pageable to keep a custom order by for rating table.
         var ratingSort = MediaItemSpecifications.resolveRatingSort(pageable, filters.profileId());
+        var lastWatchedSort = MediaItemSpecifications.resolveLastWatchedSort(ratingSort.pageable(), filters.profileId());
 
         Specification<MediaItem> spec = Specification.allOf(
                 GenericSpecifications.notDeleted(),
@@ -62,10 +61,11 @@ public class MoviesService extends BaseService<MediaItem, MediaItemsRepository> 
                 MediaItemSpecifications.ratingInRange(filters.profileId(), filters.ratingMin(), filters.ratingMax()),
                 MediaItemSpecifications.hasCastOrCrewMember(filters.personId()),
                 MediaItemSpecifications.unrated(filters.profileId(), filters.unrated()),
-                ratingSort.spec()
+                ratingSort.spec(),
+                lastWatchedSort.spec()
         );
 
-        Page<MediaItem> page = repository.findAll(spec, ratingSort.pageable());
+        Page<MediaItem> page = repository.findAll(spec, lastWatchedSort.pageable());
 
         page.forEach(mediaItem -> {
             mediaItemViewHelper.initializeCredits(mediaItem, loadCredits);
@@ -81,7 +81,7 @@ public class MoviesService extends BaseService<MediaItem, MediaItemsRepository> 
                 .map(item -> MovieResponseDTO.fromEntity(item, ratingsMap.get(item.id()), loadCredits))
                 .toList();
 
-        return new PageImpl<>(movies, ratingSort.pageable(), page.getTotalElements());
+        return new PageImpl<>(movies, lastWatchedSort.pageable(), page.getTotalElements());
     }
 
     @Transactional(readOnly = true)

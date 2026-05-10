@@ -256,10 +256,11 @@ describe('MediaFiltersPanel', () => {
     const sortFieldSelect = wrapper.find('.select-stub')
     const options = sortFieldSelect.findAll('option')
 
-    expect(options.length).toBe(3)
+    expect(options.length).toBe(4)
     expect(options[0]?.text()).toBe('Rating')
     expect(options[1]?.text()).toBe('Title')
     expect(options[2]?.text()).toBe('Year')
+    expect(options[3]?.text()).toBe('Last Watched')
   })
 
   it('renders sort order options correctly', () => {
