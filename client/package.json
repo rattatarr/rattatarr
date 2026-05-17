@@ -49,7 +49,7 @@
     "@vue/tsconfig": "^0.8.1",
     "eslint": "^9.39.1",
     "eslint-plugin-vue": "~10.5.1",
-    "happy-dom": "^20.6.1",
+    "happy-dom": "^20.8.9",
     "jiti": "^2.6.1",
     "npm-run-all2": "^8.0.4",
     "prettier": "3.6.2",

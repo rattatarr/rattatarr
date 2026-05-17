@@ -88,8 +88,8 @@ importers:
         specifier: ~10.5.1
         version: 10.5.1(@typescript-eslint/parser@8.50.1(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(vue-eslint-parser@10.2.0(eslint@9.39.2(jiti@2.6.1)))
       happy-dom:
-        specifier: ^20.6.1
-        version: 20.6.1
+        specifier: ^20.8.9
+        version: 20.8.9
       jiti:
         specifier: ^2.6.1
         version: 2.6.1
@@ -110,7 +110,7 @@ importers:
         version: 8.0.5(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1))(vue@3.5.26(typescript@5.9.3))
       vitest:
         specifier: ^4.0.18
-        version: 4.0.18(@types/node@24.10.4)(@vitest/ui@4.0.18)(happy-dom@20.6.1)(jiti@2.6.1)
+        version: 4.0.18(@types/node@24.10.4)(@vitest/ui@4.0.18)(happy-dom@20.8.9)(jiti@2.6.1)
       vue-tsc:
         specifier: ^3.1.5
         version: 3.2.1(typescript@5.9.3)
@@ -1161,12 +1161,8 @@ packages:
   emoji-regex@9.2.2:
     resolution: {integrity: sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg==}
 
-  entities@6.0.1:
-    resolution: {integrity: sha512-aN97NXWF6AWBTahfVOIrB/NShkzi5H7F9r1s9mD3cDj4Ko5f2qhhVoYMibXF7GlLveb/D2ioWay8lxI97Ven3g==}
-    engines: {node: '>=0.12'}
-
-  entities@7.0.0:
-    resolution: {integrity: sha512-FDWG5cmEYf2Z00IkYRhbFrwIwvdFKH07uV8dvNy0omp/Qb1xcyCWp2UDtcwJF4QZZvk0sLudP6/hAu42TaqVhQ==}
+  entities@7.0.1:
+    resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
 
   error-stack-parser-es@1.0.5:
@@ -1365,8 +1361,8 @@ packages:
     resolution: {integrity: sha512-oahGvuMGQlPw/ivIYBjVSrWAfWLBeku5tpPE2fOPLi+WHffIWbuh2tCjhyQhTBPMf5E9jDEH4FOmTYgYwbKwtQ==}
     engines: {node: '>=18'}
 
-  happy-dom@20.6.1:
-    resolution: {integrity: sha512-+0vhESXXhFwkdjZnJ5DlmJIfUYGgIEEjzIjB+aKJbFuqlvvKyOi+XkI1fYbgYR9QCxG5T08koxsQ6HrQfa5gCQ==}
+  happy-dom@20.8.9:
+    resolution: {integrity: sha512-Tz23LR9T9jOGVZm2x1EPdXqwA37G/owYMxRwU0E4miurAtFsPMQ1d2Jc2okUaSjZqAFz2oEn3FLXC5a0a+siyA==}
     engines: {node: '>=20.0.0'}
 
   has-flag@4.0.0:
@@ -2167,8 +2163,8 @@ packages:
     resolution: {integrity: sha512-si7QWI6zUMq56bESFvagtmzMdGOtoxfR+Sez11Mobfc7tm+VkUckk9bW2UeffTGVUbOksxmSw0AA2gs8g71NCQ==}
     engines: {node: '>=12'}
 
-  ws@8.19.0:
-    resolution: {integrity: sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg==}
+  ws@8.20.1:
+    resolution: {integrity: sha512-It4dO0K5v//JtTXuPkfEOaI3uUN87iYPnqo/ZzqCoG3g8uhA66QUMs/SrM0YK7/NAu+r4LMh/9dq2A7k+rHs+w==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -2863,7 +2859,7 @@ snapshots:
       obug: 2.1.1
       std-env: 3.10.0
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@types/node@24.10.4)(@vitest/ui@4.0.18)(happy-dom@20.6.1)(jiti@2.6.1)
+      vitest: 4.0.18(@types/node@24.10.4)(@vitest/ui@4.0.18)(happy-dom@20.8.9)(jiti@2.6.1)
 
   '@vitest/expect@4.0.18':
     dependencies:
@@ -2908,7 +2904,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@types/node@24.10.4)(@vitest/ui@4.0.18)(happy-dom@20.6.1)(jiti@2.6.1)
+      vitest: 4.0.18(@types/node@24.10.4)(@vitest/ui@4.0.18)(happy-dom@20.8.9)(jiti@2.6.1)
 
   '@vitest/utils@4.0.18':
     dependencies:
@@ -2960,7 +2956,7 @@ snapshots:
     dependencies:
       '@babel/parser': 7.28.5
       '@vue/shared': 3.5.26
-      entities: 7.0.0
+      entities: 7.0.1
       estree-walker: 2.0.2
       source-map-js: 1.2.1
 
@@ -3273,9 +3269,7 @@ snapshots:
 
   emoji-regex@9.2.2: {}
 
-  entities@6.0.1: {}
-
-  entities@7.0.0: {}
+  entities@7.0.1: {}
 
   error-stack-parser-es@1.0.5: {}
 
@@ -3499,14 +3493,14 @@ snapshots:
 
   globals@14.0.0: {}
 
-  happy-dom@20.6.1:
+  happy-dom@20.8.9:
     dependencies:
       '@types/node': 24.10.4
       '@types/whatwg-mimetype': 3.0.2
       '@types/ws': 8.18.1
-      entities: 6.0.1
+      entities: 7.0.1
       whatwg-mimetype: 3.0.0
-      ws: 8.19.0
+      ws: 8.20.1
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -4114,7 +4108,7 @@ snapshots:
       fsevents: 2.3.3
       jiti: 2.6.1
 
-  vitest@4.0.18(@types/node@24.10.4)(@vitest/ui@4.0.18)(happy-dom@20.6.1)(jiti@2.6.1):
+  vitest@4.0.18(@types/node@24.10.4)(@vitest/ui@4.0.18)(happy-dom@20.8.9)(jiti@2.6.1):
     dependencies:
       '@vitest/expect': 4.0.18
       '@vitest/mocker': 4.0.18(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1))
@@ -4139,7 +4133,7 @@ snapshots:
     optionalDependencies:
       '@types/node': 24.10.4
       '@vitest/ui': 4.0.18(vitest@4.0.18)
-      happy-dom: 20.6.1
+      happy-dom: 20.8.9
     transitivePeerDependencies:
       - jiti
       - less
@@ -4233,7 +4227,7 @@ snapshots:
       string-width: 5.1.2
       strip-ansi: 7.1.2
 
-  ws@8.19.0: {}
+  ws@8.20.1: {}
 
   wsl-utils@0.1.0:
     dependencies:
