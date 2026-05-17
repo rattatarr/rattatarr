@@ -438,7 +438,7 @@
 
   .year-input {
     flex: 1 1 0;
-    min-width: 0;
+    min-width: 130px;
     max-width: calc(50% - 1.5rem);
   }
 
@@ -448,7 +448,12 @@
 
   .year-input :deep(.p-inputnumber-input) {
     width: 100%;
-    min-width: 0;
+    min-width: 3ch;
+  }
+
+  .year-input :deep(.p-inputnumber-button) {
+    width: 2rem;
+    flex: 0 0 2rem;
   }
 
   .year-separator {
