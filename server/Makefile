@@ -1,4 +1,4 @@
-.PHONY: help start test test-ci refresh-packages clean build install package run dev logs format lint validate coverage docker-build docker-run
+.PHONY: help start test test-ci refresh-packages update-packages update-packages-all clean build install package run dev logs format lint validate coverage docker-build docker-run
 
 # Default target
 .DEFAULT_GOAL := help
@@ -27,10 +27,20 @@ test-ci: ## Test CI workflow locally using act
 	@echo "$(YELLOW)Note: Test reporter will be skipped locally$(NC)"
 	act push -j test
 
-refresh-packages: ## Update all Maven dependencies to latest versions
+refresh-packages: ## Show available Maven dependency updates
 	@echo "$(CYAN)Refreshing Maven packages...$(NC)"
 	./mvnw versions:display-dependency-updates
 	./mvnw versions:display-plugin-updates
+
+update-packages: ## Apply stable dependency updates (no alphas/RCs) then build
+	@echo "$(CYAN)Updating Maven packages to latest stable...$(NC)"
+	./mvnw versions:use-latest-releases
+	./mvnw clean install -DskipTests
+
+update-packages-all: ## Apply ALL dependency updates including alphas/RCs then build
+	@echo "$(YELLOW)Updating Maven packages to latest (including pre-releases)...$(NC)"
+	./mvnw versions:use-latest-versions
+	./mvnw clean install -DskipTests
 
 clean: ## Clean build artifacts
 	@echo "$(CYAN)Cleaning build artifacts...$(NC)"
