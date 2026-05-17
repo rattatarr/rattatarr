@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.0](https://github.com/rattatarr/rattatarr/compare/v1.1.1...v1.2.0) (2026-05-17)
+
+
+### Features
+
+* add filter by last watched in movies/series ([c27468a](https://github.com/rattatarr/rattatarr/commit/c27468ab53b0e19435cb4ffd33520ba5c9209753))
+* sonarr/radarr anime instances ([#16](https://github.com/rattatarr/rattatarr/issues/16)) ([ca74345](https://github.com/rattatarr/rattatarr/commit/ca74345aaaa3f0c42566c5ce6e789e019e82e1e3))
+* update to newer version chip alert ([87281b7](https://github.com/rattatarr/rattatarr/commit/87281b7d4cb480b0f5669614e9eccb894d2178c3))
+* year rewind ([#15](https://github.com/rattatarr/rattatarr/issues/15)) ([44df312](https://github.com/rattatarr/rattatarr/commit/44df312c74f93fe884c5ef9b03c1e1c40279dd89))
+
 ## [1.1.1](https://github.com/rattatarr/rattatarr/compare/v1.1.0...v1.1.1) (2026-05-01)
 
 
