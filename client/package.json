@@ -23,7 +23,7 @@
   "dependencies": {
     "@primeuix/themes": "^2.0.3",
     "@stomp/stompjs": "^7.3.0",
-    "@tanstack/vue-query": "^5.100.10",
+    "@tanstack/vue-query": "^5.100.14",
     "@vueuse/core": "^14.3.0",
     "chart.js": "^4.5.1",
     "openapi-fetch": "^0.17.0",
