@@ -975,7 +975,7 @@ export interface components {
     }
     CreateProfileRequestDTO: {
       name: string
-      jellyfinId?: string
+      jellyfinId?: string | null
     }
     ProfileWrapper: {
       profile?: components['schemas']['ProfileResponseDTO']
@@ -1580,6 +1580,10 @@ export interface components {
         [key: string]: string
       }
       serviceName?: string
+      thread?: string
+      /** Format: int64 */
+      sequence?: number
+      stackTrace?: string
     }
     LogsResponseWrapper: {
       logs?: components['schemas']['LogEvent'][]
@@ -2543,6 +2547,8 @@ export interface operations {
         endDate?: string
         /** @description Filter by logger name (substring match, case insensitive) */
         logger?: string
+        /** @description Filter by MDC requestId (exact match, case insensitive) to trace all logs of one request */
+        requestId?: string
         pageable: components['schemas']['Pageable']
       }
       header?: never

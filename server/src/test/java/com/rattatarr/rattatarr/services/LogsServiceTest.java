@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -35,11 +36,11 @@ class LogsServiceTest {
         // Create logs with specific timestamps for testing date filtering
         long now = System.currentTimeMillis();
         sampleLogs = List.of(
-                new LogEvent(now - 3000, "INFO", "com.test.Logger1", "Info message 1", new HashMap<>(), "test-service"),
-                new LogEvent(now - 2000, "ERROR", "com.test.ErrorLogger", "Error message", new HashMap<>(), "test-service"),
-                new LogEvent(now - 1000, "WARN", "com.test.Logger2", "Warning message", new HashMap<>(), "test-service"),
-                new LogEvent(now, "INFO", "com.test.Logger1", "Info message 2", new HashMap<>(), "test-service"),
-                new LogEvent(now + 1000, "DEBUG", "com.test.DebugLogger", "Debug message", new HashMap<>(), "test-service")
+                new LogEvent(now - 3000, "INFO", "com.test.Logger1", "Info message 1", new HashMap<>(), "test-service", "test-thread", 0L),
+                new LogEvent(now - 2000, "ERROR", "com.test.ErrorLogger", "Error message", new HashMap<>(), "test-service", "test-thread", 1L),
+                new LogEvent(now - 1000, "WARN", "com.test.Logger2", "Warning message", new HashMap<>(), "test-service", "test-thread", 2L),
+                new LogEvent(now, "INFO", "com.test.Logger1", "Info message 2", new HashMap<>(), "test-service", "test-thread", 3L),
+                new LogEvent(now + 1000, "DEBUG", "com.test.DebugLogger", "Debug message", new HashMap<>(), "test-service", "test-thread", 4L)
         );
     }
 
@@ -152,6 +153,51 @@ class LogsServiceTest {
         // Then
         assertEquals(1, result.getTotalElements());
         assertTrue(result.getContent().getFirst().logger().contains("Error"));
+    }
+
+    @Test
+    void testGetLogsExcludesOwnLoggerNoise() {
+        // Given
+        long now = System.currentTimeMillis();
+        List<LogEvent> logs = List.of(
+                new LogEvent(now, "INFO", "com.test.RealLogger", "real line", new HashMap<>(), "svc", "t", 0L),
+                new LogEvent(now, "DEBUG", LogsService.class.getName(), "Fetching logs with filter: ...", new HashMap<>(), "svc", "t", 1L),
+                new LogEvent(now, "DEBUG", LogsService.class.getName(), "Returning N logs ...", new HashMap<>(), "svc", "t", 2L)
+        );
+        when(inMemoryAppender.getEvents()).thenReturn(logs);
+        LogsFilterRequestDTO filter = new LogsFilterRequestDTO(null, null, null, null);
+        Pageable pageable = PageRequest.of(0, 10);
+
+        // When
+        Page<LogEvent> result = logsService.getLogs(filter, pageable);
+
+        // Then — only the non-LogsService line survives
+        assertEquals(1, result.getTotalElements());
+        assertEquals("com.test.RealLogger", result.getContent().getFirst().logger());
+    }
+
+    @Test
+    void testGetLogsFilteredByRequestId() {
+        // Given
+        long now = System.currentTimeMillis();
+        List<LogEvent> logs = List.of(
+                new LogEvent(now, "INFO", "com.test.A", "req a-1", Map.of("requestId", "ab12cd34"), "svc", "t", 0L),
+                new LogEvent(now, "INFO", "com.test.B", "req b", Map.of("requestId", "ffffffff"), "svc", "t", 1L),
+                new LogEvent(now, "INFO", "com.test.A", "req a-2", Map.of("requestId", "ab12cd34"), "svc", "t", 2L),
+                new LogEvent(now, "INFO", "com.test.C", "no mdc", new HashMap<>(), "svc", "t", 3L)
+        );
+        when(inMemoryAppender.getEvents()).thenReturn(logs);
+        // case-insensitive exact match
+        LogsFilterRequestDTO filter = new LogsFilterRequestDTO(null, null, null, null, "AB12CD34");
+        Pageable pageable = PageRequest.of(0, 10);
+
+        // When
+        Page<LogEvent> result = logsService.getLogs(filter, pageable);
+
+        // Then
+        assertEquals(2, result.getTotalElements());
+        assertTrue(result.getContent().stream()
+                .allMatch(log -> "ab12cd34".equals(log.mdc().get("requestId"))));
     }
 
     @Test

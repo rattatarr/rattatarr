@@ -21,9 +21,10 @@
 
     <!-- Column Headers with Count -->
     <div v-if="showColumnHeaders" class="terminal-column-headers">
+      <span class="header-expand" />
       <span class="header-time">Timestamp</span>
       <span class="header-level">Level</span>
-      <span class="header-service">Service</span>
+      <span class="header-request">Request ID</span>
       <span class="header-logger">Logger</span>
       <span class="header-message">Message</span>
       <span class="header-count">{{ count }}</span>
@@ -84,6 +85,11 @@
     flex-shrink: 0;
   }
 
+  .header-expand {
+    flex-shrink: 0;
+    width: 20px;
+  }
+
   .header-time {
     flex-shrink: 0;
     width: 180px;
@@ -95,14 +101,14 @@
     text-align: center;
   }
 
-  .header-service {
+  .header-request {
     flex-shrink: 0;
-    width: 120px;
+    width: 110px;
   }
 
   .header-logger {
     flex-shrink: 0;
-    width: 300px;
+    width: 200px;
   }
 
   .header-message {
@@ -144,10 +150,13 @@
       width: 50px;
     }
 
-    /* Hide service and logger headers on mobile */
-    .header-service,
+    /* Hide logger header on mobile */
     .header-logger {
       display: none;
+    }
+
+    .header-request {
+      width: auto;
     }
 
     .header-message {

@@ -29,7 +29,7 @@ public class LibraryGenresController extends BaseController {
             @PageableDefault(size = 20, sort = "name") Pageable pageable,
             @ModelAttribute GenresFiltersDTO filters
     ) {
-        logger.info("Fetching genres with filters: {}", pageable);
+        logger.info("Fetching genres with filters {} ({})", filters, pageable);
 
         return ResponseEntity.ok(GenresWrapper.fromPage(
                 genresService.filterGenres(filters, pageable)

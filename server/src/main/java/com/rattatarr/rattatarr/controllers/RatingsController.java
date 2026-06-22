@@ -71,7 +71,8 @@ public class RatingsController extends BaseController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("profileId") UUID profileId
     ) {
-        logger.info("Received IMDb CSV import request for profile: {}, file: {}", profileId, file.getOriginalFilename());
+        logger.info("Received IMDb CSV import request for profile {}, file: {}",
+                profilesService.describe(profileId), file.getOriginalFilename());
 
         if (file.isEmpty()) {
             throw new IllegalArgumentException("CSV file is empty");
@@ -93,12 +94,12 @@ public class RatingsController extends BaseController {
     public ResponseEntity<byte[]> exportRatingsCsv(
             @RequestParam("profileId") UUID profileId
     ) {
-        logger.info("Exporting ratings CSV for profile: {}", profileId);
-
         Profile profile = profilesService.findByIdOrThrow(
                 profileId,
                 ProfilesExceptions.ProfileNotFoundExceptions::new
         );
+
+        logger.info("Exporting ratings CSV for profile '{}' ({})", profile.name(), profileId);
 
         byte[] csvData = ratingService.exportProfileMediaRatingsCsv(profile);
 

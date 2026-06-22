@@ -6,6 +6,7 @@ import com.rattatarr.rattatarr.models.entities.MediaItem;
 import com.rattatarr.rattatarr.repositories.MediaItemsRepository;
 import com.rattatarr.rattatarr.specifications.GenericSpecifications;
 import com.rattatarr.rattatarr.specifications.MediaItemSpecifications;
+import com.rattatarr.rattatarr.utils.MdcContext;
 import com.rattatarr.rattatarr.utils.ParallelAPIProcessor;
 import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
@@ -16,6 +17,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executor;
 
 @Service
@@ -52,17 +54,20 @@ public class MediaItemCreditsService {
     private TMDbFetchResult fetchCreditsFromTMDb(MediaItem mediaItem) {
         switch (mediaItem.mediaType()) {
             case MOVIE -> {
-                logger.info("Fetching credits for Movie MediaItem ID: {} from TMDb...", mediaItem.id());
+                logger.debug("Fetching credits for movie '{}' ({}, TMDb ID: {}) from TMDb...",
+                        mediaItem.title(), mediaItem.id(), mediaItem.TMDbId());
                 var credits = tmdbClient.findMovieCreditsById(mediaItem.TMDbId());
                 return new TMDbFetchResult(mediaItem, credits);
             }
             case SERIES -> {
-                logger.info("Fetching credits for Series MediaItem ID: {} from TMDb...", mediaItem.id());
+                logger.debug("Fetching credits for series '{}' ({}, TMDb ID: {}) from TMDb...",
+                        mediaItem.title(), mediaItem.id(), mediaItem.TMDbId());
                 var credits = tmdbClient.findTVShowCreditsById(mediaItem.TMDbId());
                 return new TMDbFetchResult(mediaItem, credits);
             }
             default -> {
-                logger.warn("Unsupported media type for MediaItem ID: {}. Skipping credits fetch.", mediaItem.id());
+                logger.warn("Unsupported media type {} for '{}' ({}). Skipping credits fetch.",
+                        mediaItem.mediaType(), mediaItem.title(), mediaItem.id());
                 throw new IllegalArgumentException("Unsupported media type: " + mediaItem.mediaType());
             }
         }
@@ -94,12 +99,14 @@ public class MediaItemCreditsService {
 
     @Async("backgroundTaskExecutor")
     public void triggerBackgroundCreditsUpdate(Boolean forceRefresh) {
-        logger.info("TMDb credits update started");
-        try {
-            updateAllMediaItemCredits(forceRefresh);
-            logger.info("TMDb credits update completed successfully");
-        } catch (Exception e) {
-            logger.error("Error during TMDb credits update", e);
+        try (var ignored = MdcContext.of(Map.of("jobType", "CREDITS_REFRESH"))) {
+            logger.info("TMDb credits update started (forceRefresh={})", forceRefresh);
+            try {
+                updateAllMediaItemCredits(forceRefresh);
+                logger.info("TMDb credits update completed successfully");
+            } catch (Exception e) {
+                logger.error("TMDb credits update failed", e);
+            }
         }
     }
 

@@ -275,6 +275,7 @@ class RadarrServiceTest {
     @Test
     void triggerBackgroundImport_onSuccess_shouldMarkCompleted() {
         BackgroundJob job = new BackgroundJob(JobType.RADARR_IMPORT, null);
+        ReflectionTestUtils.setField(job, "id", UUID.randomUUID());
         when(defaultClient.isConfigured()).thenReturn(true);
         when(defaultClient.getMonitoredInternalMovies(null)).thenReturn(List.of(radarrMovieWithRatings));
         when(tmDbService.importMediaItem("27205", MediaType.MOVIE)).thenReturn(movieItem);
@@ -289,6 +290,7 @@ class RadarrServiceTest {
     @Test
     void triggerBackgroundImport_onFailure_shouldMarkFailed() {
         BackgroundJob job = new BackgroundJob(JobType.RADARR_IMPORT, null);
+        ReflectionTestUtils.setField(job, "id", UUID.randomUUID());
         when(defaultClient.isConfigured()).thenReturn(true);
         when(defaultClient.getMonitoredInternalMovies(null)).thenThrow(new RuntimeException("Connection refused"));
 
@@ -409,6 +411,7 @@ class RadarrServiceTest {
     @Test
     void triggerBackgroundRatingsRefresh_onSuccess_shouldMarkCompleted() {
         BackgroundJob job = new BackgroundJob(JobType.RADARR_RATINGS_REFRESH, null);
+        ReflectionTestUtils.setField(job, "id", UUID.randomUUID());
         when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findAllMoviesWithTmdbId()).thenReturn(List.of());
 
@@ -422,6 +425,7 @@ class RadarrServiceTest {
     @Test
     void triggerBackgroundRatingsRefresh_onFailure_shouldMarkFailed() {
         BackgroundJob job = new BackgroundJob(JobType.RADARR_RATINGS_REFRESH, null);
+        ReflectionTestUtils.setField(job, "id", UUID.randomUUID());
         when(defaultClient.isConfigured()).thenReturn(true);
         when(mediaItemsService.findAllMoviesWithTmdbId()).thenThrow(new RuntimeException("DB error"));
 

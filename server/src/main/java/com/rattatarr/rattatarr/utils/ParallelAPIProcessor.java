@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -63,9 +64,14 @@ public class ParallelAPIProcessor {
             return;
         }
 
-        logger.info("Processing {} {}...", items.size(), description);
+        int total = items.size();
+        logger.info("Processing {} {}...", total, description);
 
         Object dbWriteLock = new Object();
+        AtomicInteger succeeded = new AtomicInteger();
+        AtomicInteger fetchFailed = new AtomicInteger();
+        AtomicInteger saveFailed = new AtomicInteger();
+        AtomicInteger skipped = new AtomicInteger();
 
         List<CompletableFuture<Void>> futures = items.stream()
                 .map(item -> CompletableFuture
@@ -73,18 +79,23 @@ public class ParallelAPIProcessor {
                             try {
                                 return fetchFunction.apply(item);
                             } catch (Exception e) {
-                                logger.error("Error fetching data for item: {}", item, e);
+                                fetchFailed.incrementAndGet();
+                                logger.error("Failed fetching {} for item: {}", description, item, e);
                                 return null;
                             }
                         }, executor)
                         .thenAccept(result -> {
-                            if (result != null) {
-                                synchronized (dbWriteLock) {
-                                    try {
-                                        saveFunction.accept(result);
-                                    } catch (Exception e) {
-                                        logger.error("Error saving data: {}", result, e);
-                                    }
+                            if (result == null) {
+                                skipped.incrementAndGet();
+                                return;
+                            }
+                            synchronized (dbWriteLock) {
+                                try {
+                                    saveFunction.accept(result);
+                                    succeeded.incrementAndGet();
+                                } catch (Exception e) {
+                                    saveFailed.incrementAndGet();
+                                    logger.error("Failed saving {} for result: {}", description, result, e);
                                 }
                             }
                         })
@@ -92,7 +103,19 @@ public class ParallelAPIProcessor {
                 .toList();
 
         CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
-        logger.info("Finished processing {} {}", items.size(), description);
+
+        int fetchErrors = fetchFailed.get();
+        int saveErrors = saveFailed.get();
+        int skippedCount = skipped.get() - fetchErrors;
+        if (fetchErrors > 0 || saveErrors > 0) {
+            logger.warn(
+                    "Finished processing {} {}: {} succeeded, {} fetch errors, {} save errors, {} skipped (no data)",
+                    total, description, succeeded.get(), fetchErrors, saveErrors, Math.max(skippedCount, 0));
+        } else {
+            logger.info(
+                    "Finished processing {} {}: {} succeeded, {} skipped (no data)",
+                    total, description, succeeded.get(), Math.max(skippedCount, 0));
+        }
     }
 
     /**

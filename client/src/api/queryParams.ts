@@ -180,6 +180,7 @@ export function buildLogsQueryParams(pageable: Pageable, filters?: LogsFilters) 
     startDate: filters?.startDate,
     endDate: filters?.endDate,
     logger: filters?.logger,
+    requestId: filters?.requestId,
   }
 }
 

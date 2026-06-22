@@ -33,7 +33,7 @@ public class LibraryPeopleController extends BaseController {
             @PageableDefault(size = 20, sort = "name") Pageable pageable,
             @ModelAttribute PeopleFiltersDTO filters
     ) {
-        logger.info("Fetching people with filters: {}", pageable);
+        logger.info("Fetching people with filters {} ({})", filters, pageable);
 
         return ResponseEntity.ok(PeopleWrapper.fromPage(
                 peopleService.filterPeople(filters, pageable)

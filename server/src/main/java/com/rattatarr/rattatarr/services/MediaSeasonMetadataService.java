@@ -60,15 +60,16 @@ public class MediaSeasonMetadataService extends BaseService<MediaSeasonMetadata,
         if (ObjectUtils.isEmpty(tmDbShow.seasons())) {
             return;
         }
-        logger.info("Enriching season metadata for TV Show MediaItem ID: {} from TMDb...", mediaItem.id());
+        logger.debug("Enriching season metadata for series '{}' ({}, {} seasons) from TMDb...",
+                mediaItem.title(), mediaItem.id(), tmDbShow.seasons().size());
 
         for (var season : tmDbShow.seasons()) {
             if (season.seasonNumber() == null) continue;
 
             Optional<MediaSeason> optionalMediaSeason = mediaSeasonsService.findByMediaItemAndSeason(mediaItem, season.seasonNumber());
             if (optionalMediaSeason.isEmpty()) {
-                logger.warn("No MediaSeason found for MediaItem ID {} and season number {}. Skipping season metadata creation.",
-                        mediaItem.id(), season.seasonNumber());
+                logger.warn("No MediaSeason found for series '{}' ({}) season {}. Skipping season metadata creation.",
+                        mediaItem.title(), mediaItem.id(), season.seasonNumber());
                 continue;
             }
 
@@ -94,7 +95,8 @@ public class MediaSeasonMetadataService extends BaseService<MediaSeasonMetadata,
             return;
         }
 
-        logger.info("Batch upserting season metadata for {} seasons of {}", seasonDetails.size(), mediaItem.title());
+        logger.debug("Batch upserting season metadata for {} seasons of '{}' ({})",
+                seasonDetails.size(), mediaItem.title(), mediaItem.id());
 
         for (Map.Entry<Integer, TMDbSeasonWithEpisodesResponseDTO> entry : seasonDetails.entrySet()) {
             int seasonNumber = entry.getKey();
@@ -107,8 +109,8 @@ public class MediaSeasonMetadataService extends BaseService<MediaSeasonMetadata,
 
             Optional<MediaSeason> seasonOpt = mediaSeasonsService.findByMediaItemAndSeason(mediaItem, seasonNumber);
             if (seasonOpt.isEmpty()) {
-                logger.warn("Season {} not found for media item {}, skipping metadata",
-                        seasonNumber, mediaItem.title());
+                logger.warn("Season {} not found for series '{}' ({}), skipping metadata",
+                        seasonNumber, mediaItem.title(), mediaItem.id());
                 continue;
             }
 
@@ -125,6 +127,7 @@ public class MediaSeasonMetadataService extends BaseService<MediaSeasonMetadata,
             upsertWithRefresh(seasonMetadata, forceRefresh);
         }
 
-        logger.info("Saved metadata for {} seasons", seasonDetails.size());
+        logger.debug("Saved metadata for {} seasons of '{}' ({})",
+                seasonDetails.size(), mediaItem.title(), mediaItem.id());
     }
 }

@@ -8,6 +8,7 @@ import com.rattatarr.rattatarr.specifications.GenericSpecifications;
 import com.rattatarr.rattatarr.specifications.ProfileSpecifications;
 import com.rattatarr.rattatarr.utils.TimeConverter;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -19,6 +20,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @NullMarked
@@ -101,5 +103,22 @@ public class ProfilesService extends BaseService<Profile, ProfilesRepository> {
     @Transactional(readOnly = true)
     public Optional<Profile> findByJellyfinId(String jellyfinId) {
         return repository.findByJellyfinId(jellyfinId);
+    }
+
+    /**
+     * Cheap, log-friendly label for a profile id: {@code 'Alex' (uuid)}.
+     * Resolves the name via a single primary-key lookup; never throws.
+     * Returns {@code 'unknown' (uuid)} when the id is null or not found,
+     * so log statements stay safe and uniform.
+     */
+    @Transactional(readOnly = true)
+    public String describe(@Nullable UUID profileId) {
+        if (profileId == null) {
+            return "'unknown' (null)";
+        }
+        return repository
+                .findById(profileId)
+                .map(profile -> "'%s' (%s)".formatted(profile.name(), profileId))
+                .orElseGet(() -> "'unknown' (%s)".formatted(profileId));
     }
 }

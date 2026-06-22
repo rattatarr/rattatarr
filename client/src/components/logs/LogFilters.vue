@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import InputText from 'primevue/inputtext'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
 import DatePicker from 'primevue/datepicker'
 import Button from 'primevue/button'
 import LogLevelChips from './LogLevelChips.vue'
@@ -12,6 +14,7 @@ const { filters, autoRefresh } = useLogsContext()
 // Local state synced with context
 const selectedLevel = ref<string | undefined>(filters.value.level)
 const loggerName = ref<string>(filters.value.logger ?? '')
+const requestId = ref<string>(filters.value.requestId ?? '')
 const startDate = ref<Date | undefined>(
   filters.value.startDate ? new Date(filters.value.startDate) : undefined,
 )
@@ -20,14 +23,23 @@ const endDate = ref<Date | undefined>(
 )
 
 // Watch for changes and update context
-watch([selectedLevel, loggerName, startDate, endDate], () => {
+watch([selectedLevel, loggerName, requestId, startDate, endDate], () => {
   filters.value = {
     level: selectedLevel.value,
     logger: loggerName.value || undefined,
+    requestId: requestId.value || undefined,
     startDate: startDate.value?.toISOString(),
     endDate: endDate.value?.toISOString(),
   }
 })
+
+// Reflect external filter changes (e.g. clicking a requestId in a log row)
+watch(
+  () => filters.value.requestId,
+  (value) => {
+    if ((value ?? '') !== requestId.value) requestId.value = value ?? ''
+  },
+)
 
 // Auto-refresh toggle
 const toggleAutoRefresh = () => {
@@ -53,6 +65,26 @@ const toggleAutoRefresh = () => {
           placeholder="e.g. com.rattatarr"
           class="filter-input"
         />
+      </div>
+
+      <!-- Request ID Filter -->
+      <div class="filter-group">
+        <label for="request-id-filter" class="filter-label">Request ID</label>
+        <IconField>
+          <InputText
+            id="request-id-filter"
+            v-model="requestId"
+            placeholder="e.g. ab12cd34"
+            class="filter-input"
+          />
+          <InputIcon
+            v-if="requestId"
+            class="pi pi-times request-id-clear"
+            role="button"
+            aria-label="Clear request ID filter"
+            @click="requestId = ''"
+          />
+        </IconField>
       </div>
 
       <!-- Date Range -->
@@ -132,6 +164,15 @@ const toggleAutoRefresh = () => {
 }
 
 .filter-input {
+  width: 100%;
+}
+
+.request-id-clear {
+  cursor: pointer;
+}
+
+/* IconField should fill the grid cell like other inputs */
+.filter-group :deep(.p-iconfield) {
   width: 100%;
 }
 

@@ -10,6 +10,7 @@ import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.MediaValidationResult;
 import com.rattatarr.rattatarr.models.entities.*;
+import com.rattatarr.rattatarr.utils.MdcContext;
 import com.rattatarr.rattatarr.utils.ValueResolver;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -96,7 +97,7 @@ public class JellyfinTraversalService {
 
     // ===== FETCH METHODS =====
     private List<JellyfinClientItemFolderResponseDTO> fetchFolders() {
-        logger.info("Starting to fetch folders from Jellyfin");
+        logger.debug("Starting to fetch folders from Jellyfin");
         var wrapper = jellyfinClient.getItems(
                 JellyfinItemsQueryBuilder.builder()
                         .filter("isFolder")
@@ -106,7 +107,7 @@ public class JellyfinTraversalService {
     }
 
     private List<JellyfinClientItemMovieResponseDTO> fetchMovies(String parentId) {
-        logger.info("Fetching movies under parent ID: {}", parentId);
+        logger.debug("Fetching movies under parent ID: {}", parentId);
         var wrapper = jellyfinClient.getItems(
                 JellyfinItemsQueryBuilder.builder()
                         .parentId(parentId)
@@ -121,7 +122,7 @@ public class JellyfinTraversalService {
     }
 
     private List<JellyfinClientItemSeriesResponseDTO> fetchSeries(String parentId) {
-        logger.info("Fetching series under parent ID: {}", parentId);
+        logger.debug("Fetching series under parent ID: {}", parentId);
         var wrapper = jellyfinClient.getItems(
                 JellyfinItemsQueryBuilder.builder()
                         .parentId(parentId)
@@ -136,7 +137,7 @@ public class JellyfinTraversalService {
     }
 
     private List<JellyfinClientItemSeasonResponseDTO> fetchSeasons(String seriesId) {
-        logger.info("Fetching seasons for series ID: {}", seriesId);
+        logger.debug("Fetching seasons for series ID: {}", seriesId);
         var wrapper = jellyfinClient.getItems(
                 JellyfinItemsQueryBuilder.builder()
                         .parentId(seriesId)
@@ -147,7 +148,7 @@ public class JellyfinTraversalService {
     }
 
     private List<JellyfinClientItemEpisodeResponseDTO> fetchEpisodes(String seasonId) {
-        logger.info("Fetching episodes for season ID: {}", seasonId);
+        logger.debug("Fetching episodes for season ID: {}", seasonId);
         var wrapper = jellyfinClient.getItems(
                 JellyfinItemsQueryBuilder.builder()
                         .parentId(seasonId)
@@ -215,6 +216,8 @@ public class JellyfinTraversalService {
                 );
                 logger.info("Updated Jellyfin ID for movie '{}' (TMDb ID: {}) to new Jellyfin ID: {}",
                         movie.name(), movie.providers().TMDbId(), movie.id());
+                // Already exists under a different Jellyfin ID — don't queue a duplicate insert (TMDb ID is unique).
+                continue;
             }
 
             Set<Genre> genreSet = resolveGenres(movie.genres());
@@ -407,17 +410,19 @@ public class JellyfinTraversalService {
 
     @Async("backgroundTaskExecutor")
     public void syncMediaAsync(BackgroundJob job) {
-        logger.info("Starting async Jellyfin media synchronization workflow, jobId={}", job.id());
-        backgroundJobService.markRunning(job);
-        try {
-            pipelineTraverseSyncMedia();
-            mediaItemMetadataService.refreshAllMetadata(false);
-            mediaItemCreditsService.updateAllMediaItemCredits(false);
-            backgroundJobService.markCompleted(job, "Jellyfin sync completed successfully");
-            logger.info("Async Jellyfin media synchronization workflow completed, jobId={}", job.id());
-        } catch (Exception e) {
-            backgroundJobService.markFailed(job, e.getMessage());
-            logger.error("Async Jellyfin media synchronization workflow failed, jobId={}", job.id(), e);
+        try (var ignored = MdcContext.of(Map.of("jobId", job.id().toString(), "jobType", job.type().name()))) {
+            try {
+                logger.info("Starting async Jellyfin media synchronization workflow, jobId={}", job.id());
+                backgroundJobService.markRunning(job);
+                pipelineTraverseSyncMedia();
+                mediaItemMetadataService.refreshAllMetadata(false);
+                mediaItemCreditsService.updateAllMediaItemCredits(false);
+                backgroundJobService.markCompleted(job, "Jellyfin sync completed successfully");
+                logger.info("Async Jellyfin media synchronization workflow completed, jobId={}", job.id());
+            } catch (Exception e) {
+                backgroundJobService.markFailed(job, e.getMessage());
+                logger.error("Async Jellyfin media synchronization workflow failed, jobId={}", job.id(), e);
+            }
         }
     }
 

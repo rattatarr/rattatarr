@@ -35,6 +35,7 @@ class InMemoryAppenderTest {
         when(event.getTimeStamp()).thenReturn(System.currentTimeMillis());
         when(event.getLoggerName()).thenReturn("com.rattatarr.test");
         when(event.getMDCPropertyMap()).thenReturn(new HashMap<>());
+        when(event.getThreadName()).thenReturn("test-thread");
 
         // When
         appender.append(event);
@@ -90,6 +91,7 @@ class InMemoryAppenderTest {
         when(event.getTimeStamp()).thenReturn(System.currentTimeMillis());
         when(event.getLoggerName()).thenReturn("com.rattatarr.test");
         when(event.getMDCPropertyMap()).thenReturn(mdc);
+        when(event.getThreadName()).thenReturn("test-thread");
 
         // When
         appender.append(event);
@@ -98,6 +100,42 @@ class InMemoryAppenderTest {
         List<LogEvent> logs = appender.getEvents();
         assertEquals(1, logs.size());
         assertEquals(mdc, logs.getFirst().mdc());
+    }
+
+    @Test
+    void testAppendEventCapturesStackTrace() {
+        // Given
+        ILoggingEvent event = mock(ILoggingEvent.class);
+        when(event.getFormattedMessage()).thenReturn("Boom");
+        when(event.getLevel()).thenReturn(Level.ERROR);
+        when(event.getTimeStamp()).thenReturn(System.currentTimeMillis());
+        when(event.getLoggerName()).thenReturn("com.rattatarr.test");
+        when(event.getMDCPropertyMap()).thenReturn(new HashMap<>());
+        when(event.getThreadName()).thenReturn("test-thread");
+        when(event.getThrowableProxy())
+                .thenReturn(new ch.qos.logback.classic.spi.ThrowableProxy(
+                        new IllegalStateException("kaboom")));
+
+        // When
+        appender.append(event);
+
+        // Then
+        String stackTrace = appender.getEvents().getFirst().stackTrace();
+        assertNotNull(stackTrace);
+        assertTrue(stackTrace.contains("IllegalStateException"));
+        assertTrue(stackTrace.contains("kaboom"));
+    }
+
+    @Test
+    void testAppendEventWithoutThrowableHasNullStackTrace() {
+        // Given (default mock returns null throwable proxy)
+        ILoggingEvent event = createMockEvent("No error", Level.INFO);
+
+        // When
+        appender.append(event);
+
+        // Then
+        assertNull(appender.getEvents().getFirst().stackTrace());
     }
 
     @Test
@@ -138,6 +176,7 @@ class InMemoryAppenderTest {
         when(event.getTimeStamp()).thenReturn(System.currentTimeMillis());
         when(event.getLoggerName()).thenReturn("com.rattatarr.test");
         when(event.getMDCPropertyMap()).thenReturn(new HashMap<>());
+        when(event.getThreadName()).thenReturn(Thread.currentThread().getName());
         return event;
     }
 }

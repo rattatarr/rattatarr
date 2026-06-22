@@ -4,6 +4,7 @@ import com.rattatarr.rattatarr.services.JellyfinTraversalService;
 import com.rattatarr.rattatarr.services.MediaItemCreditsService;
 import com.rattatarr.rattatarr.services.MediaItemMetadataService;
 import com.rattatarr.rattatarr.services.SettingsService;
+import com.rattatarr.rattatarr.utils.MdcContext;
 import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 
 @Service
 @NullMarked
@@ -58,19 +60,21 @@ public class MediaSyncScheduler {
             return;
         }
 
-        Instant startTime = Instant.now();
-        logger.info("Starting scheduled Jellyfin media synchronization");
+        try (var ignored = MdcContext.of(Map.of("jobType", "JELLYFIN_SYNC", "jobSource", "SCHEDULER"))) {
+            Instant startTime = Instant.now();
+            logger.info("Starting scheduled Jellyfin media synchronization");
 
-        try {
-            jellyfinTraversalService.pipelineTraverseSyncMedia();
-            mediaItemMetadataService.refreshAllMetadata(false);
-            mediaItemCreditsService.updateAllMediaItemCredits(false);
+            try {
+                jellyfinTraversalService.pipelineTraverseSyncMedia();
+                mediaItemMetadataService.refreshAllMetadata(false);
+                mediaItemCreditsService.updateAllMediaItemCredits(false);
 
-            Duration duration = Duration.between(startTime, Instant.now());
-            logger.info("Scheduled Jellyfin sync completed successfully in {} seconds",
-                    duration.getSeconds());
-        } catch (Exception e) {
-            logger.error("Scheduled Jellyfin sync failed", e);
+                Duration duration = Duration.between(startTime, Instant.now());
+                logger.info("Scheduled Jellyfin sync completed successfully in {} seconds",
+                        duration.getSeconds());
+            } catch (Exception e) {
+                logger.error("Scheduled Jellyfin sync failed", e);
+            }
         }
     }
 }

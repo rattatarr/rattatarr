@@ -11,6 +11,7 @@ import com.rattatarr.rattatarr.models.dtos.responses.wrappers.SeriesResponseWrap
 import com.rattatarr.rattatarr.services.BrokenMediaItemsService;
 import com.rattatarr.rattatarr.services.MediaItemRefreshService;
 import com.rattatarr.rattatarr.services.MediaItemsService;
+import com.rattatarr.rattatarr.services.ProfilesService;
 import com.rattatarr.rattatarr.services.SeriesService;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.data.domain.Pageable;
@@ -29,16 +30,19 @@ public class LibrarySeriesController extends BaseController {
     private final BrokenMediaItemsService brokenMediaItemsService;
     private final MediaItemsService mediaItemsService;
     private final MediaItemRefreshService mediaItemRefreshService;
+    private final ProfilesService profilesService;
 
     public LibrarySeriesController(SeriesService seriesService,
                                    BrokenMediaItemsService brokenMediaItemsService,
                                    MediaItemsService mediaItemsService,
-                                   MediaItemRefreshService mediaItemRefreshService
+                                   MediaItemRefreshService mediaItemRefreshService,
+                                   ProfilesService profilesService
     ) {
         this.seriesService = seriesService;
         this.brokenMediaItemsService = brokenMediaItemsService;
         this.mediaItemsService = mediaItemsService;
         this.mediaItemRefreshService = mediaItemRefreshService;
+        this.profilesService = profilesService;
     }
 
     @GetMapping
@@ -46,7 +50,7 @@ public class LibrarySeriesController extends BaseController {
             @PageableDefault(size = 20, sort = "productionYear") Pageable pageable,
             @ModelAttribute SeriesFiltersDTO filters
     ) {
-        logger.info("Fetching series with filters: {}", pageable);
+        logger.info("Fetching series with filters {} ({})", filters, pageable);
 
         return ResponseEntity.ok(SeriesResponseWrapper.fromPage(
                 seriesService.filterSeries(filters, pageable)
@@ -74,11 +78,22 @@ public class LibrarySeriesController extends BaseController {
             @PageableDefault(size = 20) Pageable pageable,
             @ModelAttribute SeriesFiltersDTO filters
     ) {
-        logger.info("Fetching recently watched unrated series for profile {}", filters.profileId());
+        String profile = profilesService.describe(filters.profileId());
+        logger.info(
+                "Fetching recently watched unrated series for profile {} (page {}, size {})",
+                profile,
+                pageable.getPageNumber(),
+                pageable.getPageSize());
 
-        return ResponseEntity.ok(SeriesResponseWrapper.fromPage(
-                seriesService.findRecentlyWatchedUnratedSeries(filters, pageable)
-        ));
+        var page = seriesService.findRecentlyWatchedUnratedSeries(filters, pageable);
+
+        logger.debug(
+                "Found {} recently watched unrated series for profile {} ({} total)",
+                page.getNumberOfElements(),
+                profile,
+                page.getTotalElements());
+
+        return ResponseEntity.ok(SeriesResponseWrapper.fromPage(page));
     }
 
     /**
@@ -92,7 +107,9 @@ public class LibrarySeriesController extends BaseController {
         try {
             var mediaItem = mediaItemsService.findById(id)
                     .orElseThrow(() -> new CommonExceptions.ResourceNotFoundExceptions("Media item not found: " + id));
+            logger.debug("Refreshing media item '{}' ({})", mediaItem.title(), id);
             var refreshed = mediaItemRefreshService.refresh(mediaItem);
+            logger.info("Media item '{}' ({}) refreshed successfully", refreshed.title(), id);
             return GenericResponseDTO.success(
                     "Media item '" + refreshed.title() + "' refreshed successfully", null);
         } catch (Exception e) {

@@ -53,7 +53,7 @@ public class MoviesService extends BaseService<MediaItem, MediaItemsRepository> 
                 GenericSpecifications.notDeleted(),
                 MediaItemSpecifications.hasId(filters.id()),
                 MediaItemSpecifications.isMovie(),
-                MediaItemSpecifications.genres(filters.genres(), true),
+                MediaItemSpecifications.genres(filters.genres(), false),
                 MediaItemSpecifications.releasedAfter(filters.releasedAfter()),
                 MediaItemSpecifications.releasedBefore(filters.releasedBefore()),
                 MediaItemSpecifications.titleLike(filters.title()),

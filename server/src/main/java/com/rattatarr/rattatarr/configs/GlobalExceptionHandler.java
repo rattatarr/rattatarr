@@ -5,6 +5,8 @@ import com.rattatarr.rattatarr.exceptions.JellyfinClientExceptions;
 import com.rattatarr.rattatarr.models.dtos.responses.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jspecify.annotations.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +25,8 @@ import java.util.List;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @Value("${rattatarr.debug.stacktrace:false}")
     private boolean includeStackTrace;
 
@@ -133,6 +137,7 @@ public class GlobalExceptionHandler {
 
         if (message != null && message.contains("SQLITE_CONSTRAINT_UNIQUE")) {
             String constraintInfo = message.substring(message.indexOf("UNIQUE constraint failed:") + 26).trim();
+            logger.warn("Unique constraint violation on {} {}: {}", request.getMethod(), request.getRequestURI(), constraintInfo);
             return ResponseEntity.status(HttpStatus.CONFLICT).body(
                     new ErrorResponse(
                             Instant.now(),
@@ -145,6 +150,7 @@ public class GlobalExceptionHandler {
             );
         }
 
+        logger.error("JPA exception on {} {}", request.getMethod(), request.getRequestURI(), ex);
         ErrorResponse errorResponse = new ErrorResponse(
                 Instant.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -159,6 +165,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(JellyfinClientExceptions.class)
     public ResponseEntity<ErrorResponse> handleJellyfinClientException(JellyfinClientExceptions ex, HttpServletRequest request) {
+        logger.warn("Jellyfin client error on {} {}: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
         ErrorResponse errorResponse = new ErrorResponse(
                 Instant.now(),
                 ex.status(),
@@ -173,6 +180,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAll(Exception ex, HttpServletRequest request) {
+        logger.error("Unhandled exception on {} {}", request.getMethod(), request.getRequestURI(), ex);
         ErrorResponse errorResponse = new ErrorResponse(
                 Instant.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR,
