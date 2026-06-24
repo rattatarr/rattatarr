@@ -8,6 +8,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import PrimeVue from 'primevue/config'
+import ConfirmationService from 'primevue/confirmationservice'
 import Tooltip from 'primevue/tooltip'
 import Aura from '@primeuix/themes/aura'
 
@@ -30,6 +31,7 @@ app.use(PrimeVue, {
     },
   },
 })
+app.use(ConfirmationService)
 app.directive('tooltip', Tooltip)
 
 app.mount('#app')

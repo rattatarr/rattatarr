@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { onMounted } from 'vue'
   import { Toaster } from 'vue-sonner'
+  import ConfirmDialog from 'primevue/confirmdialog'
   import AppLayout from '@/components/layout/AppLayout.vue'
 
   // Apply dark mode class to HTML element for PrimeVue v4
@@ -11,6 +12,9 @@
 
 <template>
   <AppLayout />
+
+  <!-- Global confirmation dialog -->
+  <ConfirmDialog />
 
   <!-- Toast notifications container -->
   <Toaster

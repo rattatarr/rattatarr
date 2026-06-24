@@ -5,8 +5,16 @@ import com.rattatarr.rattatarr.models.WatchEventType;
 import com.rattatarr.rattatarr.models.dtos.requests.MoviesFiltersDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.MovieResponseDTO;
 import com.rattatarr.rattatarr.models.entities.MediaItem;
+import com.rattatarr.rattatarr.models.entities.MediaItemRating;
+import com.rattatarr.rattatarr.models.entities.WatchEvent;
+import com.rattatarr.rattatarr.models.entities.WatchedUnratedDismissal;
 import com.rattatarr.rattatarr.repositories.MediaItemsRepository;
 import com.rattatarr.rattatarr.services.helpers.MediaItemViewHelper;
+import com.rattatarr.rattatarr.specifications.MediaItemSpecifications;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -313,23 +321,30 @@ class MoviesServiceTest {
 
     @Test
     void recentlyWatchedUnratedSpecification_shouldRequireCompleteWatchEvent() {
-        var spec = com.rattatarr.rattatarr.specifications.MediaItemSpecifications.recentlyWatchedUnrated(UUID.randomUUID());
+        var spec = MediaItemSpecifications.recentlyWatchedUnrated(UUID.randomUUID());
 
-        var root = mock(jakarta.persistence.criteria.Root.class, RETURNS_DEEP_STUBS);
-        var query = mock(jakarta.persistence.criteria.CriteriaQuery.class);
-        var cb = mock(jakarta.persistence.criteria.CriteriaBuilder.class);
-        var watchedSubquery = mock(jakarta.persistence.criteria.Subquery.class);
-        var ratingSubquery = mock(jakarta.persistence.criteria.Subquery.class);
-        var latestWatchSubquery = mock(jakarta.persistence.criteria.Subquery.class);
-        var watchRoot = mock(jakarta.persistence.criteria.Root.class, RETURNS_DEEP_STUBS);
-        var ratingRoot = mock(jakarta.persistence.criteria.Root.class, RETURNS_DEEP_STUBS);
-        var latestWatchRoot = mock(jakarta.persistence.criteria.Root.class, RETURNS_DEEP_STUBS);
+        var root = mock(Root.class, RETURNS_DEEP_STUBS);
+        var query = mock(CriteriaQuery.class);
+        var cb = mock(CriteriaBuilder.class);
+        var watchedSubquery = mock(Subquery.class);
+        var ratingSubquery = mock(Subquery.class);
+        var latestWatchSubquery = mock(Subquery.class);
+        var activeDismissalSubquery = mock(Subquery.class);
+        var watchAfterDismissalSubquery = mock(Subquery.class);
+        var watchRoot = mock(Root.class, RETURNS_DEEP_STUBS);
+        var ratingRoot = mock(Root.class, RETURNS_DEEP_STUBS);
+        var latestWatchRoot = mock(Root.class, RETURNS_DEEP_STUBS);
+        var dismissalRoot = mock(Root.class, RETURNS_DEEP_STUBS);
+        var watchAfterRoot = mock(Root.class, RETURNS_DEEP_STUBS);
 
-        when(query.subquery(Long.class)).thenReturn(watchedSubquery, ratingSubquery);
+        when(query.subquery(Long.class)).thenReturn(watchedSubquery, ratingSubquery, activeDismissalSubquery);
         when(query.subquery(Instant.class)).thenReturn(latestWatchSubquery);
-        when(watchedSubquery.from(com.rattatarr.rattatarr.models.entities.WatchEvent.class)).thenReturn(watchRoot);
-        when(ratingSubquery.from(com.rattatarr.rattatarr.models.entities.MediaItemRating.class)).thenReturn(ratingRoot);
-        when(latestWatchSubquery.from(com.rattatarr.rattatarr.models.entities.WatchEvent.class)).thenReturn(latestWatchRoot);
+        when(activeDismissalSubquery.subquery(Long.class)).thenReturn(watchAfterDismissalSubquery);
+        when(watchedSubquery.from(WatchEvent.class)).thenReturn(watchRoot);
+        when(ratingSubquery.from(MediaItemRating.class)).thenReturn(ratingRoot);
+        when(latestWatchSubquery.from(WatchEvent.class)).thenReturn(latestWatchRoot);
+        when(activeDismissalSubquery.from(WatchedUnratedDismissal.class)).thenReturn(dismissalRoot);
+        when(watchAfterDismissalSubquery.from(WatchEvent.class)).thenReturn(watchAfterRoot);
 
         spec.toPredicate(root, query, cb);
 

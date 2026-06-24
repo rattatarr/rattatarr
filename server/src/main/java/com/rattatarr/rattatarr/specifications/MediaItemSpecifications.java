@@ -383,9 +383,44 @@ public class MediaItemSpecifications {
                 query.orderBy(cb.desc(lastWatchedSubquery));
             }
 
+            // A dismissal hides the item only while there is no qualifying watch event newer
+            // than dismissedAt — so a later re-watch (watchedAt > dismissedAt) re-surfaces it.
+            Subquery<Long> activeDismissalSubquery = query.subquery(Long.class);
+            var dismissalRoot = activeDismissalSubquery.from(WatchedUnratedDismissal.class);
+
+            Subquery<Long> watchAfterDismissalSubquery = activeDismissalSubquery.subquery(Long.class);
+            var watchAfterRoot = watchAfterDismissalSubquery.from(WatchEvent.class);
+            var afterCompleteEvent = cb.equal(watchAfterRoot.get("eventType"), WatchEventType.COMPLETE);
+            var afterProgressNearEndEvent = cb.and(
+                    cb.equal(watchAfterRoot.get("eventType"), WatchEventType.PROGRESS),
+                    cb.isNotNull(watchAfterRoot.get("positionSeconds")),
+                    cb.isNotNull(watchAfterRoot.get("mediaItem").get("runtimeMinutes")),
+                    cb.greaterThanOrEqualTo(
+                            watchAfterRoot.get("positionSeconds"),
+                            cb.prod(watchAfterRoot.get("mediaItem").get("runtimeMinutes"), 54)
+                    )
+            );
+            watchAfterDismissalSubquery.select(cb.literal(1L));
+            watchAfterDismissalSubquery.where(cb.and(
+                    cb.equal(watchAfterRoot.get("mediaItem").get("id"), root.get("id")),
+                    cb.equal(watchAfterRoot.get("profile").get("id"), profileId),
+                    cb.or(afterCompleteEvent, afterProgressNearEndEvent),
+                    cb.greaterThan(
+                            watchAfterRoot.get("watchedAt").as(Instant.class),
+                            dismissalRoot.get("dismissedAt").as(Instant.class))
+            ));
+
+            activeDismissalSubquery.select(cb.literal(1L));
+            activeDismissalSubquery.where(cb.and(
+                    cb.equal(dismissalRoot.get("mediaItem").get("id"), root.get("id")),
+                    cb.equal(dismissalRoot.get("profile").get("id"), profileId),
+                    cb.not(cb.exists(watchAfterDismissalSubquery))
+            ));
+
             return cb.and(
                     cb.exists(watchedSubquery),
-                    cb.not(cb.exists(ratingSubquery))
+                    cb.not(cb.exists(ratingSubquery)),
+                    cb.not(cb.exists(activeDismissalSubquery))
             );
         };
     }

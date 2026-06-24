@@ -1,13 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getRecentlyWatchedUnratedMovies, getRecentlyWatchedUnratedSeries } from '@/api/library'
+import {
+  getRecentlyWatchedUnratedMovies,
+  getRecentlyWatchedUnratedSeries,
+  dismissWatchedUnratedMovie,
+  dismissWatchedUnratedSeries,
+  restoreWatchedUnratedMovie,
+  restoreWatchedUnratedSeries,
+} from '@/api/library'
 import type { MovieFilters, MoviesWrapper, Pageable, SeriesFilters, SeriesWrapper } from '@/types'
 
 const mockGET = vi.fn()
+const mockDELETE = vi.fn()
+const mockPOST = vi.fn()
 const mockHandleResponse = vi.fn()
 
 vi.mock('@/api/client', () => ({
   apiClient: {
     GET: (...args: never[]) => mockGET(...args),
+    DELETE: (...args: never[]) => mockDELETE(...args),
+    POST: (...args: never[]) => mockPOST(...args),
   },
   handleResponse: (response: never) => mockHandleResponse(response),
 }))
@@ -80,5 +91,53 @@ describe('library API watched-unrated', () => {
         },
       },
     })
+  })
+
+  it('dismisses a watched-unrated movie via DELETE', async () => {
+    mockDELETE.mockResolvedValue({ data: {} })
+    mockHandleResponse.mockReturnValue({})
+
+    await dismissWatchedUnratedMovie('movie-1', 'profile-1')
+
+    expect(mockDELETE).toHaveBeenCalledWith(
+      '/api/v1/library/movies/watched/unrated/{mediaItemId}',
+      { params: { path: { mediaItemId: 'movie-1' }, query: { profileId: 'profile-1' } } },
+    )
+  })
+
+  it('dismisses a watched-unrated series via DELETE', async () => {
+    mockDELETE.mockResolvedValue({ data: {} })
+    mockHandleResponse.mockReturnValue({})
+
+    await dismissWatchedUnratedSeries('series-1', 'profile-1')
+
+    expect(mockDELETE).toHaveBeenCalledWith(
+      '/api/v1/library/series/watched/unrated/{mediaItemId}',
+      { params: { path: { mediaItemId: 'series-1' }, query: { profileId: 'profile-1' } } },
+    )
+  })
+
+  it('restores a watched-unrated movie via POST', async () => {
+    mockPOST.mockResolvedValue({ data: {} })
+    mockHandleResponse.mockReturnValue({})
+
+    await restoreWatchedUnratedMovie('movie-1', 'profile-1')
+
+    expect(mockPOST).toHaveBeenCalledWith(
+      '/api/v1/library/movies/watched/unrated/{mediaItemId}/restore',
+      { params: { path: { mediaItemId: 'movie-1' }, query: { profileId: 'profile-1' } } },
+    )
+  })
+
+  it('restores a watched-unrated series via POST', async () => {
+    mockPOST.mockResolvedValue({ data: {} })
+    mockHandleResponse.mockReturnValue({})
+
+    await restoreWatchedUnratedSeries('series-1', 'profile-1')
+
+    expect(mockPOST).toHaveBeenCalledWith(
+      '/api/v1/library/series/watched/unrated/{mediaItemId}/restore',
+      { params: { path: { mediaItemId: 'series-1' }, query: { profileId: 'profile-1' } } },
+    )
   })
 })
