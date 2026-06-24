@@ -41,9 +41,11 @@ public class LogsController {
             @RequestParam(required = false) String endDate,
             @Parameter(description = "Filter by logger name (substring match, case insensitive)")
             @RequestParam(required = false) String logger,
+            @Parameter(description = "Filter by MDC requestId (exact match, case insensitive) to trace all logs of one request")
+            @RequestParam(required = false) String requestId,
             @PageableDefault(size = 100) Pageable pageable
     ) {
-        LogsFilterRequestDTO filter = new LogsFilterRequestDTO(level, startDate, endDate, logger);
+        LogsFilterRequestDTO filter = new LogsFilterRequestDTO(level, startDate, endDate, logger, requestId);
         return LogsResponseWrapper.fromPage(logsService.getLogs(filter, pageable));
     }
 }

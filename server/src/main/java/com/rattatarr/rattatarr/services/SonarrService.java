@@ -5,6 +5,7 @@ import com.rattatarr.rattatarr.clients.sonarr.responses.SonarrSeriesResponseDTO;
 import com.rattatarr.rattatarr.models.ArrInstance;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.entities.BackgroundJob;
+import com.rattatarr.rattatarr.utils.MdcContext;
 import com.rattatarr.rattatarr.utils.ParallelAPIProcessor;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -15,6 +16,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executor;
 
 @Service
@@ -84,15 +86,17 @@ public class SonarrService {
 
     @Async("backgroundTaskExecutor")
     public void triggerBackgroundImport(BackgroundJob job, ArrInstance instance) {
-        logger.info("Sonarr ({}) import started, jobId={}", instance, job.id());
-        backgroundJobService.markRunning(job);
-        try {
-            runImport(instance);
-            backgroundJobService.markCompleted(job, "Sonarr import completed successfully");
-            logger.info("Sonarr ({}) import completed, jobId={}", instance, job.id());
-        } catch (Exception error) {
-            backgroundJobService.markFailed(job, error.getMessage());
-            logger.error("Sonarr ({}) import failed, jobId={}", instance, job.id(), error);
+        try (var ignored = MdcContext.of(Map.of("jobId", job.id().toString(), "jobType", job.type().name()))) {
+            try {
+                logger.info("Sonarr ({}) import started, jobId={}", instance, job.id());
+                backgroundJobService.markRunning(job);
+                runImport(instance);
+                backgroundJobService.markCompleted(job, "Sonarr import completed successfully");
+                logger.info("Sonarr ({}) import completed, jobId={}", instance, job.id());
+            } catch (Exception error) {
+                backgroundJobService.markFailed(job, error.getMessage());
+                logger.error("Sonarr ({}) import failed, jobId={}", instance, job.id(), error);
+            }
         }
     }
 }

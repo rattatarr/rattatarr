@@ -133,6 +133,7 @@ class SonarrServiceTest {
     @Test
     void triggerBackgroundImport_onSuccess_shouldMarkCompleted() {
         BackgroundJob job = new BackgroundJob(JobType.SONARR_IMPORT, null);
+        ReflectionTestUtils.setField(job, "id", UUID.randomUUID());
         when(defaultClient.isConfigured()).thenReturn(true);
         when(defaultClient.getMonitoredInternalSeries()).thenReturn(List.of(seriesWithTmdbId));
         when(tmDbService.importMediaItem("1396", MediaType.SERIES)).thenReturn(seriesItem);
@@ -147,6 +148,7 @@ class SonarrServiceTest {
     @Test
     void triggerBackgroundImport_onFailure_shouldMarkFailed() {
         BackgroundJob job = new BackgroundJob(JobType.SONARR_IMPORT, null);
+        ReflectionTestUtils.setField(job, "id", UUID.randomUUID());
         when(defaultClient.isConfigured()).thenReturn(true);
         when(defaultClient.getMonitoredInternalSeries()).thenThrow(new RuntimeException("Connection refused"));
 

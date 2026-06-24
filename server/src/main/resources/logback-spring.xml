@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!--
+        MDC correlation is rendered by %replace(%mdc){'^(.+)$',' [$1]'}: it appends
+        " [requestId=ab12cd34, jobId=..., jobType=...]" only when MDC context is present
+        (every HTTP request via MdcLoggingFilter; background jobs via MdcContext), and stays
+        clean for context-free lines. Background-task threads inherit the MDC through the
+        TaskDecorator configured on the executors in AsyncConfig.
+
+        NOTE: %replace must NOT be placed immediately after another converter's closing ')'
+        (e.g. "%cyan(...)%replace(...)") — logback's parser leaks it as literal text. Keep it
+        either right after a plain converter (prod) or nested inside one (dev, inside %cyan).
+
+        Stack traces are appended automatically by logback (no explicit throwable converter).
+    -->
+
+    <!-- Colorful, human-friendly console for local development. -->
+    <springProfile name="dev">
+        <property name="LOG_PATTERN"
+                  value="%gray(%d{HH:mm:ss.SSS}) %highlight(%-5level) %magenta([%thread]) %cyan(%logger{36}%boldYellow(%replace(%mdc){'^(.+)$',' [$1]'})) - %msg%n"/>
+    </springProfile>
+
+    <!-- Plain, log-aggregator-friendly output (no ANSI escapes) for everything else. -->
+    <springProfile name="!dev">
+        <property name="LOG_PATTERN"
+                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36}%replace(%mdc){'^(.+)$',' [$1]'} - %msg%n"/>
+    </springProfile>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <!--
+            Console threshold is independent of the logger levels in application.yaml: the app
+            logger emits at DEBUG (so the in-memory store / logs API can serve DEBUG to the UI),
+            while the console stays quieter by default. Override with env RATTATARR_CONSOLE_LOG_LEVEL
+            (e.g. DEBUG to also see per-item detail on the console, OFF to silence it).
+        -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>${RATTATARR_CONSOLE_LOG_LEVEL:-INFO}</level>
+        </filter>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+        Root stays at WARN to keep third-party libraries quiet. Per-logger levels (including
+        com.rattatarr → DEBUG) are configured in application.yaml under logging.level, which is
+        the single source of truth for what each logger emits. The in-memory appender is attached
+        to the root logger in InMemoryAppender#init and has no threshold, so it captures everything
+        the loggers emit (DEBUG included) for the UI console / logs API.
+    -->
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

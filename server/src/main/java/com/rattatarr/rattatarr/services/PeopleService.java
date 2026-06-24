@@ -111,7 +111,7 @@ public class PeopleService extends BaseService<Person, PeopleRepository> {
                     if (!forceRefresh) {
                         return existingPerson;
                     }
-                    logger.info("Updating existing Person with TMDb ID: {}. Name: {}", TMDbId, name);
+                    logger.debug("Updating existing person '{}' (TMDb ID: {})", name, TMDbId);
                     existingPerson.setName(name);
                     existingPerson.setProfilePathUrl(profilePath);
                     return repository.save(existingPerson);

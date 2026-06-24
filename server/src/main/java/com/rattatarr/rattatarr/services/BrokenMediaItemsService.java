@@ -45,7 +45,8 @@ public class BrokenMediaItemsService extends BaseService<BrokenMediaItem, Broken
 
     @Transactional
     public void saveBrokenMediaItem(BrokenMediaItem brokenMediaItem) {
-        logger.info("Saving BrokenMediaItem with Jellyfin ID {} to the database...", brokenMediaItem.jellyfinId());
+        logger.info("Saving BrokenMediaItem '{}' (Jellyfin ID {}, missing: {}) to the database...",
+                brokenMediaItem.title(), brokenMediaItem.jellyfinId(), brokenMediaItem.missingFields());
         repository.save(brokenMediaItem);
     }
 
@@ -58,7 +59,8 @@ public class BrokenMediaItemsService extends BaseService<BrokenMediaItem, Broken
         MediaItem mediaItem = mediaItemsRepository
                 .findById(mediaItemId)
                 .orElseThrow(() -> new MediaItemExceptions.MediaItemNotFoundExceptions(mediaItemId));
-        logger.info("Resolving BrokenMediaItem {} by linking to MediaItem {}", id, mediaItemId);
+        logger.info("Resolving BrokenMediaItem '{}' ({}) by linking to MediaItem '{}' ({})",
+                item.title(), id, mediaItem.title(), mediaItemId);
         item.setResolvedMediaItem(mediaItem);
         item.setResolved(true);
         return repository.save(item);

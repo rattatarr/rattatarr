@@ -87,7 +87,8 @@ public class MediaItemMetadataService extends BaseService<MediaItemMetadata, Med
     private TMDbFetchResult fetchMetadataFromTMDb(MediaItem mediaItem) {
         switch (mediaItem.mediaType()) {
             case MOVIE -> {
-                logger.info("Fetching metadata for Movie MediaItem ID: {} from TMDb...", mediaItem.id());
+                logger.debug("Fetching metadata for movie '{}' ({}, TMDb ID: {}) from TMDb...",
+                        mediaItem.title(), mediaItem.id(), mediaItem.TMDbId());
                 var tmDbMovie = tmDbClient.findMovieById(mediaItem.TMDbId());
                 MediaItemMetadata metadata = new MediaItemMetadata(
                         mediaItem,
@@ -98,7 +99,8 @@ public class MediaItemMetadataService extends BaseService<MediaItemMetadata, Med
                 return new TMDbFetchResult(mediaItem, metadata, null);
             }
             case SERIES -> {
-                logger.info("Fetching metadata for TV Show MediaItem ID: {} from TMDb...", mediaItem.id());
+                logger.debug("Fetching metadata for series '{}' ({}, TMDb ID: {}) from TMDb...",
+                        mediaItem.title(), mediaItem.id(), mediaItem.TMDbId());
                 var tmDbShow = tmDbClient.findTVShowById(mediaItem.TMDbId());
                 MediaItemMetadata metadata = new MediaItemMetadata(
                         mediaItem,
@@ -109,8 +111,8 @@ public class MediaItemMetadataService extends BaseService<MediaItemMetadata, Med
                 return new TMDbFetchResult(mediaItem, metadata, tmDbShow);
             }
             default -> {
-                logger.warn("Unsupported media type for TMDb enrichment: {} for MediaItem ID: {}",
-                        mediaItem.mediaType(), mediaItem.id());
+                logger.warn("Unsupported media type {} for TMDb enrichment of '{}' ({})",
+                        mediaItem.mediaType(), mediaItem.title(), mediaItem.id());
                 throw new IllegalArgumentException("Unsupported media type: " + mediaItem.mediaType());
             }
         }
@@ -139,7 +141,7 @@ public class MediaItemMetadataService extends BaseService<MediaItemMetadata, Med
             saveMetadataToDB(result, forceRefresh);
             return result.metadata;
         } catch (Exception e) {
-            logger.error("Error enriching metadata for MediaItem ID: {}", mediaItem.id(), e);
+            logger.error("Error enriching metadata for '{}' ({})", mediaItem.title(), mediaItem.id(), e);
             return null;
         }
     }

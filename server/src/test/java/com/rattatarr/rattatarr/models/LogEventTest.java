@@ -21,7 +21,7 @@ class LogEventTest {
         String serviceName = "test-service";
 
         // When
-        LogEvent event = new LogEvent(timestamp, level, logger, message, mdc, serviceName);
+        LogEvent event = new LogEvent(timestamp, level, logger, message, mdc, serviceName, "test-thread", 0L);
 
         // Then
         assertEquals(timestamp, event.timestamp());
@@ -38,8 +38,8 @@ class LogEventTest {
         long timestamp = System.currentTimeMillis();
         Map<String, String> mdc = new HashMap<>();
 
-        LogEvent event1 = new LogEvent(timestamp, "INFO", "logger", "Test", mdc, "service");
-        LogEvent event2 = new LogEvent(timestamp, "INFO", "logger", "Test", mdc, "service");
+        LogEvent event1 = new LogEvent(timestamp, "INFO", "logger", "Test", mdc, "service", "test-thread", 0L);
+        LogEvent event2 = new LogEvent(timestamp, "INFO", "logger", "Test", mdc, "service", "test-thread", 0L);
 
         // Then
         assertEquals(event1, event2);
@@ -52,8 +52,8 @@ class LogEventTest {
         long timestamp = System.currentTimeMillis();
         Map<String, String> mdc = new HashMap<>();
 
-        LogEvent event1 = new LogEvent(timestamp, "INFO", "logger", "Test", mdc, "service");
-        LogEvent event2 = new LogEvent(timestamp, "ERROR", "logger", "Test", mdc, "service");
+        LogEvent event1 = new LogEvent(timestamp, "INFO", "logger", "Test", mdc, "service", "test-thread", 0L);
+        LogEvent event2 = new LogEvent(timestamp, "ERROR", "logger", "Test", mdc, "service", "test-thread", 0L);
 
         // Then
         assertNotEquals(event1, event2);
@@ -63,7 +63,7 @@ class LogEventTest {
     void testRecordToString() {
         // Given
         Map<String, String> mdc = new HashMap<>();
-        LogEvent event = new LogEvent(123456789L, "ERROR", "com.test", "Test error", mdc, "app");
+        LogEvent event = new LogEvent(123456789L, "ERROR", "com.test", "Test error", mdc, "app", "test-thread", 0L);
 
         // When
         String toString = event.toString();
@@ -77,7 +77,7 @@ class LogEventTest {
     @Test
     void testWithNullMdc() {
         // When
-        LogEvent event = new LogEvent(System.currentTimeMillis(), "INFO", "logger", "message", null, "service");
+        LogEvent event = new LogEvent(System.currentTimeMillis(), "INFO", "logger", "message", null, "service", "test-thread", 0L);
 
         // Then
         assertNull(event.mdc());
@@ -89,7 +89,7 @@ class LogEventTest {
         Map<String, String> emptyMdc = new HashMap<>();
 
         // When
-        LogEvent event = new LogEvent(System.currentTimeMillis(), "INFO", "logger", "message", emptyMdc, "service");
+        LogEvent event = new LogEvent(System.currentTimeMillis(), "INFO", "logger", "message", emptyMdc, "service", "test-thread", 0L);
 
         // Then
         assertNotNull(event.mdc());
@@ -105,7 +105,7 @@ class LogEventTest {
         mdc.put("sessionId", "session-456");
 
         // When
-        LogEvent event = new LogEvent(System.currentTimeMillis(), "INFO", "logger", "message", mdc, "service");
+        LogEvent event = new LogEvent(System.currentTimeMillis(), "INFO", "logger", "message", mdc, "service", "test-thread", 0L);
 
         // Then
         assertEquals(3, event.mdc().size());
@@ -121,10 +121,10 @@ class LogEventTest {
         Map<String, String> mdc = new HashMap<>();
 
         // When
-        LogEvent info = new LogEvent(timestamp, "INFO", "logger", "Info message", mdc, "service");
-        LogEvent warn = new LogEvent(timestamp, "WARN", "logger", "Warn message", mdc, "service");
-        LogEvent error = new LogEvent(timestamp, "ERROR", "logger", "Error message", mdc, "service");
-        LogEvent debug = new LogEvent(timestamp, "DEBUG", "logger", "Debug message", mdc, "service");
+        LogEvent info = new LogEvent(timestamp, "INFO", "logger", "Info message", mdc, "service", "test-thread", 0L);
+        LogEvent warn = new LogEvent(timestamp, "WARN", "logger", "Warn message", mdc, "service", "test-thread", 1L);
+        LogEvent error = new LogEvent(timestamp, "ERROR", "logger", "Error message", mdc, "service", "test-thread", 2L);
+        LogEvent debug = new LogEvent(timestamp, "DEBUG", "logger", "Debug message", mdc, "service", "test-thread", 3L);
 
         // Then
         assertEquals("INFO", info.level());

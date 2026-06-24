@@ -14,6 +14,7 @@
   const filters = ref<LogsFilters>({
     level: undefined,
     logger: undefined,
+    requestId: undefined,
     startDate: undefined,
     endDate: undefined,
   })

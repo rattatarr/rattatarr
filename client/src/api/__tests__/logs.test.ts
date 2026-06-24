@@ -23,6 +23,7 @@ vi.mock('@/api/queryParams', () => ({
     logger: filters?.logger,
     startDate: filters?.startDate,
     endDate: filters?.endDate,
+    requestId: filters?.requestId,
   }),
 }))
 
@@ -122,6 +123,31 @@ describe('logs API', () => {
             logger: 'com.rattatarr',
             startDate: undefined,
             endDate: undefined,
+          },
+        },
+      })
+    })
+
+    it('calls API with requestId filter', async () => {
+      mockGET.mockResolvedValue({ data: mockResponse })
+      mockHandleResponse.mockReturnValue(mockResponse)
+
+      const pageable: Pageable = { page: 0, size: 20 }
+      const filters = { requestId: 'ab12cd34' }
+
+      await getLogs(pageable, filters)
+
+      expect(mockGET).toHaveBeenCalledWith('/api/v1/logs', {
+        params: {
+          query: {
+            page: 0,
+            size: 20,
+            sort: undefined,
+            level: undefined,
+            logger: undefined,
+            startDate: undefined,
+            endDate: undefined,
+            requestId: 'ab12cd34',
           },
         },
       })

@@ -1,6 +1,8 @@
 package com.rattatarr.rattatarr.clients;
 
 import com.rattatarr.rattatarr.configs.RestClientProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.client.RestClient;
@@ -11,8 +13,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public abstract class BaseClient<E extends RuntimeException> {
-
     protected final RestClient restClient;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final RestClientProperties properties;
 
     protected BaseClient(RestClient restClient, RestClientProperties properties) {
@@ -34,6 +36,8 @@ public abstract class BaseClient<E extends RuntimeException> {
             } catch (RestClientResponseException e) {
                 if (e.getStatusCode().is5xxServerError() && attempts < properties.getMaxRetries()) {
                     attempts++;
+                    logger.warn("HTTP {} on attempt {}/{}; retrying in {}ms",
+                            e.getStatusCode().value(), attempts, properties.getMaxRetries(), properties.getRetryDelay());
                     try {
                         Thread.sleep(properties.getRetryDelay());
                     } catch (InterruptedException ie) {
@@ -41,6 +45,8 @@ public abstract class BaseClient<E extends RuntimeException> {
                         throw mapException(e);
                     }
                 } else {
+                    logger.warn("HTTP {} after {} attempt(s); not retrying",
+                            e.getStatusCode().value(), attempts + 1);
                     throw mapException(e);
                 }
             }

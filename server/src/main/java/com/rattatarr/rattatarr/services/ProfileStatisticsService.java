@@ -3,6 +3,7 @@ package com.rattatarr.rattatarr.services;
 import com.rattatarr.rattatarr.clients.tmdb.TMDbClient;
 import com.rattatarr.rattatarr.exceptions.ProfilesExceptions;
 import com.rattatarr.rattatarr.models.dtos.responses.*;
+import com.rattatarr.rattatarr.models.entities.Profile;
 import com.rattatarr.rattatarr.repositories.ProfilesRepository;
 import com.rattatarr.rattatarr.specifications.StatisticsSpecifications;
 import com.rattatarr.rattatarr.utils.AsyncEntityQueryRunner;
@@ -49,14 +50,14 @@ public class ProfileStatisticsService {
             Integer producersLimit,
             Integer genreOverTimeLimit,
             String profileImageSize) {
-        logger.debug(
-                "Getting statistics for profile: {}, threshold: {}, minCount: {}, genresLimit: {}, actorsLimit: {}, directorsLimit: {}, producersLimit: {}, genreOverTimeLimit: {}, profileImageSize: {}",
-                profileId, ratingThreshold, minCount, genresLimit, actorsLimit, directorsLimit,
-                producersLimit, genreOverTimeLimit, profileImageSize);
-
-        profilesRepository
+        Profile profile = profilesRepository
                 .findById(profileId)
                 .orElseThrow(() -> new ProfilesExceptions.ProfileNotFoundExceptions(profileId));
+
+        logger.debug(
+                "Getting statistics for profile '{}' ({}), threshold: {}, minCount: {}, genresLimit: {}, actorsLimit: {}, directorsLimit: {}, producersLimit: {}, genreOverTimeLimit: {}, profileImageSize: {}",
+                profile.name(), profileId, ratingThreshold, minCount, genresLimit, actorsLimit, directorsLimit,
+                producersLimit, genreOverTimeLimit, profileImageSize);
 
         CompletableFuture<OverallStatsDTO> overallFuture =
                 asyncQueryRunner.query("overallStats", em -> getOverallStats(em, profileId));

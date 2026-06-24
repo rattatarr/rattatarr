@@ -8,6 +8,7 @@ import com.rattatarr.rattatarr.models.ArrInstance;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.entities.BackgroundJob;
 import com.rattatarr.rattatarr.models.entities.MediaItem;
+import com.rattatarr.rattatarr.utils.MdcContext;
 import com.rattatarr.rattatarr.utils.ParallelAPIProcessor;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -18,6 +19,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 
@@ -84,7 +86,8 @@ public class RadarrService {
             var movie = lookupByTmdbId(tmdbId, instance);
 
             if (movie == null) {
-                logger.warn("No Radarr ({}) movie found for TMDb ID {}, cannot enrich MediaItem ID {}", instance, tmdbId, mediaItemId);
+                logger.warn("No Radarr ({}) movie found for TMDb ID {}, cannot enrich '{}' ({})",
+                        instance, tmdbId, mediaItem.title(), mediaItemId);
                 return;
             }
 
@@ -95,9 +98,10 @@ public class RadarrService {
 
             var ratings = extractRatings(movie.ratings());
             mediaItemMetadataService.updateExternalRatings(mediaItem, ratings.imdbRating(), ratings.rottenTomatoesRating());
-            logger.info("Radarr ({}) ratings refreshed for MediaItem ID: {}", instance, mediaItemId);
+            logger.info("Radarr ({}) ratings refreshed for movie '{}' ({})", instance, mediaItem.title(), mediaItemId);
         } catch (Exception e) {
-            logger.warn("Failed to enrich movie {} from Radarr ({}): {}", mediaItemId, instance, e.getMessage());
+            logger.warn("Failed to enrich movie '{}' ({}) from Radarr ({}): {}",
+                    mediaItem.title(), mediaItemId, instance, e.getMessage());
         }
     }
 
@@ -163,7 +167,8 @@ public class RadarrService {
             if (lookup == null || lookup.tmdbId() == null) return null;
             return new MovieEnrichmentResult(movie, lookup);
         } catch (Exception e) {
-            logger.warn("Radarr ({}) lookup failed for MediaItem {}: {}", instance, mediaItemId, e.getMessage());
+            logger.warn("Radarr ({}) lookup failed for movie '{}' ({}): {}",
+                    instance, movie.title(), mediaItemId, e.getMessage());
             return null;
         }
     }
@@ -171,7 +176,7 @@ public class RadarrService {
     private void applyRadarrRatings(MovieEnrichmentResult result) {
         var ratings = extractRatings(result.lookup().ratings());
         mediaItemMetadataService.updateExternalRatings(result.movie(), ratings.imdbRating(), ratings.rottenTomatoesRating());
-        logger.info("Radarr ratings refreshed for MediaItem ID: {}", result.movie().id());
+        logger.info("Radarr ratings refreshed for movie '{}' ({})", result.movie().title(), result.movie().id());
     }
 
     public void runRatingsRefresh(ArrInstance instance) {
@@ -193,29 +198,33 @@ public class RadarrService {
 
     @Async("backgroundTaskExecutor")
     public void triggerBackgroundImport(BackgroundJob job, ArrInstance instance) {
-        logger.info("Radarr ({}) import started, jobId={}", instance, job.id());
-        backgroundJobService.markRunning(job);
-        try {
-            runImport(instance);
-            backgroundJobService.markCompleted(job, "Radarr import completed successfully");
-            logger.info("Radarr ({}) import completed, jobId={}", instance, job.id());
-        } catch (Exception error) {
-            backgroundJobService.markFailed(job, error.getMessage());
-            logger.error("Radarr ({}) import failed, jobId={}", instance, job.id(), error);
+        try (var ignored = MdcContext.of(Map.of("jobId", job.id().toString(), "jobType", job.type().name()))) {
+            try {
+                logger.info("Radarr ({}) import started, jobId={}", instance, job.id());
+                backgroundJobService.markRunning(job);
+                runImport(instance);
+                backgroundJobService.markCompleted(job, "Radarr import completed successfully");
+                logger.info("Radarr ({}) import completed, jobId={}", instance, job.id());
+            } catch (Exception error) {
+                backgroundJobService.markFailed(job, error.getMessage());
+                logger.error("Radarr ({}) import failed, jobId={}", instance, job.id(), error);
+            }
         }
     }
 
     @Async("backgroundTaskExecutor")
     public void triggerBackgroundRatingsRefresh(BackgroundJob job, ArrInstance instance) {
-        logger.info("Radarr ({}) ratings refresh started, jobId={}", instance, job.id());
-        backgroundJobService.markRunning(job);
-        try {
-            runRatingsRefresh(instance);
-            backgroundJobService.markCompleted(job, "Radarr ratings refresh completed successfully");
-            logger.info("Radarr ({}) ratings refresh completed, jobId={}", instance, job.id());
-        } catch (Exception error) {
-            backgroundJobService.markFailed(job, error.getMessage());
-            logger.error("Radarr ({}) ratings refresh failed, jobId={}", instance, job.id(), error);
+        try (var ignored = MdcContext.of(Map.of("jobId", job.id().toString(), "jobType", job.type().name()))) {
+            try {
+                logger.info("Radarr ({}) ratings refresh started, jobId={}", instance, job.id());
+                backgroundJobService.markRunning(job);
+                runRatingsRefresh(instance);
+                backgroundJobService.markCompleted(job, "Radarr ratings refresh completed successfully");
+                logger.info("Radarr ({}) ratings refresh completed, jobId={}", instance, job.id());
+            } catch (Exception error) {
+                backgroundJobService.markFailed(job, error.getMessage());
+                logger.error("Radarr ({}) ratings refresh failed, jobId={}", instance, job.id(), error);
+            }
         }
     }
 

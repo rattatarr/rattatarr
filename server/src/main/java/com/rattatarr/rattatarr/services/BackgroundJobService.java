@@ -38,7 +38,7 @@ public class BackgroundJobService extends BaseService<BackgroundJob, BackgroundJ
     public BackgroundJob create(JobType type, @Nullable UUID profileId) {
         BackgroundJob job = new BackgroundJob(type, profileId);
         repository.save(job);
-        logger.info("Job created: id={}, type={}", job.id(), type);
+        logger.info("Job created: id={}, type={}, profileId={}", job.id(), type, profileId);
         eventPublisher.publish(job, WebSocketMessageType.JOB_STARTED);
         return job;
     }
@@ -47,6 +47,7 @@ public class BackgroundJobService extends BaseService<BackgroundJob, BackgroundJ
     public void markRunning(BackgroundJob job) {
         job.markRunning();
         repository.save(job);
+        logger.debug("Job running: id={}, type={}", job.id(), job.type());
         eventPublisher.publish(job, WebSocketMessageType.JOB_STARTED);
     }
 
@@ -70,6 +71,7 @@ public class BackgroundJobService extends BaseService<BackgroundJob, BackgroundJ
     public void sendProgress(BackgroundJob job, String message) {
         job.updateMessage(message);
         repository.save(job);
+        logger.debug("Job progress: id={}, type={} — {}", job.id(), job.type(), message);
         eventPublisher.publish(job, WebSocketMessageType.JOB_PROGRESS);
     }
 

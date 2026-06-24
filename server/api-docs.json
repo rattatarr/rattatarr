@@ -1198,6 +1198,15 @@
             }
           },
           {
+            "name": "requestId",
+            "in": "query",
+            "description": "Filter by MDC requestId (exact match, case insensitive) to trace all logs of one request",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "pageable",
             "in": "query",
             "required": true,
@@ -2158,7 +2167,10 @@
             "minLength": 0
           },
           "jellyfinId": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3893,6 +3905,16 @@
             }
           },
           "serviceName": {
+            "type": "string"
+          },
+          "thread": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stackTrace": {
             "type": "string"
           }
         }

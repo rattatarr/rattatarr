@@ -6,6 +6,15 @@ public record LogsFilterRequestDTO(
         @Nullable String level,
         @Nullable String startDate,
         @Nullable String endDate,
-        @Nullable String logger
+        @Nullable String logger,
+        @Nullable String requestId
 ) {
+    public LogsFilterRequestDTO(
+            @Nullable String level,
+            @Nullable String startDate,
+            @Nullable String endDate,
+            @Nullable String logger
+    ) {
+        this(level, startDate, endDate, logger, null);
+    }
 }

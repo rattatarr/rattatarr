@@ -42,6 +42,8 @@ class LibrarySeriesControllerTest {
     private MediaItemsService mediaItemsService;
     @Mock
     private MediaItemRefreshService mediaItemRefreshService;
+    @Mock
+    private ProfilesService profilesService;
 
     @InjectMocks
     private LibrarySeriesController controller;

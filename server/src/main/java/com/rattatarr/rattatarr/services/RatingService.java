@@ -91,6 +91,8 @@ public class RatingService {
                 );
 
                 mediaItemRatingsService.upsert(profile, mediaItem, rating);
+                logger.info("Rated media item '{}' ({}) {} for profile '{}' ({})",
+                        mediaItem.title(), mediaItem.id(), rating, profile.name(), profile.id());
             }
             case MEDIA_SEASON -> {
                 MediaSeason mediaSeason = mediaSeasonsService.findByIdOrThrow(
@@ -99,6 +101,8 @@ public class RatingService {
                 );
 
                 mediaSeasonRatingsService.upsert(profile, mediaSeason, rating);
+                logger.info("Rated season {} ({}) {} for profile '{}' ({})",
+                        mediaSeason.season(), mediaSeason.id(), rating, profile.name(), profile.id());
             }
             default ->
                     throw new CommonExceptions.InvalidRequestExceptions("Unsupported rating media type: " + request.ratingMediaType());
@@ -130,6 +134,8 @@ public class RatingService {
                         .orElseThrow(() -> new CommonExceptions.ResourceNotFoundExceptions("Rating not found for media item ID: " + request.entityId()));
 
                 mediaItemRatingsService.delete(rating.id());
+                logger.info("Deleted rating for media item '{}' ({}) of profile '{}' ({})",
+                        mediaItem.title(), mediaItem.id(), profile.name(), profile.id());
             }
             case MEDIA_SEASON -> {
                 MediaSeason mediaSeason = mediaSeasonsService.findByIdOrThrow(
@@ -141,6 +147,8 @@ public class RatingService {
                         .orElseThrow(() -> new CommonExceptions.ResourceNotFoundExceptions("Rating not found for media season ID: " + request.entityId()));
 
                 mediaSeasonRatingsService.delete(rating.id());
+                logger.info("Deleted rating for season {} ({}) of profile '{}' ({})",
+                        mediaSeason.season(), mediaSeason.id(), profile.name(), profile.id());
             }
             default ->
                     throw new CommonExceptions.InvalidRequestExceptions("Unsupported rating media type: " + request.ratingMediaType());

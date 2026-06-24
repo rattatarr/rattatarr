@@ -8,6 +8,7 @@ import com.rattatarr.rattatarr.models.dtos.responses.wrappers.BrokenMediaItemRes
 import com.rattatarr.rattatarr.models.dtos.responses.wrappers.MoviesResponseWrapper;
 import com.rattatarr.rattatarr.services.BrokenMediaItemsService;
 import com.rattatarr.rattatarr.services.MoviesService;
+import com.rattatarr.rattatarr.services.ProfilesService;
 import com.rattatarr.rattatarr.services.RadarrService;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.data.domain.Pageable;
@@ -26,14 +27,17 @@ public class LibraryMoviesController extends BaseController {
     private final MoviesService moviesService;
     private final BrokenMediaItemsService brokenMediaItemsService;
     private final RadarrService radarrService;
+    private final ProfilesService profilesService;
 
     public LibraryMoviesController(MoviesService moviesService,
                                    BrokenMediaItemsService brokenMediaItemsService,
-                                   RadarrService radarrService
+                                   RadarrService radarrService,
+                                   ProfilesService profilesService
     ) {
         this.moviesService = moviesService;
         this.brokenMediaItemsService = brokenMediaItemsService;
         this.radarrService = radarrService;
+        this.profilesService = profilesService;
     }
 
     @GetMapping
@@ -73,10 +77,21 @@ public class LibraryMoviesController extends BaseController {
             @PageableDefault(size = 20) Pageable pageable,
             @ModelAttribute MoviesFiltersDTO filters
     ) {
-        logger.info("Fetching recently watched unrated movies for profile {}", filters.profileId());
+        String profile = profilesService.describe(filters.profileId());
+        logger.info(
+                "Fetching recently watched unrated movies for profile {} (page {}, size {})",
+                profile,
+                pageable.getPageNumber(),
+                pageable.getPageSize());
 
-        return ResponseEntity.ok(MoviesResponseWrapper.fromPage(
-                moviesService.findRecentlyWatchedUnratedMovies(filters, pageable)
-        ));
+        var page = moviesService.findRecentlyWatchedUnratedMovies(filters, pageable);
+
+        logger.debug(
+                "Found {} recently watched unrated movies for profile {} ({} total)",
+                page.getNumberOfElements(),
+                profile,
+                page.getTotalElements());
+
+        return ResponseEntity.ok(MoviesResponseWrapper.fromPage(page));
     }
 }
