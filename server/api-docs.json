@@ -489,6 +489,86 @@
         }
       }
     },
+    "/api/v1/library/series/watched/unrated/{mediaItemId}/restore": {
+      "post": {
+        "tags": [
+          "library-series-controller"
+        ],
+        "operationId": "restoreWatchedUnrated",
+        "parameters": [
+          {
+            "name": "mediaItemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/library/movies/watched/unrated/{mediaItemId}/restore": {
+      "post": {
+        "tags": [
+          "library-movies-controller"
+        ],
+        "operationId": "restoreWatchedUnrated_1",
+        "parameters": [
+          {
+            "name": "mediaItemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/library/broken-media-items/seed": {
       "post": {
         "tags": [
@@ -1819,6 +1899,86 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/library/series/watched/unrated/{mediaItemId}": {
+      "delete": {
+        "tags": [
+          "library-series-controller"
+        ],
+        "operationId": "dismissWatchedUnrated",
+        "parameters": [
+          {
+            "name": "mediaItemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/library/movies/watched/unrated/{mediaItemId}": {
+      "delete": {
+        "tags": [
+          "library-movies-controller"
+        ],
+        "operationId": "dismissWatchedUnrated_1",
+        "parameters": [
+          {
+            "name": "mediaItemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponseDTO"
+                }
+              }
+            }
           }
         }
       }

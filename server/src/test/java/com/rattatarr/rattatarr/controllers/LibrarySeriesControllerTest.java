@@ -45,6 +45,9 @@ class LibrarySeriesControllerTest {
     @Mock
     private ProfilesService profilesService;
 
+    @Mock
+    private WatchedUnratedDismissalService watchedUnratedDismissalService;
+
     @InjectMocks
     private LibrarySeriesController controller;
 
@@ -209,5 +212,29 @@ class LibrarySeriesControllerTest {
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().series().size());
         verify(seriesService).findRecentlyWatchedUnratedSeries(filters, pageable);
+    }
+
+    @Test
+    void dismissWatchedUnrated_shouldDelegateToServiceAndReturnOk() {
+        UUID profileId = UUID.randomUUID();
+        UUID mediaItemId = UUID.randomUUID();
+
+        ResponseEntity<GenericResponseDTO> response = controller.dismissWatchedUnrated(mediaItemId, profileId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        verify(watchedUnratedDismissalService).dismiss(profileId, mediaItemId);
+    }
+
+    @Test
+    void restoreWatchedUnrated_shouldDelegateToServiceAndReturnOk() {
+        UUID profileId = UUID.randomUUID();
+        UUID mediaItemId = UUID.randomUUID();
+
+        ResponseEntity<GenericResponseDTO> response = controller.restoreWatchedUnrated(mediaItemId, profileId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        verify(watchedUnratedDismissalService).restore(profileId, mediaItemId);
     }
 }

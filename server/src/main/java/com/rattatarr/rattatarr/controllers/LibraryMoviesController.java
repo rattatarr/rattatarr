@@ -4,20 +4,17 @@ import com.rattatarr.rattatarr.configs.ApiVersion;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.dtos.requests.BrokenMediaItemsFiltersDTO;
 import com.rattatarr.rattatarr.models.dtos.requests.MoviesFiltersDTO;
+import com.rattatarr.rattatarr.models.dtos.responses.GenericResponseDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.wrappers.BrokenMediaItemResponseWrapper;
 import com.rattatarr.rattatarr.models.dtos.responses.wrappers.MoviesResponseWrapper;
-import com.rattatarr.rattatarr.services.BrokenMediaItemsService;
-import com.rattatarr.rattatarr.services.MoviesService;
-import com.rattatarr.rattatarr.services.ProfilesService;
-import com.rattatarr.rattatarr.services.RadarrService;
+import com.rattatarr.rattatarr.services.*;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/library/movies")
@@ -28,16 +25,19 @@ public class LibraryMoviesController extends BaseController {
     private final BrokenMediaItemsService brokenMediaItemsService;
     private final RadarrService radarrService;
     private final ProfilesService profilesService;
+    private final WatchedUnratedDismissalService watchedUnratedDismissalService;
 
     public LibraryMoviesController(MoviesService moviesService,
                                    BrokenMediaItemsService brokenMediaItemsService,
                                    RadarrService radarrService,
-                                   ProfilesService profilesService
+                                   ProfilesService profilesService,
+                                   WatchedUnratedDismissalService watchedUnratedDismissalService
     ) {
         this.moviesService = moviesService;
         this.brokenMediaItemsService = brokenMediaItemsService;
         this.radarrService = radarrService;
         this.profilesService = profilesService;
+        this.watchedUnratedDismissalService = watchedUnratedDismissalService;
     }
 
     @GetMapping
@@ -93,5 +93,33 @@ public class LibraryMoviesController extends BaseController {
                 page.getTotalElements());
 
         return ResponseEntity.ok(MoviesResponseWrapper.fromPage(page));
+    }
+
+    @DeleteMapping("/watched/unrated/{mediaItemId}")
+    public ResponseEntity<GenericResponseDTO> dismissWatchedUnrated(
+            @PathVariable UUID mediaItemId,
+            @RequestParam UUID profileId
+    ) {
+        logger.info("Dismissing movie {} from watched-unrated for profile {}",
+                mediaItemId, profilesService.describe(profileId));
+
+        watchedUnratedDismissalService.dismiss(profileId, mediaItemId);
+
+        return ResponseEntity.ok(
+                GenericResponseDTO.success("Movie removed from watched but not rated", null));
+    }
+
+    @PostMapping("/watched/unrated/{mediaItemId}/restore")
+    public ResponseEntity<GenericResponseDTO> restoreWatchedUnrated(
+            @PathVariable UUID mediaItemId,
+            @RequestParam UUID profileId
+    ) {
+        logger.info("Restoring movie {} to watched-unrated for profile {}",
+                mediaItemId, profilesService.describe(profileId));
+
+        watchedUnratedDismissalService.restore(profileId, mediaItemId);
+
+        return ResponseEntity.ok(
+                GenericResponseDTO.success("Movie restored to watched but not rated", null));
     }
 }

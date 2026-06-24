@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import type { MaybeRefOrGetter } from 'vue'
 import { toValue, computed } from 'vue'
 import * as libraryApi from '@/api/library'
+import { MediaType } from '@/utils/enums'
 import { movieKeys, seriesKeys, genreKeys } from './queryKeys'
 import type {
   Pageable,
@@ -38,6 +39,50 @@ export function useRecentlyWatchedUnratedMovies(
     queryKey: computed(() => movieKeys.watchedUnratedList(toValue(pageable), toValue(filters))),
     queryFn: () => libraryApi.getRecentlyWatchedUnratedMovies(toValue(pageable), toValue(filters)),
     enabled: computed(() => !!toValue(filters).profileId),
+  })
+}
+
+export interface WatchedUnratedMutationVars {
+  mediaItemId: string
+  profileId: string
+  mediaType: MediaType.MOVIE | MediaType.SERIES
+}
+
+/**
+ * Mutation hook to dismiss an item from the "watched but not rated" list.
+ */
+export function useDismissWatchedUnrated() {
+  const queryClient = useQueryClient()
+
+  return useMutation<GenericResponse, Error, WatchedUnratedMutationVars>({
+    mutationFn: ({ mediaItemId, profileId, mediaType }) =>
+      mediaType === MediaType.MOVIE
+        ? libraryApi.dismissWatchedUnratedMovie(mediaItemId, profileId)
+        : libraryApi.dismissWatchedUnratedSeries(mediaItemId, profileId),
+    onSettled: async (_data, _error, { mediaType }) => {
+      const key =
+        mediaType === MediaType.MOVIE ? movieKeys.watchedUnrated() : seriesKeys.watchedUnrated()
+      await queryClient.invalidateQueries({ queryKey: key })
+    },
+  })
+}
+
+/**
+ * Mutation hook to restore (undo dismiss) an item into the "watched but not rated" list.
+ */
+export function useRestoreWatchedUnrated() {
+  const queryClient = useQueryClient()
+
+  return useMutation<GenericResponse, Error, WatchedUnratedMutationVars>({
+    mutationFn: ({ mediaItemId, profileId, mediaType }) =>
+      mediaType === MediaType.MOVIE
+        ? libraryApi.restoreWatchedUnratedMovie(mediaItemId, profileId)
+        : libraryApi.restoreWatchedUnratedSeries(mediaItemId, profileId),
+    onSettled: async (_data, _error, { mediaType }) => {
+      const key =
+        mediaType === MediaType.MOVIE ? movieKeys.watchedUnrated() : seriesKeys.watchedUnrated()
+      await queryClient.invalidateQueries({ queryKey: key })
+    },
   })
 }
 

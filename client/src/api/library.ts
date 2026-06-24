@@ -40,6 +40,36 @@ export async function getRecentlyWatchedUnratedMovies(
 }
 
 /**
+ * Dismiss a movie from the "watched but not rated" list.
+ * Hidden until a later qualifying watch event re-surfaces it.
+ */
+export async function dismissWatchedUnratedMovie(
+  mediaItemId: string,
+  profileId: string,
+): Promise<GenericResponse> {
+  const response = await apiClient.DELETE('/api/v1/library/movies/watched/unrated/{mediaItemId}', {
+    params: { path: { mediaItemId }, query: { profileId } },
+  })
+  return handleResponse<GenericResponse>(response)
+}
+
+/**
+ * Restore (undo dismiss) a movie into the "watched but not rated" list.
+ */
+export async function restoreWatchedUnratedMovie(
+  mediaItemId: string,
+  profileId: string,
+): Promise<GenericResponse> {
+  const response = await apiClient.POST(
+    '/api/v1/library/movies/watched/unrated/{mediaItemId}/restore',
+    {
+      params: { path: { mediaItemId }, query: { profileId } },
+    },
+  )
+  return handleResponse<GenericResponse>(response)
+}
+
+/**
  * Get a single movie by ID
  */
 export interface GetMovieByIdOptions {
@@ -99,6 +129,36 @@ export async function getRecentlyWatchedUnratedSeries(
     params: { query: queryParams as any },
   })
   return handleResponse<SeriesWrapper>(response)
+}
+
+/**
+ * Dismiss a series from the "watched but not rated" list.
+ * Hidden until a later qualifying watch event re-surfaces it.
+ */
+export async function dismissWatchedUnratedSeries(
+  mediaItemId: string,
+  profileId: string,
+): Promise<GenericResponse> {
+  const response = await apiClient.DELETE('/api/v1/library/series/watched/unrated/{mediaItemId}', {
+    params: { path: { mediaItemId }, query: { profileId } },
+  })
+  return handleResponse<GenericResponse>(response)
+}
+
+/**
+ * Restore (undo dismiss) a series into the "watched but not rated" list.
+ */
+export async function restoreWatchedUnratedSeries(
+  mediaItemId: string,
+  profileId: string,
+): Promise<GenericResponse> {
+  const response = await apiClient.POST(
+    '/api/v1/library/series/watched/unrated/{mediaItemId}/restore',
+    {
+      params: { path: { mediaItemId }, query: { profileId } },
+    },
+  )
+  return handleResponse<GenericResponse>(response)
 }
 
 /**

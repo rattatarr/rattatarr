@@ -10,6 +10,8 @@ import com.rattatarr.rattatarr.services.BrokenMediaItemsService;
 import com.rattatarr.rattatarr.services.MoviesService;
 import com.rattatarr.rattatarr.services.ProfilesService;
 import com.rattatarr.rattatarr.services.RadarrService;
+import com.rattatarr.rattatarr.services.WatchedUnratedDismissalService;
+import com.rattatarr.rattatarr.models.dtos.responses.GenericResponseDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -47,6 +49,9 @@ class LibraryMoviesControllerTest {
 
     @Mock
     private ProfilesService profilesService;
+
+    @Mock
+    private WatchedUnratedDismissalService watchedUnratedDismissalService;
 
     @InjectMocks
     private LibraryMoviesController controller;
@@ -184,5 +189,29 @@ class LibraryMoviesControllerTest {
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().movies().size());
         verify(moviesService).findRecentlyWatchedUnratedMovies(filters, pageable);
+    }
+
+    @Test
+    void dismissWatchedUnrated_shouldDelegateToServiceAndReturnOk() {
+        UUID profileId = UUID.randomUUID();
+        UUID mediaItemId = UUID.randomUUID();
+
+        ResponseEntity<GenericResponseDTO> response = controller.dismissWatchedUnrated(mediaItemId, profileId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        verify(watchedUnratedDismissalService).dismiss(profileId, mediaItemId);
+    }
+
+    @Test
+    void restoreWatchedUnrated_shouldDelegateToServiceAndReturnOk() {
+        UUID profileId = UUID.randomUUID();
+        UUID mediaItemId = UUID.randomUUID();
+
+        ResponseEntity<GenericResponseDTO> response = controller.restoreWatchedUnrated(mediaItemId, profileId);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        verify(watchedUnratedDismissalService).restore(profileId, mediaItemId);
     }
 }
