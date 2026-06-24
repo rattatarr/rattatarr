@@ -13,6 +13,10 @@ Built for homelab setups, with a simple UI.
 - Stores data in SQLite
 - Serves single web UI + API on one port
 
+## Screenshots
+
+Check the [`screenshots/`](screenshots) directory for UI previews (dashboard, activity, movies, series, rewind, jobs, logs, settings, recommendations).
+
 ## Quick start (Docker Compose)
 
 Create `docker-compose.yml`:
