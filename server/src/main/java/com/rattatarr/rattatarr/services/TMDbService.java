@@ -266,7 +266,8 @@ public class TMDbService {
 
                 Optional<MediaItem> existingMediaItemOpt = mediaItemsService.findByTMDbId(id);
                 if (existingMediaItemOpt.isPresent()) {
-                    logger.info("Movie with TMDb ID: {} already exists in the database. Skipping import.", id);
+                    logger.debug("Movie '{}' (TMDb ID: {}) already exists in the database. Skipping import.",
+                            existingMediaItemOpt.get().title(), id);
                     yield existingMediaItemOpt.get();
                 }
 
@@ -291,7 +292,8 @@ public class TMDbService {
 
                 Optional<MediaItem> existingMediaItemOpt = mediaItemsService.findByTMDbId(id);
                 if (existingMediaItemOpt.isPresent()) {
-                    logger.info("TV Show with TMDb ID: {} already exists in the database. Skipping import.", id);
+                    logger.debug("Series '{}' (TMDb ID: {}) already exists in the database. Skipping import.",
+                            existingMediaItemOpt.get().title(), id);
                     yield existingMediaItemOpt.get();
                 }
 

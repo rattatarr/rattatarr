@@ -8,6 +8,7 @@ import com.rattatarr.rattatarr.models.WatchEventType;
 import com.rattatarr.rattatarr.models.entities.*;
 import com.rattatarr.rattatarr.repositories.WatchEventsRepository;
 import com.rattatarr.rattatarr.services.*;
+import com.rattatarr.rattatarr.utils.MdcContext;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -57,20 +58,22 @@ public class JellyfinActivityPollingService {
 
     @Async("backgroundTaskExecutor")
     public void triggerPollAsync(BackgroundJob job) {
-        try {
-            // Add a small delaying because this might be too fast and the client side will not be able to connect
-            // to the websocket properly and will be locked in an infinite loading
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        backgroundJobService.markRunning(job);
-        try {
-            doPollJellyfinActivity();
-            backgroundJobService.markCompleted(job, "Activity poll completed successfully");
-        } catch (Exception e) {
-            logger.error("Manual Jellyfin activity poll failed", e);
-            backgroundJobService.markFailed(job, e.getMessage());
+        try (var ignored = MdcContext.of(Map.of("jobId", job.id().toString(), "jobType", job.type().name()))) {
+            try {
+                // Add a small delaying because this might be too fast and the client side will not be able to connect
+                // to the websocket properly and will be locked in an infinite loading
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            try {
+                backgroundJobService.markRunning(job);
+                doPollJellyfinActivity();
+                backgroundJobService.markCompleted(job, "Activity poll completed successfully");
+            } catch (Exception e) {
+                logger.error("Manual Jellyfin activity poll failed", e);
+                backgroundJobService.markFailed(job, e.getMessage());
+            }
         }
     }
 
@@ -80,7 +83,9 @@ public class JellyfinActivityPollingService {
     )
     @Transactional
     public void pollJellyfinActivity() {
-        doPollJellyfinActivity();
+        try (var ignored = MdcContext.of(Map.of("jobType", "JELLYFIN_ACTIVITY_POLL"))) {
+            doPollJellyfinActivity();
+        }
     }
 
     private void doPollJellyfinActivity() {
@@ -97,8 +102,10 @@ public class JellyfinActivityPollingService {
 
         List<JellyfinClientActivityLogEntryResponseDTO> entries = loadEntriesForCurrentCycle();
         if (entries == null || entries.isEmpty()) {
+            logger.debug("Jellyfin activity poll: no activity entries returned");
             return;
         }
+        logger.debug("Jellyfin activity poll: scanning {} activity entries", entries.size());
 
         Set<Long> polledEntryIds = entries.stream()
                 .map(JellyfinClientActivityLogEntryResponseDTO::id)
@@ -118,6 +125,10 @@ public class JellyfinActivityPollingService {
 
         if (!pendingWatchEvents.isEmpty()) {
             watchEventsRepository.saveAll(pendingWatchEvents);
+            logger.info("Jellyfin activity poll: persisted {} new watch event(s) from {} scanned entries",
+                    pendingWatchEvents.size(), entries.size());
+        } else {
+            logger.debug("Jellyfin activity poll: no new watch events from {} scanned entries", entries.size());
         }
     }
 
@@ -193,7 +204,8 @@ public class JellyfinActivityPollingService {
             );
             pendingWatchEvents.add(watchEvent);
         } catch (Exception e) {
-            logger.error("Failed processing Jellyfin activity entry id={} type={}", entry.id(), entry.type(), e);
+            logger.error("Failed processing Jellyfin activity entry id={} type={} itemId={}",
+                    entry.id(), entry.type(), entry.itemId(), e);
         }
     }
 

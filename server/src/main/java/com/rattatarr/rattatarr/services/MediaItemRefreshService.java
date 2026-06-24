@@ -3,6 +3,7 @@ package com.rattatarr.rattatarr.services;
 import com.rattatarr.rattatarr.exceptions.CommonExceptions;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.entities.MediaItem;
+import com.rattatarr.rattatarr.utils.MdcContext;
 import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @NullMarked
@@ -122,15 +124,16 @@ public class MediaItemRefreshService {
         return refreshed;
     }
 
-    // TODO: Later we want to track this with a job id and return the job status in another endpoint.
     @Async("backgroundTaskExecutor")
     public void refreshAllStaleSeriesAsync() {
-        logger.info("Starting async batch refresh of all stale series");
-        try {
-            List<MediaItem> refreshed = refreshAllStaleSeries();
-            logger.info("Async batch refresh completed: {} series refreshed", refreshed.size());
-        } catch (Exception e) {
-            logger.error("Async batch refresh failed", e);
+        try (var ignored = MdcContext.of(Map.of("jobType", "SERIES_REFRESH"))) {
+            logger.info("Starting async batch refresh of all stale series");
+            try {
+                List<MediaItem> refreshed = refreshAllStaleSeries();
+                logger.info("Async batch refresh completed: {} series refreshed", refreshed.size());
+            } catch (Exception e) {
+                logger.error("Async batch refresh failed", e);
+            }
         }
     }
 }

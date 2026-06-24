@@ -27,6 +27,8 @@ springdoc:
     path: /docs
 
 rattatarr:
+  logging:
+    max-events: 10000
   version: "@project.version@"
   debug:
     stacktrace: false
@@ -64,7 +66,11 @@ rattatarr:
 logging:
   level:
     root: WARN
-    com.rattatarr: INFO
+    # Application log level. Gates what reaches the in-memory log store (the UI console / logs API),
+    # so default DEBUG lets the frontend filter DEBUG too. Console verbosity is controlled separately
+    # by the CONSOLE appender threshold in logback-spring.xml (RATTATARR_CONSOLE_LOG_LEVEL, default INFO).
+    # Override with env RATTATARR_APP_LOG_LEVEL (e.g. INFO to quiet the store in production).
+    com.rattatarr: ${RATTATARR_APP_LOG_LEVEL:DEBUG}
     org.springframework: WARN
 
 rest-client:

@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.test.util.ReflectionTestUtils;
 import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -161,6 +162,7 @@ class IMDbImportServiceTest {
                 new IMDbWatchlistRow("tt0468569", 9.0f, "movie", Instant.now(), MediaType.MOVIE)
         );
         BackgroundJob job = new BackgroundJob(JobType.CSV_IMPORT, profileId);
+        ReflectionTestUtils.setField(job, "id", UUID.randomUUID());
 
         when(profilesService.findByIdOrThrow(eq(profileId), any())).thenReturn(testProfile);
 
@@ -172,21 +174,22 @@ class IMDbImportServiceTest {
     }
 
     @Test
-    void triggerBackgroundImportRatings_withInvalidProfile_shouldThrowException() {
+    void triggerBackgroundImportRatings_withInvalidProfile_shouldMarkJobFailed() {
         // Given
         UUID profileId = UUID.randomUUID();
         List<IMDbWatchlistRow> rows = List.of();
         BackgroundJob job = new BackgroundJob(JobType.CSV_IMPORT, profileId);
+        ReflectionTestUtils.setField(job, "id", UUID.randomUUID());
 
         when(profilesService.findByIdOrThrow(eq(profileId), any()))
                 .thenThrow(new ProfilesExceptions.ProfileNotFoundExceptions(profileId));
 
-        // When/Then
-        assertThrows(ProfilesExceptions.ProfileNotFoundExceptions.class, () -> {
-            imdbImportService.triggerBackgroundImportRatings(rows, profileId, job);
-        });
+        // When — a background task must never propagate; it marks the job FAILED instead
+        assertDoesNotThrow(() -> imdbImportService.triggerBackgroundImportRatings(rows, profileId, job));
 
+        // Then
         verify(profilesService).findByIdOrThrow(eq(profileId), any());
+        verify(backgroundJobService).markFailed(eq(job), any());
     }
 
     @Test

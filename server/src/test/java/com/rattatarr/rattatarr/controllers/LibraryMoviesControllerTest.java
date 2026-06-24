@@ -8,6 +8,7 @@ import com.rattatarr.rattatarr.models.dtos.responses.wrappers.MoviesResponseWrap
 import com.rattatarr.rattatarr.models.entities.BrokenMediaItem;
 import com.rattatarr.rattatarr.services.BrokenMediaItemsService;
 import com.rattatarr.rattatarr.services.MoviesService;
+import com.rattatarr.rattatarr.services.ProfilesService;
 import com.rattatarr.rattatarr.services.RadarrService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,6 +44,9 @@ class LibraryMoviesControllerTest {
 
     @Mock
     private RadarrService radarrService;
+
+    @Mock
+    private ProfilesService profilesService;
 
     @InjectMocks
     private LibraryMoviesController controller;

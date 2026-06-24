@@ -30,7 +30,7 @@ public final class AsyncEntityQueryRunner {
                 return result;
             } catch (RuntimeException e) {
                 long elapsedMs = (System.nanoTime() - start) / 1_000_000;
-                logger.debug("Query '{}' failed after {} ms", label, elapsedMs);
+                logger.warn("Query '{}' failed after {} ms: {}", label, elapsedMs, e.getMessage(), e);
                 throw e;
             }
         }, executor);

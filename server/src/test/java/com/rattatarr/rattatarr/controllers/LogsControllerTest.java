@@ -40,10 +40,10 @@ class LogsControllerTest {
     @BeforeEach
     void setUp() {
         sampleLogs = List.of(
-                new LogEvent(System.currentTimeMillis(), "INFO", "com.test.Logger1", "Info message", new HashMap<>(), "test-service"),
-                new LogEvent(System.currentTimeMillis(), "ERROR", "com.test.Logger2", "Error message", new HashMap<>(), "test-service"),
-                new LogEvent(System.currentTimeMillis(), "WARN", "com.test.Logger3", "Warning message", new HashMap<>(), "test-service"),
-                new LogEvent(System.currentTimeMillis(), "INFO", "com.test.Logger4", "Another info", new HashMap<>(), "test-service")
+                new LogEvent(System.currentTimeMillis(), "INFO", "com.test.Logger1", "Info message", new HashMap<>(), "test-service", "test-thread", 0L),
+                new LogEvent(System.currentTimeMillis(), "ERROR", "com.test.Logger2", "Error message", new HashMap<>(), "test-service", "test-thread", 1L),
+                new LogEvent(System.currentTimeMillis(), "WARN", "com.test.Logger3", "Warning message", new HashMap<>(), "test-service", "test-thread", 2L),
+                new LogEvent(System.currentTimeMillis(), "INFO", "com.test.Logger4", "Another info", new HashMap<>(), "test-service", "test-thread", 3L)
         );
     }
 
@@ -55,7 +55,7 @@ class LogsControllerTest {
         when(logsService.getLogs(any(), any())).thenReturn(expectedPage);
 
         // When
-        LogsResponseWrapper result = logsController.getLogs(null, null, null, null, pageable);
+        LogsResponseWrapper result = logsController.getLogs(null, null, null, null, null, pageable);
 
         // Then
         assertEquals(4, result.pagination().totalElements());
@@ -74,7 +74,7 @@ class LogsControllerTest {
         when(logsService.getLogs(any(), any())).thenReturn(expectedPage);
 
         // When
-        LogsResponseWrapper result = logsController.getLogs("INFO", null, null, null, pageable);
+        LogsResponseWrapper result = logsController.getLogs("INFO", null, null, null, null, pageable);
 
         // Then
         assertEquals(2, result.pagination().totalElements());
@@ -92,7 +92,7 @@ class LogsControllerTest {
         when(logsService.getLogs(any(), any())).thenReturn(expectedPage);
 
         // When
-        LogsResponseWrapper result = logsController.getLogs(null, startDate, endDate, null, pageable);
+        LogsResponseWrapper result = logsController.getLogs(null, startDate, endDate, null, null, pageable);
 
         // Then
         assertEquals(4, result.pagination().totalElements());
@@ -108,7 +108,7 @@ class LogsControllerTest {
         when(logsService.getLogs(any(), any())).thenReturn(expectedPage);
 
         // When
-        LogsResponseWrapper result = logsController.getLogs(null, null, null, "Logger1", pageable);
+        LogsResponseWrapper result = logsController.getLogs(null, null, null, "Logger1", null, pageable);
 
         // Then
         assertEquals(1, result.pagination().totalElements());
@@ -124,7 +124,7 @@ class LogsControllerTest {
         when(logsService.getLogs(any(), any())).thenReturn(expectedPage);
 
         // When
-        LogsResponseWrapper result = logsController.getLogs(null, null, null, null, pageable);
+        LogsResponseWrapper result = logsController.getLogs(null, null, null, null, null, pageable);
 
         // Then
         assertEquals(4, result.pagination().totalElements());
@@ -142,7 +142,7 @@ class LogsControllerTest {
         when(logsService.getLogs(any(), any())).thenReturn(expectedPage);
 
         // When
-        LogsResponseWrapper result = logsController.getLogs(null, null, null, null, pageable);
+        LogsResponseWrapper result = logsController.getLogs(null, null, null, null, null, pageable);
 
         // Then
         assertEquals(4, result.pagination().totalElements());
@@ -161,7 +161,7 @@ class LogsControllerTest {
         when(logsService.getLogs(any(), any())).thenReturn(expectedPage);
 
         // When
-        LogsResponseWrapper result = logsController.getLogs("INFO", startDate, endDate, "Logger1", pageable);
+        LogsResponseWrapper result = logsController.getLogs("INFO", startDate, endDate, "Logger1", null, pageable);
 
         // Then
         assertEquals(1, result.pagination().totalElements());
@@ -176,7 +176,7 @@ class LogsControllerTest {
         when(logsService.getLogs(any(), any())).thenReturn(expectedPage);
 
         // When
-        LogsResponseWrapper result = logsController.getLogs("TRACE", null, null, null, pageable);
+        LogsResponseWrapper result = logsController.getLogs("TRACE", null, null, null, null, pageable);
 
         // Then
         assertEquals(0, result.pagination().totalElements());

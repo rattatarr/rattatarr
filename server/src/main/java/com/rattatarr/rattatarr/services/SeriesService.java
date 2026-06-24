@@ -68,7 +68,7 @@ public class SeriesService extends BaseService<MediaItem, MediaItemsRepository> 
                 GenericSpecifications.notDeleted(),
                 MediaItemSpecifications.hasId(filters.id()),
                 MediaItemSpecifications.isSeries(),
-                MediaItemSpecifications.genres(filters.genres(), true),
+                MediaItemSpecifications.genres(filters.genres(), false),
                 MediaItemSpecifications.releasedAfter(filters.releasedAfter()),
                 MediaItemSpecifications.releasedBefore(filters.releasedBefore()),
                 MediaItemSpecifications.titleLike(filters.title()),
@@ -90,13 +90,15 @@ public class SeriesService extends BaseService<MediaItem, MediaItemsRepository> 
         );
 
         if (autoRefreshEnabled && filters.id() != null && !page.isEmpty()) {
-            logger.info("Auto-refresh is enabled. Checking if series ID {} is stale...", filters.id());
             MediaItem series = page.getContent().getFirst();
+            logger.info("Auto-refresh enabled. Checking if series '{}' ({}) is stale...",
+                    series.title(), series.id());
 
             // Refresh if stale (routes to TMDb or Jellyfin based on source)
             MediaItem refreshedSeries = mediaItemRefreshService.refreshIfStale(series);
 
             if (!refreshedSeries.equals(series)) {
+                logger.debug("Series '{}' ({}) was stale and has been refreshed", series.title(), series.id());
                 // Series was refreshed, update the page content
                 List<MediaItem> updatedContent = Collections.singletonList(refreshedSeries);
                 page = new PageImpl<>(updatedContent, lastWatchedSort.pageable(), page.getTotalElements());

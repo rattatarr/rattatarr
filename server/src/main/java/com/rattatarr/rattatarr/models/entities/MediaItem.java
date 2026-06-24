@@ -21,6 +21,8 @@ public class MediaItem extends BaseEntity {
                     @Index(name = "idx_item_genre_genre_id", columnList = "genre_id")
             }
     )
+    @Fetch(FetchMode.SUBSELECT)
+    @BatchSize(size = 50)
     private Set<Genre> genres = new HashSet<>();
 
     @OneToMany(mappedBy = "mediaItem", fetch = FetchType.LAZY)

@@ -147,12 +147,24 @@ export const logKeys = {
   lists: () => [...logKeys.all, 'list'] as const,
   list: (
     pageable: Pageable,
-    filters?: { level?: string; logger?: string; startDate?: string; endDate?: string },
+    filters?: {
+      level?: string
+      logger?: string
+      startDate?: string
+      endDate?: string
+      requestId?: string
+    },
   ) => [...logKeys.lists(), { pageable, filters }] as const,
   // Infinite logs (REST endpoint with infinite scroll)
   infinites: () => [...logKeys.all, 'infinite'] as const,
   infinite: (
-    filters?: { level?: string; logger?: string; startDate?: string; endDate?: string },
+    filters?: {
+      level?: string
+      logger?: string
+      startDate?: string
+      endDate?: string
+      requestId?: string
+    },
     pageSize?: number,
   ) => [...logKeys.infinites(), { filters, pageSize }] as const,
 }

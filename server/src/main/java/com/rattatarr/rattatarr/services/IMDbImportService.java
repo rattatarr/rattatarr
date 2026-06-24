@@ -9,6 +9,7 @@ import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.entities.BackgroundJob;
 import com.rattatarr.rattatarr.models.entities.Profile;
 import com.rattatarr.rattatarr.utils.CSVProcessor;
+import com.rattatarr.rattatarr.utils.MdcContext;
 import com.rattatarr.rattatarr.utils.ParallelAPIProcessor;
 import org.apache.commons.csv.CSVRecord;
 import org.jspecify.annotations.NullMarked;
@@ -26,6 +27,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executor;
@@ -104,7 +106,7 @@ public class IMDbImportService {
         };
 
         if (tmDbItem == null) {
-            logger.warn("No TMDb item found for IMDb ID: {}", row.IMDbId());
+            logger.warn("No TMDb {} found for IMDb ID: {}", row.mediaType(), row.IMDbId());
             return null;
         }
 
@@ -143,20 +145,25 @@ public class IMDbImportService {
 
     @Async("backgroundTaskExecutor")
     public void triggerBackgroundImportRatings(List<IMDbWatchlistRow> rows, UUID profileId, BackgroundJob job) {
-        Profile profile = profilesService.findByIdOrThrow(
-                profileId,
-                ProfilesExceptions.ProfileNotFoundExceptions::new
-        );
+        try (var ignored = MdcContext.of(Map.of("jobId", job.id().toString(), "jobType", job.type().name()))) {
+            try {
+                Profile profile = profilesService.findByIdOrThrow(
+                        profileId,
+                        ProfilesExceptions.ProfileNotFoundExceptions::new
+                );
 
-        logger.info("IMDb ratings import started for profile {}, jobId={}", profileId, job.id());
-        backgroundJobService.markRunning(job);
-        try {
-            importRatings(rows, profile);
-            backgroundJobService.markCompleted(job, "IMDb ratings import completed successfully");
-            logger.info("IMDb ratings import completed for profile {}, jobId={}", profileId, job.id());
-        } catch (Exception error) {
-            backgroundJobService.markFailed(job, error.getMessage());
-            logger.error("Error during IMDb ratings import for profile {}, jobId={}", profileId, job.id(), error);
+                logger.info("IMDb ratings import started for profile '{}' ({}): {} rows, jobId={}",
+                        profile.name(), profileId, rows.size(), job.id());
+                backgroundJobService.markRunning(job);
+                importRatings(rows, profile);
+                backgroundJobService.markCompleted(job, "IMDb ratings import completed successfully");
+                logger.info("IMDb ratings import completed for profile '{}' ({}): {} rows, jobId={}",
+                        profile.name(), profileId, rows.size(), job.id());
+            } catch (Exception error) {
+                backgroundJobService.markFailed(job, error.getMessage());
+                logger.error("Error during IMDb ratings import for profile ({}), jobId={}",
+                        profileId, job.id(), error);
+            }
         }
     }
 

@@ -14,6 +14,8 @@ export interface LogsFilters {
   endDate?: string
   /** Filter by logger name (substring match, case insensitive) */
   logger?: string
+  /** Filter by MDC requestId (exact match, case insensitive) to trace all logs of one request */
+  requestId?: string
 }
 
 /**
