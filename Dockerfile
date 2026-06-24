@@ -3,12 +3,12 @@ FROM node:24-alpine AS client-build
 
 WORKDIR /app/client
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Enable corepack; pnpm version is pinned via package.json "packageManager"
+RUN corepack enable
 
 # Install dependencies (leverage layer cache)
 COPY client/package.json client/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN corepack prepare --activate && pnpm install --frozen-lockfile
 
 # Copy source and build
 COPY client/ ./
