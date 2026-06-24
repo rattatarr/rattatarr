@@ -10,7 +10,20 @@
   import {
     useRecentlyWatchedUnratedMovies,
     useRecentlyWatchedUnratedSeries,
+    useDismissWatchedUnrated,
+    useRestoreWatchedUnrated,
   } from '@/queries/useLibrary'
+  import {
+    useInfiniteWatchedUnratedMovies,
+    useInfiniteWatchedUnratedSeries,
+  } from '@/queries/useInfiniteLibrary'
+  import { useSentinelInfiniteScroll } from '@/composables/useSentinelInfiniteScroll'
+  import { Icon } from '@/utils/enums'
+  import ToggleButton from 'primevue/togglebutton'
+  import { useToast } from '@/composables/useToast'
+  import { useConfirm } from 'primevue/useconfirm'
+  import { toast } from 'vue-sonner'
+  import type { MediaItem } from '@/types'
   import { useRoutePreload } from '@/composables/useRoutePreload'
   import OverallStatsCard from '@/components/dashboard/OverallStatsCard.vue'
   import RatingDistributionChart from '@/components/dashboard/RatingDistributionChart.vue'
@@ -76,6 +89,110 @@
   const hasWatchedUnrated = computed(
     () => watchedUnratedMovies.value.length > 0 || watchedUnratedSeries.value.length > 0,
   )
+
+  // "View all" toggles per column → switch from the 12-item preview to a paginated
+  // infinite list. Infinite queries stay disabled until their toggle is on.
+  const WATCHED_UNRATED_SORT = ['productionYear,desc']
+  const viewAllMovies = ref(false)
+  const viewAllSeries = ref(false)
+
+  const infiniteMovies = useInfiniteWatchedUnratedMovies(
+    watchedUnratedMovieFilters,
+    24,
+    WATCHED_UNRATED_SORT,
+    viewAllMovies,
+  )
+  const infiniteSeries = useInfiniteWatchedUnratedSeries(
+    watchedUnratedSeriesFilters,
+    24,
+    WATCHED_UNRATED_SORT,
+    viewAllSeries,
+  )
+
+  const allWatchedUnratedMovies = computed(
+    () => infiniteMovies.data.value?.pages.flatMap((page) => page.movies ?? []) ?? [],
+  )
+  const allWatchedUnratedSeries = computed(
+    () => infiniteSeries.data.value?.pages.flatMap((page) => page.series ?? []) ?? [],
+  )
+
+  // While "view all" is on but the first infinite page is still loading, keep the
+  // 12-item preview visible to avoid an empty-grid flicker. The full list shares the
+  // same sort, so the first items are identical and the swap is seamless.
+  const displayedMovies = computed(() => {
+    if (!viewAllMovies.value) return watchedUnratedMovies.value
+    return allWatchedUnratedMovies.value.length
+      ? allWatchedUnratedMovies.value
+      : watchedUnratedMovies.value
+  })
+  const displayedSeries = computed(() => {
+    if (!viewAllSeries.value) return watchedUnratedSeries.value
+    return allWatchedUnratedSeries.value.length
+      ? allWatchedUnratedSeries.value
+      : watchedUnratedSeries.value
+  })
+
+  const { sentinel: moviesSentinel } = useSentinelInfiniteScroll(
+    infiniteMovies.fetchNextPage,
+    infiniteMovies.hasNextPage,
+    infiniteMovies.isFetchingNextPage,
+    infiniteMovies.isLoading,
+  )
+  const { sentinel: seriesSentinel } = useSentinelInfiniteScroll(
+    infiniteSeries.fetchNextPage,
+    infiniteSeries.hasNextPage,
+    infiniteSeries.isFetchingNextPage,
+    infiniteSeries.isLoading,
+  )
+
+  const { error: showError } = useToast()
+  const confirm = useConfirm()
+  const dismissMutation = useDismissWatchedUnrated()
+  const restoreMutation = useRestoreWatchedUnrated()
+
+  function handleDismissWatchedUnrated(
+    item: MediaItem,
+    mediaType: MediaType.MOVIE | MediaType.SERIES,
+  ) {
+    const profileId = profileStore.selectedProfileId
+    if (!profileId || !item.id) return
+
+    confirm.require({
+      header: 'Remove from Watched but Not Rated',
+      message: `Remove "${item.title}" from this list? It will re-appear if you watch it again later.`,
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Remove',
+      rejectLabel: 'Cancel',
+      acceptProps: { severity: 'danger' },
+      rejectProps: { severity: 'secondary', outlined: true },
+      accept: () => dismissWatchedUnrated(item, mediaType, profileId),
+    })
+  }
+
+  async function dismissWatchedUnrated(
+    item: MediaItem,
+    mediaType: MediaType.MOVIE | MediaType.SERIES,
+    profileId: string,
+  ) {
+    const mediaItemId = item.id!
+
+    try {
+      await dismissMutation.mutateAsync({ mediaItemId, profileId, mediaType })
+      toast.success(`Removed "${item.title}"`, {
+        description: 'No longer shown in Watched but Not Rated.',
+        duration: 6000,
+        closeButton: true,
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            restoreMutation.mutate({ mediaItemId, profileId, mediaType })
+          },
+        },
+      })
+    } catch (err) {
+      showError(err, 'Failed to dismiss item')
+    }
+  }
 
   const HEATMAP_MODE_OPTIONS = [
     { label: 'Activity', value: 'activity' as const },
@@ -198,28 +315,64 @@
           <template #title>Watched but Not Rated</template>
           <template #content>
             <div class="watched-unrated-layout">
-              <div v-if="watchedUnratedMovies.length" class="watched-unrated-column">
-                <h3 class="section-heading">Movies</h3>
+              <div v-if="displayedMovies.length" class="watched-unrated-column">
+                <div class="watched-unrated-heading">
+                  <h3 class="section-heading">Movies</h3>
+                  <ToggleButton
+                    v-model="viewAllMovies"
+                    on-label="Show less"
+                    off-label="View all"
+                    :on-icon="Icon.CHEVRON_UP"
+                    :off-icon="Icon.CHEVRON_DOWN"
+                    size="small"
+                  />
+                </div>
                 <div class="watched-unrated-grid">
                   <MediaItemCard
-                    v-for="movie in watchedUnratedMovies"
+                    v-for="movie in displayedMovies"
                     :key="`movie-${movie.id}`"
                     :item="movie"
                     :media-type="MediaType.MOVIE"
+                    dismissible
+                    @dismiss="handleDismissWatchedUnrated(movie, MediaType.MOVIE)"
                   />
                 </div>
+                <template v-if="viewAllMovies">
+                  <div ref="moviesSentinel" class="scroll-sentinel" />
+                  <div v-if="infiniteMovies.isFetchingNextPage.value" class="watched-unrated-more">
+                    <i :class="Icon.SPINNER" class="pi-spin" /> Loading more movies...
+                  </div>
+                </template>
               </div>
 
-              <div v-if="watchedUnratedSeries.length" class="watched-unrated-column">
-                <h3 class="section-heading">Series</h3>
+              <div v-if="displayedSeries.length" class="watched-unrated-column">
+                <div class="watched-unrated-heading">
+                  <h3 class="section-heading">Series</h3>
+                  <ToggleButton
+                    v-model="viewAllSeries"
+                    on-label="Show less"
+                    off-label="View all"
+                    :on-icon="Icon.CHEVRON_UP"
+                    :off-icon="Icon.CHEVRON_DOWN"
+                    size="small"
+                  />
+                </div>
                 <div class="watched-unrated-grid">
                   <MediaItemCard
-                    v-for="show in watchedUnratedSeries"
+                    v-for="show in displayedSeries"
                     :key="`series-${show.id}`"
                     :item="show"
                     :media-type="MediaType.SERIES"
+                    dismissible
+                    @dismiss="handleDismissWatchedUnrated(show, MediaType.SERIES)"
                   />
                 </div>
+                <template v-if="viewAllSeries">
+                  <div ref="seriesSentinel" class="scroll-sentinel" />
+                  <div v-if="infiniteSeries.isFetchingNextPage.value" class="watched-unrated-more">
+                    <i :class="Icon.SPINNER" class="pi-spin" /> Loading more series...
+                  </div>
+                </template>
               </div>
             </div>
           </template>
@@ -396,6 +549,31 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+  }
+
+  .watched-unrated-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .watched-unrated-heading .section-heading {
+    margin: 0;
+  }
+
+  .scroll-sentinel {
+    height: 1px;
+    width: 100%;
+  }
+
+  .watched-unrated-more {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    color: var(--p-text-secondary-color);
+    font-size: 0.875rem;
   }
 
   .watched-unrated-grid {

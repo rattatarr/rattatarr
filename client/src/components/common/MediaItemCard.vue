@@ -10,18 +10,21 @@
   import SourceBadge from '@/components/common/SourceBadge.vue'
   import jellyfinIcon from '@/assets/jellyfin-icon.svg'
   import type { MediaItem } from '@/types'
-  import { MediaSource, MediaType, type SearchResultSource } from '@/utils/enums'
+  import { Icon, MediaSource, MediaType, type SearchResultSource } from '@/utils/enums'
 
   interface Props {
     item: MediaItem
     mediaType: MediaType.MOVIE | MediaType.SERIES
     /** Optional source hint for external items (tmdb, imdb, etc.) */
     source?: SearchResultSource
+    /** Show a dismiss (X) button to remove the item from a list */
+    dismissible?: boolean
   }
 
   const props = defineProps<Props>()
   const emit = defineEmits<{
     ratingUpdated: [rating: number]
+    dismiss: []
   }>()
 
   const router = useRouter()
@@ -103,6 +106,11 @@
     showRatingDialog.value = true
   }
 
+  function handleDismiss(event: Event) {
+    event.stopPropagation()
+    emit('dismiss')
+  }
+
   function navigateToDetail() {
     if (!props.item.id) return
 
@@ -181,10 +189,22 @@
       @click="navigateToDetail"
       @click:rating="openRatingDialog"
     >
-      <!-- Source Badge for external sources (TMDb, IMDb, etc.) -->
-      <template v-if="isExternalSource" #badge-top-right>
-        <div class="source-badge-wrapper">
-          <SourceBadge :source="source!" compact />
+      <!-- Top-right overlay: source badge (external) and/or dismiss button -->
+      <template v-if="isExternalSource || dismissible" #badge-top-right>
+        <div class="card-top-right">
+          <button
+            v-if="dismissible"
+            type="button"
+            class="dismiss-button"
+            aria-label="Dismiss from watched but not rated"
+            title="Dismiss"
+            @click="handleDismiss"
+          >
+            <i :class="Icon.TIMES" />
+          </button>
+          <div v-if="isExternalSource" class="source-badge-wrapper">
+            <SourceBadge :source="source!" compact />
+          </div>
         </div>
       </template>
     </MediaPosterCard>
@@ -202,10 +222,39 @@
 </template>
 
 <style scoped>
-  .source-badge-wrapper {
+  .card-top-right {
     position: absolute;
     top: 8px;
     right: 8px;
     z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .source-badge-wrapper {
+    display: flex;
+  }
+
+  .dismiss-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+  }
+
+  .dismiss-button:hover {
+    background: var(--p-red-500, #ef4444);
+    transform: scale(1.08);
   }
 </style>

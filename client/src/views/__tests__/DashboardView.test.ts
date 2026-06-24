@@ -16,11 +16,39 @@ vi.mock('@/queries', () => ({
   useProfileStatistics: (...args: never[]) => mockUseProfileStatistics(...args),
 }))
 
+const mockDismissMutate = vi.fn()
+const mockRestoreMutate = vi.fn()
+
 vi.mock('@/queries/useLibrary', () => ({
   useRecentlyWatchedUnratedMovies: (...args: never[]) =>
     mockUseRecentlyWatchedUnratedMovies(...args),
   useRecentlyWatchedUnratedSeries: (...args: never[]) =>
     mockUseRecentlyWatchedUnratedSeries(...args),
+  useDismissWatchedUnrated: () => ({ mutateAsync: mockDismissMutate }),
+  useRestoreWatchedUnrated: () => ({ mutate: mockRestoreMutate }),
+}))
+
+const mockConfirmRequire = vi.fn()
+
+vi.mock('primevue/useconfirm', () => ({
+  useConfirm: () => ({ require: mockConfirmRequire }),
+}))
+
+const infiniteStub = () => ({
+  data: ref({ pages: [] }),
+  fetchNextPage: vi.fn(),
+  hasNextPage: ref(false),
+  isFetchingNextPage: ref(false),
+  isLoading: ref(false),
+})
+
+vi.mock('@/queries/useInfiniteLibrary', () => ({
+  useInfiniteWatchedUnratedMovies: () => infiniteStub(),
+  useInfiniteWatchedUnratedSeries: () => infiniteStub(),
+}))
+
+vi.mock('@/composables/useSentinelInfiniteScroll', () => ({
+  useSentinelInfiniteScroll: () => ({ sentinel: ref(null) }),
 }))
 
 vi.mock('@/composables/useRoutePreload', () => ({
@@ -73,6 +101,7 @@ describe('DashboardView', () => {
           },
           Message: { template: '<div><slot /></div>' },
           SelectButton: true,
+          ToggleButton: true,
           MediaItemCard: { template: '<div class="media-item-card" />' },
           OverallStatsCard: { template: '<div class="overall-stats">overall stats</div>' },
           RatingDistributionChart: true,
@@ -136,6 +165,7 @@ describe('DashboardView', () => {
           },
           Message: { template: '<div><slot /></div>' },
           SelectButton: true,
+          ToggleButton: true,
           MediaItemCard: true,
           OverallStatsCard: {
             props: ['jellyfinRuntimeStats'],

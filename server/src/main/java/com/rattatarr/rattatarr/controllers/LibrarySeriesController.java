@@ -8,11 +8,7 @@ import com.rattatarr.rattatarr.models.dtos.requests.SeriesFiltersDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.GenericResponseDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.wrappers.BrokenMediaItemResponseWrapper;
 import com.rattatarr.rattatarr.models.dtos.responses.wrappers.SeriesResponseWrapper;
-import com.rattatarr.rattatarr.services.BrokenMediaItemsService;
-import com.rattatarr.rattatarr.services.MediaItemRefreshService;
-import com.rattatarr.rattatarr.services.MediaItemsService;
-import com.rattatarr.rattatarr.services.ProfilesService;
-import com.rattatarr.rattatarr.services.SeriesService;
+import com.rattatarr.rattatarr.services.*;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -31,18 +27,21 @@ public class LibrarySeriesController extends BaseController {
     private final MediaItemsService mediaItemsService;
     private final MediaItemRefreshService mediaItemRefreshService;
     private final ProfilesService profilesService;
+    private final WatchedUnratedDismissalService watchedUnratedDismissalService;
 
     public LibrarySeriesController(SeriesService seriesService,
                                    BrokenMediaItemsService brokenMediaItemsService,
                                    MediaItemsService mediaItemsService,
                                    MediaItemRefreshService mediaItemRefreshService,
-                                   ProfilesService profilesService
+                                   ProfilesService profilesService,
+                                   WatchedUnratedDismissalService watchedUnratedDismissalService
     ) {
         this.seriesService = seriesService;
         this.brokenMediaItemsService = brokenMediaItemsService;
         this.mediaItemsService = mediaItemsService;
         this.mediaItemRefreshService = mediaItemRefreshService;
         this.profilesService = profilesService;
+        this.watchedUnratedDismissalService = watchedUnratedDismissalService;
     }
 
     @GetMapping
@@ -94,6 +93,34 @@ public class LibrarySeriesController extends BaseController {
                 page.getTotalElements());
 
         return ResponseEntity.ok(SeriesResponseWrapper.fromPage(page));
+    }
+
+    @DeleteMapping("/watched/unrated/{mediaItemId}")
+    public ResponseEntity<GenericResponseDTO> dismissWatchedUnrated(
+            @PathVariable UUID mediaItemId,
+            @RequestParam UUID profileId
+    ) {
+        logger.info("Dismissing series {} from watched-unrated for profile {}",
+                mediaItemId, profilesService.describe(profileId));
+
+        watchedUnratedDismissalService.dismiss(profileId, mediaItemId);
+
+        return ResponseEntity.ok(
+                GenericResponseDTO.success("Series removed from watched but not rated", null));
+    }
+
+    @PostMapping("/watched/unrated/{mediaItemId}/restore")
+    public ResponseEntity<GenericResponseDTO> restoreWatchedUnrated(
+            @PathVariable UUID mediaItemId,
+            @RequestParam UUID profileId
+    ) {
+        logger.info("Restoring series {} to watched-unrated for profile {}",
+                mediaItemId, profilesService.describe(profileId));
+
+        watchedUnratedDismissalService.restore(profileId, mediaItemId);
+
+        return ResponseEntity.ok(
+                GenericResponseDTO.success("Series restored to watched but not rated", null));
     }
 
     /**

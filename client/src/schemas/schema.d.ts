@@ -212,6 +212,38 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/library/series/watched/unrated/{mediaItemId}/restore': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: operations['restoreWatchedUnrated']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/library/movies/watched/unrated/{mediaItemId}/restore': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: operations['restoreWatchedUnrated_1']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/library/broken-media-items/seed': {
     parameters: {
       query?: never
@@ -799,6 +831,38 @@ export interface paths {
     put?: never
     post?: never
     delete: operations['clearConversation']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/library/series/watched/unrated/{mediaItemId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete: operations['dismissWatchedUnrated']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/api/v1/library/movies/watched/unrated/{mediaItemId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete: operations['dismissWatchedUnrated_1']
     options?: never
     head?: never
     patch?: never
@@ -2064,6 +2128,54 @@ export interface operations {
       }
     }
   }
+  restoreWatchedUnrated: {
+    parameters: {
+      query: {
+        profileId: string
+      }
+      header?: never
+      path: {
+        mediaItemId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['GenericResponseDTO']
+        }
+      }
+    }
+  }
+  restoreWatchedUnrated_1: {
+    parameters: {
+      query: {
+        profileId: string
+      }
+      header?: never
+      path: {
+        mediaItemId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['GenericResponseDTO']
+        }
+      }
+    }
+  }
   seed: {
     parameters: {
       query?: {
@@ -2948,6 +3060,54 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+    }
+  }
+  dismissWatchedUnrated: {
+    parameters: {
+      query: {
+        profileId: string
+      }
+      header?: never
+      path: {
+        mediaItemId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['GenericResponseDTO']
+        }
+      }
+    }
+  }
+  dismissWatchedUnrated_1: {
+    parameters: {
+      query: {
+        profileId: string
+      }
+      header?: never
+      path: {
+        mediaItemId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['GenericResponseDTO']
+        }
       }
     }
   }
