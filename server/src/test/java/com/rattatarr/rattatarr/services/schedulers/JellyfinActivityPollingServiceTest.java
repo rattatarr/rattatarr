@@ -5,6 +5,7 @@ import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientActivity
 import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientPlaybackItemResponseDTO;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientPlaybackItemUserDataResponseDTO;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientActivityLogEntriesWrapper;
+import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientPlayedItemsWrapper;
 import com.rattatarr.rattatarr.models.WatchEventType;
 import com.rattatarr.rattatarr.models.entities.MediaItem;
 import com.rattatarr.rattatarr.models.entities.Profile;
@@ -32,6 +33,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -330,6 +332,67 @@ class JellyfinActivityPollingServiceTest {
         verify(jellyfinClient).getActivityLogEntries(50);
         verify(settingsService).updateSetting(SettingsService.SYNC_JELLYFIN_ACTIVITY_BACKFILL_COMPLETE, "true", null);
         verify(watchEventsRepository, times(1)).saveAll(any());
+    }
+
+    @Test
+    void pollJellyfinActivity_shouldCreateCompleteEventForManuallyMarkedPlayedMovie() {
+        Profile profile = new Profile("Alice", "user-1");
+        MediaItem mediaItem = mock(MediaItem.class);
+
+        when(jellyfinClient.getActivityLogEntries())
+                .thenReturn(new JellyfinClientActivityLogEntriesWrapper(List.of(), 0, 0));
+        when(profilesService.findAllWithJellyfinId()).thenReturn(List.of(profile));
+        when(jellyfinClient.getPlayedItemsForUser("user-1")).thenReturn(new JellyfinClientPlayedItemsWrapper(
+                List.of(new JellyfinClientPlaybackItemResponseDTO("movie-1", "Movie", "Inception", null))));
+        when(mediaItemsService.findByJellyfinId("movie-1")).thenReturn(Optional.of(mediaItem));
+        when(watchEventsRepository.existsByProfile_IdAndMediaItem_IdAndEpisodeIsNullAndEventType(
+                any(), any(), eq(WatchEventType.COMPLETE))).thenReturn(false);
+
+        service.pollJellyfinActivity();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<WatchEvent>> eventCaptor = ArgumentCaptor.forClass(List.class);
+        verify(watchEventsRepository).saveAll(eventCaptor.capture());
+        WatchEvent saved = eventCaptor.getValue().getFirst();
+
+        assertEquals(WatchEventType.COMPLETE, saved.eventType());
+        assertEquals(profile, saved.profile());
+        assertEquals(mediaItem, saved.mediaItem());
+        assertNull(saved.jellyfinLogId());
+        assertNull(saved.positionSeconds());
+        assertNotNull(saved.watchedAt());
+        verify(jellyfinClient, never()).getUsers();
+    }
+
+    @Test
+    void pollJellyfinActivity_shouldNotDuplicateWhenCompleteEventAlreadyExistsForPlayedMovie() {
+        Profile profile = new Profile("Alice", "user-1");
+
+        when(jellyfinClient.getActivityLogEntries())
+                .thenReturn(new JellyfinClientActivityLogEntriesWrapper(List.of(), 0, 0));
+        when(profilesService.findAllWithJellyfinId()).thenReturn(List.of(profile));
+        when(jellyfinClient.getPlayedItemsForUser("user-1")).thenReturn(new JellyfinClientPlayedItemsWrapper(
+                List.of(new JellyfinClientPlaybackItemResponseDTO("movie-1", "Movie", "Inception", null))));
+        when(mediaItemsService.findByJellyfinId("movie-1")).thenReturn(Optional.of(mock(MediaItem.class)));
+        when(watchEventsRepository.existsByProfile_IdAndMediaItem_IdAndEpisodeIsNullAndEventType(
+                any(), any(), eq(WatchEventType.COMPLETE))).thenReturn(true);
+
+        service.pollJellyfinActivity();
+
+        verify(watchEventsRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void pollJellyfinActivity_shouldNotQueryJellyfinWhenNoProfilesHaveJellyfinId() {
+        when(jellyfinClient.getActivityLogEntries())
+                .thenReturn(new JellyfinClientActivityLogEntriesWrapper(List.of(), 0, 0));
+        when(profilesService.findAllWithJellyfinId()).thenReturn(List.of());
+
+        service.pollJellyfinActivity();
+
+        verify(jellyfinClient, never()).getPlayedItemsForUser(anyString());
+        verify(jellyfinClient, never()).getUsers();
+        verify(watchEventsRepository, never()).saveAll(any());
     }
 
     @Test

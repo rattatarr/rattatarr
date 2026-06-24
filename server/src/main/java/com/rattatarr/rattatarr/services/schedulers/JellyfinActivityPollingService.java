@@ -100,6 +100,11 @@ public class JellyfinActivityPollingService {
             return;
         }
 
+        processActivityLog();
+        processManualPlayedMarks();
+    }
+
+    private void processActivityLog() {
         List<JellyfinClientActivityLogEntryResponseDTO> entries = loadEntriesForCurrentCycle();
         if (entries == null || entries.isEmpty()) {
             logger.debug("Jellyfin activity poll: no activity entries returned");
@@ -115,13 +120,14 @@ public class JellyfinActivityPollingService {
                 ? Set.of()
                 : watchEventsRepository.findExistingJellyfinLogIds(polledEntryIds);
 
-        List<WatchEvent> pendingWatchEvents = new ArrayList<>();
-        entries.stream()
+        List<WatchEvent> pendingWatchEvents = entries.stream()
                 .sorted(Comparator.comparing(JellyfinClientActivityLogEntryResponseDTO::id))
                 .filter(this::isSupportedPlaybackEntry)
                 .filter(entry -> entry.id() != null)
                 .filter(entry -> !existingEntryIds.contains(entry.id()))
-                .forEach(entry -> processEntry(entry, pendingWatchEvents));
+                .map(this::buildPlaybackWatchEvent)
+                .flatMap(Optional::stream)
+                .toList();
 
         if (!pendingWatchEvents.isEmpty()) {
             watchEventsRepository.saveAll(pendingWatchEvents);
@@ -130,6 +136,77 @@ public class JellyfinActivityPollingService {
         } else {
             logger.debug("Jellyfin activity poll: no new watch events from {} scanned entries", entries.size());
         }
+    }
+
+    private void processManualPlayedMarks() {
+        List<WatchEvent> pendingWatchEvents = profilesService.findAllWithJellyfinId().stream()
+                .flatMap(profile -> collectManualPlayedMarks(profile).stream())
+                .toList();
+
+        if (!pendingWatchEvents.isEmpty()) {
+            watchEventsRepository.saveAll(pendingWatchEvents);
+            logger.info("Jellyfin manual-played scan: persisted {} new COMPLETE watch event(s)",
+                    pendingWatchEvents.size());
+        } else {
+            logger.debug("Jellyfin manual-played scan: no new COMPLETE watch events");
+        }
+    }
+
+    private List<WatchEvent> collectManualPlayedMarks(Profile profile) {
+        List<JellyfinClientPlaybackItemResponseDTO> playedItems;
+        try {
+            playedItems = jellyfinClient.getPlayedItemsForUser(profile.jellyfinId()).items();
+        } catch (Exception e) {
+            logger.error("Jellyfin manual-played scan: failed to load played items for user {}",
+                    profile.jellyfinId(), e);
+            return List.of();
+        }
+        if (playedItems == null || playedItems.isEmpty()) {
+            return List.of();
+        }
+
+        return playedItems.stream()
+                .map(item -> buildManualPlayedMark(profile, item))
+                .flatMap(Optional::stream)
+                .toList();
+    }
+
+    private Optional<WatchEvent> buildManualPlayedMark(Profile profile, JellyfinClientPlaybackItemResponseDTO item) {
+        try {
+            if (item.id() == null) {
+                return Optional.empty();
+            }
+            var resolution = resolveMediaTargets(item.id());
+            if (resolution.mediaItem().isEmpty()) {
+                return Optional.empty();
+            }
+            if (alreadyHasCompleteEvent(profile, resolution)) {
+                return Optional.empty();
+            }
+
+            return Optional.of(new WatchEvent(
+                    null,
+                    profile,
+                    resolution.mediaItem().get(),
+                    resolution.mediaSeason().orElse(null),
+                    resolution.episode().orElse(null),
+                    WatchEventType.COMPLETE,
+                    Instant.now(),
+                    null
+            ));
+        } catch (Exception e) {
+            logger.error("Jellyfin manual-played scan: failed processing played item id={}", item.id(), e);
+            return Optional.empty();
+        }
+    }
+
+    private boolean alreadyHasCompleteEvent(Profile profile, MediaResolution resolution) {
+        if (resolution.episode().isPresent()) {
+            return watchEventsRepository.existsByProfile_IdAndEpisode_IdAndEventType(
+                    profile.id(), resolution.episode().get().id(), WatchEventType.COMPLETE);
+        }
+        return watchEventsRepository.existsByProfile_IdAndMediaItem_IdAndEpisodeIsNullAndEventType(
+                profile.id(), resolution.mediaItem().get().id(), WatchEventType.COMPLETE);
     }
 
     private List<JellyfinClientActivityLogEntryResponseDTO> loadEntriesForCurrentCycle() {
@@ -172,27 +249,27 @@ public class JellyfinActivityPollingService {
         return VIDEO_PLAYBACK.equals(entry.type()) || VIDEO_PLAYBACK_STOPPED.equals(entry.type());
     }
 
-    private void processEntry(JellyfinClientActivityLogEntryResponseDTO entry, List<WatchEvent> pendingWatchEvents) {
+    private Optional<WatchEvent> buildPlaybackWatchEvent(JellyfinClientActivityLogEntryResponseDTO entry) {
         try {
             if (entry.id() == null) {
-                return;
+                return Optional.empty();
             }
 
             Optional<Profile> profileOptional = profilesService.findByJellyfinId(entry.userId());
             if (profileOptional.isEmpty()) {
-                return;
+                return Optional.empty();
             }
 
             var resolution = resolveMediaTargets(entry.itemId());
             if (resolution.mediaItem().isEmpty()) {
-                return;
+                return Optional.empty();
             }
 
             JellyfinClientPlaybackItemResponseDTO playbackItem = fetchPlaybackItem(entry);
             WatchEventType eventType = resolveEventType(entry, playbackItem);
             Integer positionSeconds = resolvePositionSeconds(entry, playbackItem);
 
-            WatchEvent watchEvent = new WatchEvent(
+            return Optional.of(new WatchEvent(
                     entry.id(),
                     profileOptional.get(),
                     resolution.mediaItem().get(),
@@ -201,11 +278,11 @@ public class JellyfinActivityPollingService {
                     eventType,
                     parseDateOrNow(entry.date()),
                     positionSeconds
-            );
-            pendingWatchEvents.add(watchEvent);
+            ));
         } catch (Exception e) {
             logger.error("Failed processing Jellyfin activity entry id={} type={} itemId={}",
                     entry.id(), entry.type(), entry.itemId(), e);
+            return Optional.empty();
         }
     }
 

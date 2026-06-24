@@ -8,6 +8,7 @@ import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientUserResp
 import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinSystemInfoResponseDTO;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientActivityLogEntriesWrapper;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientItemsWrapper;
+import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientPlayedItemsWrapper;
 import com.rattatarr.rattatarr.configs.RestClientProperties;
 import com.rattatarr.rattatarr.exceptions.JellyfinClientExceptions;
 import com.rattatarr.rattatarr.utils.URISanitizer;
@@ -96,6 +97,30 @@ public class JellyfinClient extends BaseClient<JellyfinClientExceptions> impleme
         return executeGet(
                 uri,
                 JellyfinClientPlaybackItemResponseDTO.class,
+                headers -> headers.set("Authorization", config.getAuthHeader())
+        );
+    }
+
+    /**
+     * Returns items the given Jellyfin user currently has marked as played (UserData.Played == true).
+     * This includes items marked manually via {@code POST /Users/{userId}/PlayedItems/{itemId}}, which do
+     * NOT produce an activity-log entry and are therefore invisible to the activity-log poll.
+     */
+    public JellyfinClientPlayedItemsWrapper getPlayedItemsForUser(String userId) {
+        URI uri = UriComponentsBuilder
+                .fromUriString(config.buildUrl(URISanitizer.pathEnsureLeadingSlash("Items")))
+                .queryParam("userId", userId)
+                .queryParam("Recursive", "true")
+                .queryParam("IsPlayed", "true")
+                .queryParam("IncludeItemTypes", "Movie,Episode")
+                .queryParam("Fields", "UserData")
+                .queryParam("EnableUserData", "true")
+                .build()
+                .toUri();
+
+        return executeGet(
+                uri,
+                JellyfinClientPlayedItemsWrapper.class,
                 headers -> headers.set("Authorization", config.getAuthHeader())
         );
     }
