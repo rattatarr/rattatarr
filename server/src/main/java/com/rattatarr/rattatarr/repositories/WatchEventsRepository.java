@@ -17,6 +17,12 @@ import java.util.UUID;
 public interface WatchEventsRepository extends BaseRepository<WatchEvent> {
     boolean existsByJellyfinLogId(Long jellyfinLogId);
 
+    boolean existsByProfile_IdAndMediaItem_IdAndEpisodeIsNullAndEventType(
+            UUID profileId, UUID mediaItemId, WatchEventType eventType);
+
+    boolean existsByProfile_IdAndEpisode_IdAndEventType(
+            UUID profileId, UUID episodeId, WatchEventType eventType);
+
     @Query("SELECT w.jellyfinLogId FROM WatchEvent w WHERE w.jellyfinLogId IN :jellyfinLogIds")
     Set<Long> findExistingJellyfinLogIds(@Param("jellyfinLogIds") Collection<Long> jellyfinLogIds);
 

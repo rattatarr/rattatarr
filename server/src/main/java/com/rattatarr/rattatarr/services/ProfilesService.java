@@ -105,6 +105,10 @@ public class ProfilesService extends BaseService<Profile, ProfilesRepository> {
         return repository.findByJellyfinId(jellyfinId);
     }
 
+    public List<Profile> findAllWithJellyfinId() {
+        return repository.findByJellyfinIdIsNotNull();
+    }
+
     /**
      * Cheap, log-friendly label for a profile id: {@code 'Alex' (uuid)}.
      * Resolves the name via a single primary-key lookup; never throws.

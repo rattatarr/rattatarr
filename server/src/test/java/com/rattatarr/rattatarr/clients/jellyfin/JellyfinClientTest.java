@@ -8,6 +8,7 @@ import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinClientUserResp
 import com.rattatarr.rattatarr.clients.jellyfin.responses.JellyfinSystemInfoResponseDTO;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientActivityLogEntriesWrapper;
 import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientItemsWrapper;
+import com.rattatarr.rattatarr.clients.jellyfin.responses.wrappers.JellyfinClientPlayedItemsWrapper;
 import com.rattatarr.rattatarr.configs.RestClientProperties;
 import com.rattatarr.rattatarr.exceptions.JellyfinClientExceptions;
 import com.rattatarr.rattatarr.exceptions.JellyfinConfigExceptions;
@@ -313,6 +314,35 @@ class JellyfinClientTest {
         verify(getSpec).uri(org.mockito.ArgumentMatchers.<URI>argThat(uri ->
                 uri.toString().contains("/Items/item-1")
                         && uri.toString().contains("userId=user-1")
+        ));
+        verify(headersSpec).headers(any());
+    }
+
+    @Test
+    void getPlayedItemsForUser_shouldConstructCorrectUriAndReturnItems() {
+        // Given
+        JellyfinClientPlayedItemsWrapper expected = new JellyfinClientPlayedItemsWrapper(List.of(
+                new JellyfinClientPlaybackItemResponseDTO(
+                        "movie-1",
+                        "Movie",
+                        "Inception",
+                        new JellyfinClientPlaybackItemUserDataResponseDTO(0L, true))
+        ));
+
+        when(responseSpec.body(JellyfinClientPlayedItemsWrapper.class)).thenReturn(expected);
+
+        // When
+        JellyfinClientPlayedItemsWrapper result = jellyfinClient.getPlayedItemsForUser("user-1");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.items().size());
+        assertEquals("movie-1", result.items().getFirst().id());
+        verify(getSpec).uri(org.mockito.ArgumentMatchers.<URI>argThat(uri ->
+                uri.toString().contains("/Items")
+                        && uri.toString().contains("userId=user-1")
+                        && uri.toString().contains("IsPlayed=true")
+                        && uri.toString().contains("IncludeItemTypes=Movie,Episode")
         ));
         verify(headersSpec).headers(any());
     }
