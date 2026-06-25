@@ -3,6 +3,7 @@ package com.rattatarr.rattatarr.models.dtos.responses;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.rattatarr.rattatarr.models.entities.MediaItem;
 import com.rattatarr.rattatarr.models.entities.MediaItemRating;
+import com.rattatarr.rattatarr.models.entities.MediaSeasonRating;
 import org.hibernate.Hibernate;
 import org.jspecify.annotations.Nullable;
 
@@ -26,7 +27,8 @@ public record ShowResponseDTO(
         List<SeasonResponseDTO> seasons,
         List<CastMemberResponseDTO> cast,
         List<CrewMemberResponseDTO> crew,
-        Float myRating
+        Float myRating,
+        ReviewResponseDTO review
 ) implements Serializable {
     public static ShowResponseDTO fromEntity(MediaItem mediaItem) {
         return fromEntity(mediaItem, false);
@@ -40,7 +42,7 @@ public record ShowResponseDTO(
         return fromEntity(mediaItem, rating, includeCredits, Map.of());
     }
 
-    public static ShowResponseDTO fromEntity(MediaItem mediaItem, @Nullable MediaItemRating rating, boolean includeCredits, Map<UUID, Float> seasonRatings) {
+    public static ShowResponseDTO fromEntity(MediaItem mediaItem, @Nullable MediaItemRating rating, boolean includeCredits, Map<UUID, MediaSeasonRating> seasonRatings) {
         return new ShowResponseDTO(
                 mediaItem.id(),
                 mediaItem.jellyfinId(),
@@ -60,7 +62,8 @@ public record ShowResponseDTO(
                 includeCredits && Hibernate.isInitialized(mediaItem.crew()) && mediaItem.crew() != null && !mediaItem.crew().isEmpty()
                         ? CrewMemberResponseDTO.fromEntities(mediaItem.crew())
                         : null,
-                rating != null ? rating.rating() : null
+                rating != null ? rating.rating() : null,
+                ReviewResponseDTO.fromEntity(rating)
         );
     }
 

@@ -1,11 +1,15 @@
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import Button from 'primevue/button'
   import { Icon } from '@/utils/enums'
-  import type { Episode } from '@/types'
+  import type { Episode, Review } from '@/types'
   import RatingDialog from '@/components/common/RatingDialog.vue'
-  import { useRateMediaItem } from '@/queries/useRatings'
+  import ReviewDialog from '@/components/common/ReviewDialog.vue'
+  import type { ReviewSubmitPayload } from '@/components/common/ReviewDialog.vue'
+  import ReviewDisplay from '@/components/common/ReviewDisplay.vue'
+  import { useRateMediaItem, useSetReview, useDeleteReview } from '@/queries/useRatings'
   import { useProfileStore } from '@/stores/profileStore'
+  import { useReviewDraftStore } from '@/stores/reviewDraftStore'
   import { useToast } from '@/composables/useToast'
 
   interface Props {
@@ -17,6 +21,7 @@
     episodes?: Episode[]
     initiallyExpanded?: boolean
     myRating?: number
+    review?: Review
     showRating?: boolean
   }
 
@@ -27,14 +32,28 @@
 
   const emit = defineEmits<{
     ratingUpdated: [rating: number]
+    reviewUpdated: []
   }>()
 
   const profileStore = useProfileStore()
   const { success, error: showError } = useToast()
   const ratingMutation = useRateMediaItem()
+  const setReviewMutation = useSetReview()
+  const deleteReviewMutation = useDeleteReview()
+  const reviewDraftStore = useReviewDraftStore()
 
   const isExpanded = ref(props.initiallyExpanded)
   const showRatingDialog = ref(false)
+  const showReviewDialog = ref(false)
+  // When rating was triggered from the review dialog, reopen it afterwards
+  const reopenReviewAfterRating = ref(false)
+
+  const hasRating = computed(() => !!props.myRating)
+
+  // Reset the reopen intent whenever the rating dialog closes (e.g. cancel)
+  watch(showRatingDialog, (visible) => {
+    if (!visible) reopenReviewAfterRating.value = false
+  })
 
   const toggleExpanded = () => {
     isExpanded.value = !isExpanded.value
@@ -42,6 +61,21 @@
 
   const openRatingDialog = (event: Event) => {
     event.stopPropagation()
+    showRatingDialog.value = true
+  }
+
+  const openReviewDialog = (event: Event) => {
+    event.stopPropagation()
+    if (!profileStore.selectedProfileId) {
+      showError('No profile selected', 'Please select a profile to review media')
+      return
+    }
+    showReviewDialog.value = true
+  }
+
+  const handleReviewRate = () => {
+    reopenReviewAfterRating.value = true
+    showReviewDialog.value = false
     showRatingDialog.value = true
   }
 
@@ -78,10 +112,50 @@
       })
       success('Rating saved', `Rated "${props.title}" ${formatRating(rating)}/10.0`)
       emit('ratingUpdated', rating)
+      const reopenReview = reopenReviewAfterRating.value
       showRatingDialog.value = false
+      if (reopenReview) showReviewDialog.value = true
     } catch (error) {
       showError(error, 'Failed to save rating')
       showRatingDialog.value = false
+    }
+  }
+
+  const handleReviewSubmit = async (payload: ReviewSubmitPayload) => {
+    if (!profileStore.selectedProfileId || !props.id) {
+      showError('Cannot save review', 'Missing profile or season')
+      return
+    }
+    try {
+      await setReviewMutation.mutateAsync({
+        profileId: profileStore.selectedProfileId,
+        entityId: props.id,
+        ratingMediaType: 'MEDIA_SEASON',
+        ...payload,
+      })
+      reviewDraftStore.clearDraft(profileStore.selectedProfileId, props.id)
+      success('Review saved', `Your review for "${props.title}" has been saved`)
+      emit('reviewUpdated')
+      showReviewDialog.value = false
+    } catch (error) {
+      showError(error, 'Failed to save review')
+    }
+  }
+
+  const handleReviewDelete = async () => {
+    if (!profileStore.selectedProfileId || !props.id) return
+    try {
+      await deleteReviewMutation.mutateAsync({
+        profileId: profileStore.selectedProfileId,
+        entityId: props.id,
+        ratingMediaType: 'MEDIA_SEASON',
+      })
+      reviewDraftStore.clearDraft(profileStore.selectedProfileId, props.id)
+      success('Review deleted', `Your review for "${props.title}" has been removed`)
+      emit('reviewUpdated')
+      showReviewDialog.value = false
+    } catch (error) {
+      showError(error, 'Failed to delete review')
     }
   }
 </script>
@@ -116,6 +190,16 @@
             />
           </div>
           <Button
+            v-if="showRating && id"
+            :icon="Icon.COMMENTS"
+            text
+            rounded
+            size="small"
+            :severity="review ? 'info' : 'secondary'"
+            :aria-label="review ? 'Edit season review' : 'Review this season'"
+            @click="openReviewDialog"
+          />
+          <Button
             :icon="isExpanded ? Icon.CHEVRON_UP : Icon.CHEVRON_DOWN"
             text
             rounded
@@ -127,6 +211,13 @@
 
     <Transition name="expand">
       <div v-if="isExpanded" class="episodes-list">
+        <div v-if="review" class="season-review">
+          <h4 class="season-review-title">
+            <i :class="Icon.COMMENTS" />
+            My Review
+          </h4>
+          <ReviewDisplay :review="review" />
+        </div>
         <div v-for="episode in episodes" :key="episode.id" class="episode-item">
           <div class="episode-number">{{ episode.episode }}</div>
           <div class="episode-details">
@@ -147,6 +238,21 @@
       :backdrop-url="posterUrl"
       :is-pending="ratingMutation.isPending.value"
       @submit="handleRatingSubmit"
+    />
+
+    <ReviewDialog
+      v-if="showRating && id"
+      v-model:visible="showReviewDialog"
+      :title="title"
+      :review="review"
+      :backdrop-url="posterUrl"
+      :profile-id="profileStore.selectedProfileId ?? undefined"
+      :entity-id="id"
+      :has-rating="hasRating"
+      :is-pending="setReviewMutation.isPending.value || deleteReviewMutation.isPending.value"
+      @submit="handleReviewSubmit"
+      @delete="handleReviewDelete"
+      @rate="handleReviewRate"
     />
   </div>
 </template>
@@ -256,6 +362,30 @@
     flex-direction: column;
     gap: 0.75rem;
     background: var(--surface-ground);
+  }
+
+  .season-review {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    background: var(--surface-card);
+    border: 1px solid var(--surface-border);
+  }
+
+  .season-review-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--p-text-color);
+  }
+
+  .season-review-title i {
+    color: var(--primary-color);
   }
 
   .episode-item {

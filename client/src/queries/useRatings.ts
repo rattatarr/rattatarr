@@ -2,7 +2,13 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import * as ratingsApi from '@/api/ratings'
 import type { ExportRatingsCsvResponse } from '@/api/ratings'
 import { jobKeys, movieKeys, seriesKeys } from './queryKeys'
-import type { BackgroundJob, RateRequest, GenericResponse } from '@/types'
+import type {
+  BackgroundJob,
+  RateRequest,
+  GenericResponse,
+  ReviewRequest,
+  DeleteReviewRequest,
+} from '@/types'
 
 /**
  * Mutation hook to rate a movie or series
@@ -14,6 +20,40 @@ export function useRateMediaItem() {
     mutationFn: (request: RateRequest) => ratingsApi.rateMediaItem(request),
     onSuccess: async () => {
       // Invalidate library queries to show updated ratings
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: movieKeys.all }),
+        queryClient.invalidateQueries({ queryKey: seriesKeys.all }),
+      ])
+    },
+  })
+}
+
+/**
+ * Mutation hook to upsert a review for a movie, series, or season
+ */
+export function useSetReview() {
+  const queryClient = useQueryClient()
+
+  return useMutation<GenericResponse, Error, ReviewRequest>({
+    mutationFn: (request: ReviewRequest) => ratingsApi.setReview(request),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: movieKeys.all }),
+        queryClient.invalidateQueries({ queryKey: seriesKeys.all }),
+      ])
+    },
+  })
+}
+
+/**
+ * Mutation hook to delete a review for a movie, series, or season
+ */
+export function useDeleteReview() {
+  const queryClient = useQueryClient()
+
+  return useMutation<GenericResponse, Error, DeleteReviewRequest>({
+    mutationFn: (request: DeleteReviewRequest) => ratingsApi.deleteReview(request),
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: movieKeys.all }),
         queryClient.invalidateQueries({ queryKey: seriesKeys.all }),

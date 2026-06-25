@@ -19,7 +19,7 @@ class SeriesResponseWrapperTest {
         // Given
         ShowResponseDTO series = new ShowResponseDTO(
                 UUID.randomUUID(), "jf-456", "Test Series", "456", "tt456",
-                2023, 60, null, Set.of(), null, null, null, null
+                2023, 60, null, Set.of(), null, null, null, null, null
         );
         Page<ShowResponseDTO> page = new PageImpl<>(List.of(series), PageRequest.of(0, 20), 1);
 
@@ -41,7 +41,7 @@ class SeriesResponseWrapperTest {
         // Given
         ShowResponseDTO series = new ShowResponseDTO(
                 UUID.randomUUID(), "jf-456", "Test Series", "456", "tt456",
-                2023, 60, null, Set.of(), null, null, null, null
+                2023, 60, null, Set.of(), null, null, null, null, null
         );
         List<ShowResponseDTO> seriesList = List.of(series);
 

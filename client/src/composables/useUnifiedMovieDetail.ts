@@ -80,6 +80,7 @@ export function useUnifiedMovieDetail(
         rottenTomatoesRating: internalMovie.metadata?.rottenTomatoesRating ?? undefined,
         jellyfinId: internalMovie.jellyfinId,
         myRating: internalMovie.myRating,
+        review: internalMovie.review,
         source: MediaSource.INTERNAL,
       } satisfies InternalMovie
     }

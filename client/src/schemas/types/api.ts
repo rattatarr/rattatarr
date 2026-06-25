@@ -50,6 +50,12 @@ export type RateRequest = Schemas['RateRequestDTO']
 export type DeleteRateRequest = Schemas['DeleteRateRequestDTO']
 export type RatingMediaType = 'MEDIA_ITEM' | 'MEDIA_SEASON'
 
+// --- Reviews ---
+export type Review = Schemas['ReviewResponseDTO']
+export type ReviewRequest = Schemas['ReviewRequestDTO']
+export type DeleteReviewRequest = Schemas['DeleteReviewRequestDTO']
+export type ReviewType = NonNullable<Review['reviewType']>
+
 // --- Media Metadata ---
 export type MediaItemMetadata = Schemas['MediaItemMetadataResponseDTO']
 export type MediaSeasonMetadata = Schemas['MediaSeasonMetadataResponseDTO']
