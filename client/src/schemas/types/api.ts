@@ -56,6 +56,23 @@ export type ReviewRequest = Schemas['ReviewRequestDTO']
 export type DeleteReviewRequest = Schemas['DeleteReviewRequestDTO']
 export type ReviewType = NonNullable<Review['reviewType']>
 
+/** Editable review text fields (HTML). Excludes request metadata. */
+export interface ReviewFields {
+  reviewText: string
+  reviewStory: string
+  reviewPerformances: string
+  reviewDirection: string
+  reviewVisuals: string
+  reviewSound: string
+  reviewVerdict: string
+}
+
+/** Keys of the structured-review fields (everything except free `reviewText`). */
+export type StructuredReviewFieldKey = Exclude<keyof ReviewFields, 'reviewText'>
+
+/** Review payload built by the dialog; parent attaches profile/entity/media type. */
+export type ReviewSubmitPayload = Omit<ReviewRequest, 'profileId' | 'entityId' | 'ratingMediaType'>
+
 // --- Media Metadata ---
 export type MediaItemMetadata = Schemas['MediaItemMetadataResponseDTO']
 export type MediaSeasonMetadata = Schemas['MediaSeasonMetadataResponseDTO']

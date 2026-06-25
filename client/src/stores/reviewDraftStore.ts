@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { ReviewType } from '@/types'
+import type { ReviewFields, ReviewType } from '@/types'
 
 /**
  * Review Draft Store — UI state only.
@@ -11,19 +11,9 @@ import type { ReviewType } from '@/types'
  *
  * Keyed by `${profileId}:${entityId}` so drafts don't leak across profiles/items.
  */
-export interface ReviewDraft {
-  reviewType: ReviewType
-  reviewText: string
-  reviewStory: string
-  reviewPerformances: string
-  reviewDirection: string
-  reviewVisuals: string
-  reviewSound: string
-  reviewVerdict: string
-  updatedAt: number
-}
+export type ReviewDraftFields = ReviewFields & { reviewType: ReviewType }
 
-export type ReviewDraftFields = Omit<ReviewDraft, 'updatedAt'>
+export type ReviewDraft = ReviewDraftFields & { updatedAt: number }
 
 export const useReviewDraftStore = defineStore('reviewDraft', () => {
   const drafts = ref<Record<string, ReviewDraft>>({})

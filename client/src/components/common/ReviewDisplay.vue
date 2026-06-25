@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { computed } from 'vue'
-  import { isReviewHtmlEmpty } from '@/utils/review'
+  import { isReviewHtmlEmpty, STRUCTURED_REVIEW_FIELDS } from '@/utils/review'
   import type { Review } from '@/types'
 
   interface Props {
@@ -9,21 +9,12 @@
 
   const props = defineProps<Props>()
 
-  const STRUCTURED_FIELDS = [
-    { key: 'reviewStory', label: 'Story' },
-    { key: 'reviewPerformances', label: 'Performances' },
-    { key: 'reviewDirection', label: 'Direction' },
-    { key: 'reviewVisuals', label: 'Visuals' },
-    { key: 'reviewSound', label: 'Sound' },
-    { key: 'reviewVerdict', label: 'Verdict' },
-  ] as const
-
   const isFreeText = computed(() => props.review.reviewType === 'FREE_TEXT')
 
   const hasFreeText = computed(() => !isReviewHtmlEmpty(props.review.reviewText))
 
   const structuredSections = computed(() =>
-    STRUCTURED_FIELDS.map((field) => ({
+    STRUCTURED_REVIEW_FIELDS.map((field) => ({
       label: field.label,
       value: props.review[field.key] ?? '',
     })).filter((section) => !isReviewHtmlEmpty(section.value)),

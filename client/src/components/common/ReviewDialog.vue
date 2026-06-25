@@ -9,21 +9,20 @@
   import Step from 'primevue/step'
   import StepPanels from 'primevue/steppanels'
   import StepPanel from 'primevue/steppanel'
-  import ReviewRichText from '@/components/common/ReviewRichText.vue'
   import { useConfirm } from 'primevue/useconfirm'
-  import { useReviewDraftStore, type ReviewDraftFields } from '@/stores/reviewDraftStore'
+  import ReviewRichText from '@/components/common/ReviewRichText.vue'
+  import { useReviewDraftStore } from '@/stores/reviewDraftStore'
   import { Icon, ButtonSeverity } from '@/utils/enums.ts'
-  import { isReviewHtmlEmpty } from '@/utils/review'
-  import type { Review, ReviewRequest, ReviewType } from '@/types'
-
-  /**
-   * Payload emitted on submit. The parent attaches profileId / entityId /
-   * ratingMediaType before calling the API.
-   */
-  export type ReviewSubmitPayload = Omit<
-    ReviewRequest,
-    'profileId' | 'entityId' | 'ratingMediaType'
-  >
+  import {
+    REVIEW_TYPE_OPTIONS,
+    REVIEW_TYPE_LABEL,
+    STRUCTURED_REVIEW_FIELDS,
+    buildReviewPayload,
+    canSubmitReview,
+    createEmptyReviewFields,
+    isReviewFormEmpty,
+  } from '@/utils/review'
+  import type { Review, ReviewFields, ReviewSubmitPayload, ReviewType } from '@/types'
 
   interface Props {
     visible: boolean
@@ -51,31 +50,7 @@
   }>()
 
   const draftStore = useReviewDraftStore()
-
-  const REVIEW_TYPE_OPTIONS: { label: string; value: ReviewType }[] = [
-    { label: 'Free text', value: 'FREE_TEXT' },
-    { label: 'Structured', value: 'STRUCTURED' },
-  ]
-
-  const REVIEW_TYPE_LABEL: Record<ReviewType, string> = {
-    FREE_TEXT: 'free-text',
-    STRUCTURED: 'structured',
-  }
-
   const confirm = useConfirm()
-
-  const STRUCTURED_FIELDS = [
-    { key: 'reviewStory', label: 'Story', placeholder: 'Plot, pacing, writing…' },
-    {
-      key: 'reviewPerformances',
-      label: 'Performances',
-      placeholder: 'Acting, casting, chemistry…',
-    },
-    { key: 'reviewDirection', label: 'Direction', placeholder: 'Direction, editing, tone…' },
-    { key: 'reviewVisuals', label: 'Visuals', placeholder: 'Cinematography, effects, design…' },
-    { key: 'reviewSound', label: 'Sound', placeholder: 'Score, sound design, mixing…' },
-    { key: 'reviewVerdict', label: 'Verdict', placeholder: 'Overall take, recommendation…' },
-  ] as const
 
   const reviewType = ref<ReviewType>('FREE_TEXT')
   const activeStep = ref(1)
@@ -83,20 +58,11 @@
   const isHydrating = ref(false)
   // True when an unsaved cached draft is currently shown
   const draftActive = ref(false)
-
-  const form = reactive({
-    reviewText: '',
-    reviewStory: '',
-    reviewPerformances: '',
-    reviewDirection: '',
-    reviewVisuals: '',
-    reviewSound: '',
-    reviewVerdict: '',
-  })
+  const form = reactive<ReviewFields>(createEmptyReviewFields())
 
   const hasExistingReview = computed(() => !!props.review)
-
   const header = computed(() => `Review: ${props.title || 'Media'}`)
+  const canSubmit = computed(() => canSubmitReview(reviewType.value, form))
 
   const dialogStyle = computed(() => {
     const isMobile = window.innerWidth <= 768
@@ -106,40 +72,17 @@
     return { width: '800px', maxWidth: '90vw' }
   })
 
-  const resetForm = () => {
-    form.reviewText = ''
-    form.reviewStory = ''
-    form.reviewPerformances = ''
-    form.reviewDirection = ''
-    form.reviewVisuals = ''
-    form.reviewSound = ''
-    form.reviewVerdict = ''
+  const applyFields = (source: Partial<ReviewFields>) => {
+    Object.assign(form, createEmptyReviewFields(), {
+      reviewText: source.reviewText ?? '',
+      reviewStory: source.reviewStory ?? '',
+      reviewPerformances: source.reviewPerformances ?? '',
+      reviewDirection: source.reviewDirection ?? '',
+      reviewVisuals: source.reviewVisuals ?? '',
+      reviewSound: source.reviewSound ?? '',
+      reviewVerdict: source.reviewVerdict ?? '',
+    })
   }
-
-  const applyFields = (source: Partial<ReviewDraftFields>) => {
-    form.reviewText = source.reviewText ?? ''
-    form.reviewStory = source.reviewStory ?? ''
-    form.reviewPerformances = source.reviewPerformances ?? ''
-    form.reviewDirection = source.reviewDirection ?? ''
-    form.reviewVisuals = source.reviewVisuals ?? ''
-    form.reviewSound = source.reviewSound ?? ''
-    form.reviewVerdict = source.reviewVerdict ?? ''
-  }
-
-  const snapshotFields = (): ReviewDraftFields => ({
-    reviewType: reviewType.value,
-    reviewText: form.reviewText,
-    reviewStory: form.reviewStory,
-    reviewPerformances: form.reviewPerformances,
-    reviewDirection: form.reviewDirection,
-    reviewVisuals: form.reviewVisuals,
-    reviewSound: form.reviewSound,
-    reviewVerdict: form.reviewVerdict,
-  })
-
-  const isFormEmpty = () =>
-    isReviewHtmlEmpty(form.reviewText) &&
-    STRUCTURED_FIELDS.every((field) => isReviewHtmlEmpty(form[field.key]))
 
   // Populate from existing review (then overlay any cached draft) when the dialog opens
   watch(
@@ -147,12 +90,11 @@
     (isVisible) => {
       if (!isVisible) return
       isHydrating.value = true
-      resetForm()
       activeStep.value = 1
 
       const existing = props.review
       reviewType.value = existing?.reviewType ?? 'FREE_TEXT'
-      if (existing) applyFields(existing)
+      applyFields(existing ?? {})
 
       const draft =
         props.profileId && props.entityId
@@ -161,10 +103,8 @@
       if (draft) {
         reviewType.value = draft.reviewType
         applyFields(draft)
-        draftActive.value = true
-      } else {
-        draftActive.value = false
       }
+      draftActive.value = !!draft
 
       void nextTick(() => {
         isHydrating.value = false
@@ -179,37 +119,22 @@
       if (!props.visible || isHydrating.value) return
       if (!props.profileId || !props.entityId) return
 
-      if (isFormEmpty()) {
+      if (isReviewFormEmpty(form)) {
         draftStore.clearDraft(props.profileId, props.entityId)
         draftActive.value = false
       } else {
-        draftStore.setDraft(props.profileId, props.entityId, snapshotFields())
+        draftStore.setDraft(props.profileId, props.entityId, {
+          ...form,
+          reviewType: reviewType.value,
+        })
         draftActive.value = true
       }
     },
     { deep: true },
   )
 
-  const canSubmit = computed(() => {
-    if (reviewType.value === 'FREE_TEXT') {
-      return !isReviewHtmlEmpty(form.reviewText)
-    }
-    return STRUCTURED_FIELDS.some((field) => !isReviewHtmlEmpty(form[field.key]))
-  })
-
   const handleVisibilityChange = (value: boolean) => {
     emit('update:visible', value)
-  }
-
-  const buildPayload = (): ReviewSubmitPayload => {
-    if (reviewType.value === 'FREE_TEXT') {
-      return { reviewType: 'FREE_TEXT', reviewText: form.reviewText }
-    }
-    const payload: ReviewSubmitPayload = { reviewType: 'STRUCTURED' }
-    for (const field of STRUCTURED_FIELDS) {
-      if (!isReviewHtmlEmpty(form[field.key])) payload[field.key] = form[field.key]
-    }
-    return payload
   }
 
   const handleRate = () => {
@@ -219,7 +144,7 @@
   const handleSubmit = () => {
     if (!canSubmit.value || !props.hasRating) return
 
-    const payload = buildPayload()
+    const payload = buildReviewPayload(reviewType.value, form)
     const existingType = props.review?.reviewType
 
     // Review stores exactly one type. Switching type discards the saved one.
@@ -309,13 +234,13 @@
       <!-- Structured: one step per category -->
       <Stepper v-else v-model:value="activeStep" class="review-stepper">
         <StepList>
-          <Step v-for="(field, i) in STRUCTURED_FIELDS" :key="field.key" :value="i + 1">
+          <Step v-for="(field, i) in STRUCTURED_REVIEW_FIELDS" :key="field.key" :value="i + 1">
             {{ field.label }}
           </Step>
         </StepList>
         <StepPanels>
           <StepPanel
-            v-for="(field, i) in STRUCTURED_FIELDS"
+            v-for="(field, i) in STRUCTURED_REVIEW_FIELDS"
             :key="field.key"
             v-slot="{ activateCallback }"
             :value="i + 1"
@@ -333,7 +258,7 @@
                   @click="activateCallback(i)"
                 />
                 <Button
-                  v-if="i < STRUCTURED_FIELDS.length - 1"
+                  v-if="i < STRUCTURED_REVIEW_FIELDS.length - 1"
                   label="Next"
                   :icon="Icon.ARROW_RIGHT"
                   icon-pos="right"
@@ -410,12 +335,6 @@
     width: 100%;
   }
 
-  .structured-fields {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
   .review-banner {
     width: 100%;
   }
@@ -438,12 +357,6 @@
     flex-direction: column;
     gap: 0.375rem;
     width: 100%;
-  }
-
-  .review-field-label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--p-text-color);
   }
 
   .step-body {
