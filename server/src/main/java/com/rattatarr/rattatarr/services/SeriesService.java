@@ -4,6 +4,7 @@ import com.rattatarr.rattatarr.models.dtos.requests.SeriesFiltersDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.ShowResponseDTO;
 import com.rattatarr.rattatarr.models.entities.MediaItem;
 import com.rattatarr.rattatarr.models.entities.MediaItemRating;
+import com.rattatarr.rattatarr.models.entities.MediaSeasonRating;
 import com.rattatarr.rattatarr.models.entities.MediaSeason;
 import com.rattatarr.rattatarr.repositories.MediaItemsRepository;
 import com.rattatarr.rattatarr.services.helpers.MediaItemViewHelper;
@@ -132,7 +133,7 @@ public class SeriesService extends BaseService<MediaItem, MediaItemsRepository> 
                 .map(MediaSeason::id)
                 .toList()
                 : List.of();
-        Map<UUID, Float> seasonRatingsMap = mediaSeasonRatingsService.batchFetchRatingsMap(seasonIds, filters.profileId());
+        Map<UUID, MediaSeasonRating> seasonRatingsMap = mediaSeasonRatingsService.batchFetchRatingEntitiesMap(seasonIds, filters.profileId());
 
         List<ShowResponseDTO> series = page.getContent().stream()
                 .map(item -> ShowResponseDTO.fromEntity(item, ratingsMap.get(item.id()), loadCredits, seasonRatingsMap))

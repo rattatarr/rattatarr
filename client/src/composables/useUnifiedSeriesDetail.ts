@@ -90,6 +90,7 @@ export function useUnifiedSeriesDetail(
           })) || [],
         initiallyExpanded: season.season === 1,
         myRating: season.myRating ?? undefined,
+        review: season.review ?? undefined,
       }))
   }
 
@@ -112,6 +113,7 @@ export function useUnifiedSeriesDetail(
         tmdbId: internalSeries.TMDbId,
         jellyfinId: internalSeries.jellyfinId,
         myRating: internalSeries.myRating,
+        review: internalSeries.review,
         seasons: transformInternalSeasons(internalSeries.seasons),
         source: MediaSource.INTERNAL,
       } satisfies InternalSeries

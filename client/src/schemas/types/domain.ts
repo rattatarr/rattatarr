@@ -1,4 +1,5 @@
 import { MediaSource } from '@/utils/enums'
+import type { Review } from './api.ts'
 
 export interface DomainGenre {
   name: string
@@ -43,6 +44,7 @@ export interface DomainSeason {
   episodes: DomainEpisode[]
   initiallyExpanded: boolean
   myRating?: number
+  review?: Review
 }
 
 /**
@@ -72,6 +74,7 @@ export interface InternalMovieProps {
   source: MediaSource.INTERNAL
   jellyfinId?: string
   myRating?: number
+  review?: Review
 }
 
 /**
@@ -124,6 +127,7 @@ export interface InternalSeriesProps {
   source: MediaSource.INTERNAL
   jellyfinId?: string
   myRating?: number
+  review?: Review
 }
 
 /**

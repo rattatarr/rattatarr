@@ -24,7 +24,8 @@ public record MovieResponseDTO(
         Set<GenreResponseDTO> genres,
         List<CastMemberResponseDTO> cast,
         List<CrewMemberResponseDTO> crew,
-        Float myRating
+        Float myRating,
+        ReviewResponseDTO review
 ) implements Serializable {
     public static MovieResponseDTO fromEntity(MediaItem mediaItem) {
         return fromEntity(mediaItem, false);
@@ -51,7 +52,8 @@ public record MovieResponseDTO(
                 includeCredits && Hibernate.isInitialized(mediaItem.crew()) && mediaItem.crew() != null && !mediaItem.crew().isEmpty()
                         ? CrewMemberResponseDTO.fromEntities(mediaItem.crew())
                         : null,
-                rating != null ? rating.rating() : null
+                rating != null ? rating.rating() : null,
+                ReviewResponseDTO.fromEntity(rating)
         );
     }
 }

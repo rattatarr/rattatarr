@@ -2,6 +2,7 @@ package com.rattatarr.rattatarr.models.dtos.responses;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.rattatarr.rattatarr.models.entities.MediaSeason;
+import com.rattatarr.rattatarr.models.entities.MediaSeasonRating;
 import org.hibernate.Hibernate;
 import org.jspecify.annotations.Nullable;
 import org.springframework.util.ObjectUtils;
@@ -22,9 +23,10 @@ public record SeasonResponseDTO(
         String title,
         MediaSeasonMetadataResponseDTO metadata,
         List<EpisodeResponseDTO> episodes,
-        Float myRating
+        Float myRating,
+        ReviewResponseDTO review
 ) implements Serializable {
-    public static SeasonResponseDTO fromEntity(MediaSeason mediaSeason, @Nullable Float rating) {
+    public static SeasonResponseDTO fromEntity(MediaSeason mediaSeason, @Nullable MediaSeasonRating rating) {
         return new SeasonResponseDTO(
                 mediaSeason.id(),
                 mediaSeason.jellyfinId(),
@@ -34,15 +36,16 @@ public record SeasonResponseDTO(
                 Hibernate.isInitialized(mediaSeason.episodes()) && !ObjectUtils.isEmpty(mediaSeason.episodes())
                         ? EpisodeResponseDTO.fromEntities(mediaSeason.episodes())
                         : null,
-                rating
+                rating != null ? rating.rating() : null,
+                ReviewResponseDTO.fromEntity(rating)
         );
     }
 
     public static SeasonResponseDTO fromEntity(MediaSeason mediaSeason) {
-        return fromEntity(mediaSeason, null);
+        return fromEntity(mediaSeason, (MediaSeasonRating) null);
     }
 
-    public static List<SeasonResponseDTO> fromEntities(Set<MediaSeason> mediaSeasons, Map<UUID, Float> seasonRatings) {
+    public static List<SeasonResponseDTO> fromEntities(Set<MediaSeason> mediaSeasons, Map<UUID, MediaSeasonRating> seasonRatings) {
         return mediaSeasons.stream()
                 .sorted(Comparator.comparing(MediaSeason::season))
                 .map(season -> fromEntity(season, seasonRatings.get(season.id())))

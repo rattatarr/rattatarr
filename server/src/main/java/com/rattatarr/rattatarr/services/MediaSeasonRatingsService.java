@@ -1,5 +1,6 @@
 package com.rattatarr.rattatarr.services;
 
+import com.rattatarr.rattatarr.exceptions.CommonExceptions;
 import com.rattatarr.rattatarr.models.entities.MediaSeason;
 import com.rattatarr.rattatarr.models.entities.MediaSeasonRating;
 import com.rattatarr.rattatarr.models.entities.Profile;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +38,19 @@ public class MediaSeasonRatingsService extends BaseService<MediaSeasonRating, Me
         return repository.findByProfileAndMediaSeason(profile, mediaSeason);
     }
 
+    @Transactional
+    public MediaSeasonRating updateExistingReview(
+            Profile profile,
+            MediaSeason mediaSeason,
+            Consumer<MediaSeasonRating> mutator
+    ) {
+        MediaSeasonRating rating = repository.findByProfileAndMediaSeason(profile, mediaSeason)
+                .orElseThrow(() -> new CommonExceptions.ResourceNotFoundExceptions(
+                        "Cannot review a season that has not been rated yet"));
+        mutator.accept(rating);
+        return repository.save(rating);
+    }
+
     @Transactional(readOnly = true)
     public Map<UUID, Float> batchFetchRatingsMap(List<UUID> seasonIds, @Nullable UUID profileId) {
         if (profileId == null || seasonIds.isEmpty()) {
@@ -44,6 +59,19 @@ public class MediaSeasonRatingsService extends BaseService<MediaSeasonRating, Me
         List<MediaSeasonRating> ratings = repository.findAllByProfileIdAndMediaSeasonIdIn(profileId, seasonIds);
         return ratings.stream()
                 .collect(Collectors.toMap(r -> r.mediaSeason().id(), MediaSeasonRating::rating));
+    }
+
+    /**
+     * Like {@link #batchFetchRatingsMap} but returns the full rating entities so reviews can be read.
+     */
+    @Transactional(readOnly = true)
+    public Map<UUID, MediaSeasonRating> batchFetchRatingEntitiesMap(List<UUID> seasonIds, @Nullable UUID profileId) {
+        if (profileId == null || seasonIds.isEmpty()) {
+            return Map.of();
+        }
+        List<MediaSeasonRating> ratings = repository.findAllByProfileIdAndMediaSeasonIdIn(profileId, seasonIds);
+        return ratings.stream()
+                .collect(Collectors.toMap(r -> r.mediaSeason().id(), r -> r));
     }
 
     @Transactional

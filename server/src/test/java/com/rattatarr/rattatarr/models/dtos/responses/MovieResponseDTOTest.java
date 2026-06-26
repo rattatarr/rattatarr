@@ -60,7 +60,7 @@ class MovieResponseDTOTest {
         // When
         MovieResponseDTO dto = new MovieResponseDTO(
                 id, "jf-123", "Title", "tmdb-123", "tt123",
-                2023, 120, null, Set.of(), null, null, 4.5f
+                2023, 120, null, Set.of(), null, null, 4.5f, null
         );
 
         // Then
@@ -77,7 +77,7 @@ class MovieResponseDTOTest {
         // When
         MovieResponseDTO dto = new MovieResponseDTO(
                 id, "jf-123", "Title", "tmdb-123", null,
-                2023, 120, null, Set.of(), null, null, 4.5f
+                2023, 120, null, Set.of(), null, null, 4.5f, null
         );
 
         // Then
@@ -119,7 +119,7 @@ class MovieResponseDTOTest {
         // When
         MovieResponseDTO dto = new MovieResponseDTO(
                 id, "jf-123", "Title", "tmdb-123", imdbId,
-                2023, 120, null, Set.of(), null, null, 4.5f
+                2023, 120, null, Set.of(), null, null, 4.5f, null
         );
 
         // Then

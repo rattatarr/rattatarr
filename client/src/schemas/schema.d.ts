@@ -68,6 +68,22 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/ratings/review': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put: operations['setReview']
+    post?: never
+    delete: operations['deleteReview']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/library/series/{id}/refresh': {
     parameters: {
       query?: never
@@ -981,6 +997,23 @@ export interface components {
       /** Format: float */
       rating: number
     }
+    ReviewRequestDTO: {
+      /** Format: uuid */
+      profileId: string
+      /** Format: uuid */
+      entityId: string
+      /** @enum {string} */
+      ratingMediaType: 'MEDIA_ITEM' | 'MEDIA_SEASON'
+      /** @enum {string} */
+      reviewType: 'FREE_TEXT' | 'STRUCTURED'
+      reviewText?: string
+      reviewStory?: string
+      reviewPerformances?: string
+      reviewDirection?: string
+      reviewVisuals?: string
+      reviewSound?: string
+      reviewVerdict?: string
+    }
     PaginationMetadata: {
       /** Format: int32 */
       currentPage?: number
@@ -1151,6 +1184,7 @@ export interface components {
       crew?: components['schemas']['CrewMemberResponseDTO'][]
       /** Format: float */
       myRating?: number
+      review?: components['schemas']['ReviewResponseDTO']
     }
     PersonResponseDTO: {
       /** Format: uuid */
@@ -1158,6 +1192,17 @@ export interface components {
       name?: string
       TMDbId?: string
       profilePathUrl?: string
+    }
+    ReviewResponseDTO: {
+      /** @enum {string} */
+      reviewType?: 'FREE_TEXT' | 'STRUCTURED'
+      reviewText?: string
+      reviewStory?: string
+      reviewPerformances?: string
+      reviewDirection?: string
+      reviewVisuals?: string
+      reviewSound?: string
+      reviewVerdict?: string
     }
     SeasonResponseDTO: {
       /** Format: uuid */
@@ -1170,6 +1215,7 @@ export interface components {
       episodes?: components['schemas']['EpisodeResponseDTO'][]
       /** Format: float */
       myRating?: number
+      review?: components['schemas']['ReviewResponseDTO']
     }
     ShowResponseDTO: {
       /** Format: uuid */
@@ -1189,6 +1235,7 @@ export interface components {
       crew?: components['schemas']['CrewMemberResponseDTO'][]
       /** Format: float */
       myRating?: number
+      review?: components['schemas']['ReviewResponseDTO']
     }
     WatchActivityWrapper: {
       events?: components['schemas']['WatchEventResponseDTO'][]
@@ -1757,6 +1804,14 @@ export interface components {
       /** @enum {string} */
       ratingMediaType: 'MEDIA_ITEM' | 'MEDIA_SEASON'
     }
+    DeleteReviewRequestDTO: {
+      /** Format: uuid */
+      profileId: string
+      /** Format: uuid */
+      entityId: string
+      /** @enum {string} */
+      ratingMediaType: 'MEDIA_ITEM' | 'MEDIA_SEASON'
+    }
   }
   responses: never
   parameters: never
@@ -1890,6 +1945,54 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['DeleteRateRequestDTO']
+      }
+    }
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['GenericResponseDTO']
+        }
+      }
+    }
+  }
+  setReview: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReviewRequestDTO']
+      }
+    }
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          '*/*': components['schemas']['GenericResponseDTO']
+        }
+      }
+    }
+  }
+  deleteReview: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DeleteReviewRequestDTO']
       }
     }
     responses: {

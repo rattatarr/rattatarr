@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, ref } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import ProgressSpinner from 'primevue/progressspinner'
   import Message from 'primevue/message'
@@ -11,12 +11,16 @@
   import CrewSection from '@/components/media/CrewSection.vue'
   import SeasonDropdown from '@/components/series/SeasonDropdown.vue'
   import RatingDialog from '@/components/common/RatingDialog.vue'
+  import ReviewDialog from '@/components/common/ReviewDialog.vue'
+  import ReviewDisplay from '@/components/common/ReviewDisplay.vue'
+  import type { ReviewSubmitPayload } from '@/types'
   import { useMediaSource } from '@/composables/useMediaSource'
   import { useUnifiedSeriesDetail } from '@/composables/useUnifiedSeriesDetail'
   import { useImportTMDbData } from '@/queries/useTMDb'
   import { useRefreshSeries } from '@/queries/useLibrary'
   import { useProfileStore } from '@/stores/profileStore'
-  import { useRateMediaItem } from '@/queries/useRatings'
+  import { useReviewDraftStore } from '@/stores/reviewDraftStore'
+  import { useRateMediaItem, useSetReview, useDeleteReview } from '@/queries/useRatings'
   import { useToast } from '@/composables/useToast'
   import jellyfinIcon from '@/assets/jellyfin-icon.svg'
 
@@ -56,6 +60,13 @@
   // Rating dialog state
   const showRatingDialog = ref(false)
   const ratingMutation = useRateMediaItem()
+  // When rating was triggered from the review dialog, reopen it afterwards
+  const reopenReviewAfterRating = ref(false)
+
+  // Reset the reopen intent whenever the rating dialog closes (e.g. cancel)
+  watch(showRatingDialog, (visible) => {
+    if (!visible) reopenReviewAfterRating.value = false
+  })
 
   const openRatingDialog = () => {
     if (!selectedProfileId.value) {
@@ -99,10 +110,84 @@
       // Refetch series data to get updated rating
       await refetch()
 
+      const reopenReview = reopenReviewAfterRating.value
       closeRatingDialog()
+      if (reopenReview) showReviewDialog.value = true
     } catch (error) {
       showError(error, 'Failed to save rating')
       closeRatingDialog()
+    }
+  }
+
+  // Review state (series-level)
+  const showReviewDialog = ref(false)
+  const setReviewMutation = useSetReview()
+  const deleteReviewMutation = useDeleteReview()
+  const reviewDraftStore = useReviewDraftStore()
+
+  const currentReview = computed(() =>
+    series.value?.source === MediaSource.INTERNAL ? series.value.review : undefined,
+  )
+
+  const canReview = computed(
+    () => series.value?.source === MediaSource.INTERNAL && !!selectedProfileId.value,
+  )
+
+  const hasRating = computed(() =>
+    series.value?.source === MediaSource.INTERNAL ? !!series.value.myRating : false,
+  )
+
+  const openReviewDialog = () => {
+    if (!selectedProfileId.value) {
+      showError('No profile selected', 'Please select a profile to review media')
+      return
+    }
+    showReviewDialog.value = true
+  }
+
+  const handleReviewRate = () => {
+    reopenReviewAfterRating.value = true
+    showReviewDialog.value = false
+    openRatingDialog()
+  }
+
+  const handleReviewSubmit = async (payload: ReviewSubmitPayload) => {
+    if (!selectedProfileId.value || !series.value?.id) {
+      showError('Cannot save review', 'Missing profile or series')
+      return
+    }
+
+    try {
+      await setReviewMutation.mutateAsync({
+        profileId: selectedProfileId.value,
+        entityId: series.value.id,
+        ratingMediaType: 'MEDIA_ITEM',
+        ...payload,
+      })
+      reviewDraftStore.clearDraft(selectedProfileId.value, series.value.id)
+      success('Review saved', `Your review for "${series.value.title}" has been saved`)
+      await refetch()
+      showReviewDialog.value = false
+    } catch (err) {
+      showError(err, 'Failed to save review')
+    }
+  }
+
+  const handleReviewDelete = async () => {
+    if (!selectedProfileId.value || !series.value?.id) return
+
+    try {
+      await deleteReviewMutation.mutateAsync({
+        profileId: selectedProfileId.value,
+        entityId: series.value.id,
+        ratingMediaType: 'MEDIA_ITEM',
+      })
+      reviewDraftStore.clearDraft(selectedProfileId.value, series.value.id)
+      success('Review deleted', `Your review for "${series.value.title}" has been removed`)
+      await refetch()
+      showReviewDialog.value = false
+    } catch (err) {
+      showError(err, 'Failed to delete review')
     }
   }
 
@@ -224,6 +309,28 @@
                 </div>
               </template>
             </MediaMetadata>
+
+            <!-- My Review (Internal only) -->
+            <section v-if="canReview" class="review-section metadata-section">
+              <div class="review-header">
+                <h2 class="section-title">
+                  <i :class="Icon.COMMENTS" />
+                  My Review
+                </h2>
+                <Button
+                  :label="currentReview ? 'Edit Review' : 'Add Review'"
+                  :icon="currentReview ? Icon.PENCIL : Icon.PLUS"
+                  size="small"
+                  severity="secondary"
+                  outlined
+                  @click="openReviewDialog"
+                />
+              </div>
+              <ReviewDisplay v-if="currentReview" :review="currentReview" />
+              <p v-else class="review-empty">
+                You haven't reviewed this series yet. Add a free-text or structured review.
+              </p>
+            </section>
           </main>
         </div>
 
@@ -262,8 +369,10 @@
               :episodes="season.episodes"
               :initially-expanded="season.initiallyExpanded"
               :my-rating="season.myRating"
+              :review="season.review"
               :show-rating="series.source === MediaSource.INTERNAL && !!selectedProfileId"
               @rating-updated="refetch"
+              @review-updated="refetch"
             />
           </div>
         </div>
@@ -290,6 +399,22 @@
       :backdrop-url="series.backdropUrl"
       :is-pending="ratingMutation.isPending.value"
       @submit="handleRatingSubmit"
+    />
+
+    <!-- Review Dialog (Internal only) -->
+    <ReviewDialog
+      v-if="series && series.source === MediaSource.INTERNAL"
+      v-model:visible="showReviewDialog"
+      :title="series.title"
+      :review="currentReview"
+      :backdrop-url="series.backdropUrl"
+      :profile-id="selectedProfileId ?? undefined"
+      :entity-id="series.id"
+      :has-rating="hasRating"
+      :is-pending="setReviewMutation.isPending.value || deleteReviewMutation.isPending.value"
+      @submit="handleReviewSubmit"
+      @delete="handleReviewDelete"
+      @rate="handleReviewRate"
     />
   </div>
 </template>
@@ -396,6 +521,29 @@
 
   .metadata-column {
     min-width: 0;
+  }
+
+  .review-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--surface-border);
+  }
+
+  .review-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .review-empty {
+    margin: 0;
+    color: var(--p-text-secondary-color);
+    line-height: 1.6;
   }
 
   .seasons-section {

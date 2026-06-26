@@ -64,7 +64,7 @@ class LibraryMoviesControllerTest {
 
         MovieResponseDTO movie = new MovieResponseDTO(
                 UUID.randomUUID(), "jf-123", "Test Movie", "123", "tt123",
-                2023, 120, null, Set.of(), null, null, null
+                2023, 120, null, Set.of(), null, null, null, null
         );
         Page<MovieResponseDTO> moviesPage = new PageImpl<>(List.of(movie), pageable, 1);
 
@@ -90,7 +90,7 @@ class LibraryMoviesControllerTest {
 
         MovieResponseDTO movie = new MovieResponseDTO(
                 movieId, "jf-123", "Test Movie", "123", "tt123",
-                2023, 120, null, Set.of(), null, null, null
+                2023, 120, null, Set.of(), null, null, null, null
         );
         Page<MovieResponseDTO> moviesPage = new PageImpl<>(List.of(movie), pageable, 1);
 
@@ -177,7 +177,7 @@ class LibraryMoviesControllerTest {
 
         MovieResponseDTO movie = new MovieResponseDTO(
                 UUID.randomUUID(), "jf-123", "Test Movie", "123", "tt123",
-                2023, 120, null, Set.of(), null, null, null
+                2023, 120, null, Set.of(), null, null, null, null
         );
         Page<MovieResponseDTO> moviesPage = new PageImpl<>(List.of(movie), pageable, 1);
 

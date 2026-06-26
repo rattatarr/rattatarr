@@ -19,7 +19,7 @@ class MoviesResponseWrapperTest {
         // Given
         MovieResponseDTO movie = new MovieResponseDTO(
                 UUID.randomUUID(), "jf-123", "Test Movie", "123", "tt123",
-                2023, 120, null, Set.of(), null, null, null
+                2023, 120, null, Set.of(), null, null, null, null
         );
         Page<MovieResponseDTO> page = new PageImpl<>(List.of(movie), PageRequest.of(0, 20), 1);
 
@@ -41,7 +41,7 @@ class MoviesResponseWrapperTest {
         // Given
         MovieResponseDTO movie = new MovieResponseDTO(
                 UUID.randomUUID(), "jf-123", "Test Movie", "123", "tt123",
-                2023, 120, null, Set.of(), null, null, null
+                2023, 120, null, Set.of(), null, null, null, null
         );
         List<MovieResponseDTO> movies = List.of(movie);
 
