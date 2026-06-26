@@ -1,5 +1,6 @@
 package com.rattatarr.rattatarr.services;
 
+import com.rattatarr.rattatarr.exceptions.CommonExceptions;
 import com.rattatarr.rattatarr.models.RatedItemSummary;
 import com.rattatarr.rattatarr.models.entities.MediaItem;
 import com.rattatarr.rattatarr.models.entities.MediaItemRating;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,6 +51,19 @@ public class MediaItemRatingsService extends BaseService<MediaItemRating, MediaI
     @Transactional(readOnly = true)
     public List<MediaItemRating> findAllByProfile(Profile profile) {
         return repository.findAllByProfile(profile);
+    }
+
+    @Transactional
+    public MediaItemRating updateExistingReview(
+            Profile profile,
+            MediaItem mediaItem,
+            Consumer<MediaItemRating> mutator
+    ) {
+        MediaItemRating rating = repository.findByProfileAndMediaItem(profile, mediaItem)
+                .orElseThrow(() -> new CommonExceptions.ResourceNotFoundExceptions(
+                        "Cannot review a media item that has not been rated yet"));
+        mutator.accept(rating);
+        return repository.save(rating);
     }
 
     @Transactional

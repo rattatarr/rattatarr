@@ -1,6 +1,7 @@
 import './assets/main.css'
 import 'primeicons/primeicons.css'
 import 'vue-sonner/style.css'
+import 'quill/dist/quill.snow.css'
 import './styles/custom-scrollbar.css'
 // TODO: Prime Icons is doing a weird full load of icons, might need to do a tree shaking in the future to avoid large bundle size
 

@@ -1,14 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { useRateMediaItem, useImportIMDbRatings, useExportRatingsCsv } from '@/queries'
+import {
+  useRateMediaItem,
+  useImportIMDbRatings,
+  useExportRatingsCsv,
+  useSetReview,
+  useDeleteReview,
+} from '@/queries'
 
 // Mock API
 const mockRateMediaItem = vi.fn()
 const mockImportIMDbRatings = vi.fn()
 const mockExportRatingsCsv = vi.fn()
+const mockSetReview = vi.fn()
+const mockDeleteReview = vi.fn()
 vi.mock('@/api/ratings', () => ({
   rateMediaItem: (...args: never[]) => mockRateMediaItem(...args),
   importIMDbRatings: (...args: never[]) => mockImportIMDbRatings(...args),
   exportRatingsCsv: (...args: never[]) => mockExportRatingsCsv(...args),
+  setReview: (...args: never[]) => mockSetReview(...args),
+  deleteReview: (...args: never[]) => mockDeleteReview(...args),
 }))
 
 // Mock TanStack Query
@@ -133,6 +143,106 @@ describe('useImportIMDbRatings', () => {
 
     expect(mockImportIMDbRatings).toHaveBeenCalledWith(csvFile, profileId)
     expect(csvFile.name).toBe('test.csv')
+  })
+})
+
+describe('useSetReview', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUseMutation.mockReturnValue({
+      mutate: vi.fn(),
+      mutateAsync: vi.fn(),
+    })
+  })
+
+  it('creates mutation with correct mutationFn', async () => {
+    mockSetReview.mockResolvedValue({ success: true })
+
+    useSetReview()
+
+    const call = mockUseMutation.mock.calls[0]![0]!
+    const request = {
+      profileId: 'p1',
+      entityId: 'm1',
+      ratingMediaType: 'MEDIA_ITEM',
+      reviewType: 'FREE_TEXT',
+      reviewText: 'Great movie',
+    }
+
+    await call.mutationFn(request)
+
+    expect(mockSetReview).toHaveBeenCalledWith(request)
+  })
+
+  it('invalidates movie and series queries on success', async () => {
+    useSetReview()
+
+    const call = mockUseMutation.mock.calls[0]![0]!
+    await call.onSuccess()
+
+    expect(mockInvalidateQueries).toHaveBeenCalledTimes(2)
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['movies'] })
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['series'] })
+  })
+
+  it('passes structured review fields through', async () => {
+    mockSetReview.mockResolvedValue({ success: true })
+
+    useSetReview()
+
+    const call = mockUseMutation.mock.calls[0]![0]!
+    const request = {
+      profileId: 'p1',
+      entityId: 's1',
+      ratingMediaType: 'MEDIA_SEASON',
+      reviewType: 'STRUCTURED',
+      reviewStory: 'Strong arc',
+      reviewVerdict: 'Worth it',
+    }
+
+    await call.mutationFn(request)
+
+    expect(mockSetReview).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reviewType: 'STRUCTURED',
+        ratingMediaType: 'MEDIA_SEASON',
+        reviewStory: 'Strong arc',
+      }),
+    )
+  })
+})
+
+describe('useDeleteReview', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUseMutation.mockReturnValue({
+      mutate: vi.fn(),
+      mutateAsync: vi.fn(),
+    })
+  })
+
+  it('creates mutation with correct mutationFn', async () => {
+    mockDeleteReview.mockResolvedValue({ success: true })
+
+    useDeleteReview()
+
+    const call = mockUseMutation.mock.calls[0]![0]!
+    const request = { profileId: 'p1', entityId: 'm1', ratingMediaType: 'MEDIA_ITEM' }
+
+    await call.mutationFn(request)
+
+    expect(mockDeleteReview).toHaveBeenCalledWith(request)
+  })
+
+  it('invalidates movie and series queries on success', async () => {
+    useDeleteReview()
+
+    const call = mockUseMutation.mock.calls[0]![0]!
+    await call.onSuccess()
+
+    expect(mockInvalidateQueries).toHaveBeenCalledTimes(2)
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['movies'] })
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['series'] })
   })
 })
 

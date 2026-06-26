@@ -86,7 +86,7 @@ class SeriesServiceTest {
                 eq(false)
         )).thenReturn(false);
 
-        when(mediaSeasonRatingsService.batchFetchRatingsMap(any(), nullable(UUID.class))).thenReturn(new java.util.HashMap<>());
+        when(mediaSeasonRatingsService.batchFetchRatingEntitiesMap(any(), nullable(UUID.class))).thenReturn(new java.util.HashMap<>());
     }
 
     @Test

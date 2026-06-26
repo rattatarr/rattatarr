@@ -32,6 +32,7 @@
     "pinia": "^3.0.4",
     "primeicons": "^7.0.0",
     "primevue": "^4.5.5",
+    "quill": "^2.0.3",
     "sockjs-client": "^1.6.1",
     "vue": "^3.5.38",
     "vue-router": "^5.1.0",

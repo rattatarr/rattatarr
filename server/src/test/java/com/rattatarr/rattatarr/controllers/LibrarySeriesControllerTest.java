@@ -69,7 +69,7 @@ class LibrarySeriesControllerTest {
         SeriesFiltersDTO filters = new SeriesFiltersDTO(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         ShowResponseDTO series = new ShowResponseDTO(
                 UUID.randomUUID(), "jf-123", "Test Series", "123", "tt123",
-                2023, 60, null, Set.of(), null, null, null, null
+                2023, 60, null, Set.of(), null, null, null, null, null
         );
         Page<ShowResponseDTO> seriesPage = new PageImpl<>(List.of(series), pageable, 1);
         when(seriesService.filterSeries(any(SeriesFiltersDTO.class), any(Pageable.class))).thenReturn(seriesPage);
@@ -89,7 +89,7 @@ class LibrarySeriesControllerTest {
         SeriesFiltersDTO filters = new SeriesFiltersDTO(id, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         ShowResponseDTO series = new ShowResponseDTO(
                 UUID.randomUUID(), "jf-123", "Test Series", "123", "tt123",
-                2023, 60, null, Set.of(), null, null, null, null
+                2023, 60, null, Set.of(), null, null, null, null, null
         );
         Page<ShowResponseDTO> seriesPage = new PageImpl<>(List.of(series), pageable, 1);
         when(seriesService.filterSeries(any(SeriesFiltersDTO.class), any(Pageable.class))).thenReturn(seriesPage);
@@ -200,7 +200,7 @@ class LibrarySeriesControllerTest {
         );
         ShowResponseDTO series = new ShowResponseDTO(
                 UUID.randomUUID(), "jf-123", "Test Series", "123", "tt123",
-                2023, 60, null, Set.of(), null, null, null, null
+                2023, 60, null, Set.of(), null, null, null, null, null
         );
         Page<ShowResponseDTO> seriesPage = new PageImpl<>(List.of(series), pageable, 1);
 

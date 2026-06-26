@@ -4,7 +4,9 @@ import com.rattatarr.rattatarr.configs.ApiVersion;
 import com.rattatarr.rattatarr.exceptions.ProfilesExceptions;
 import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.dtos.requests.DeleteRateRequestDTO;
+import com.rattatarr.rattatarr.models.dtos.requests.DeleteReviewRequestDTO;
 import com.rattatarr.rattatarr.models.dtos.requests.RateRequestDTO;
+import com.rattatarr.rattatarr.models.dtos.requests.ReviewRequestDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.BackgroundJobResponseDTO;
 import com.rattatarr.rattatarr.models.dtos.responses.GenericResponseDTO;
 import com.rattatarr.rattatarr.models.entities.Profile;
@@ -62,6 +64,32 @@ public class RatingsController extends BaseController {
 
         return ResponseEntity.ok(
                 GenericResponseDTO.success("Rating deleted successfully", null)
+        );
+    }
+
+    @PutMapping("/review")
+    public ResponseEntity<GenericResponseDTO> setReview(
+            @RequestBody ReviewRequestDTO requestDTO
+    ) {
+        logger.info("Submitting review: {}", requestDTO);
+
+        ratingService.setReview(requestDTO);
+
+        return ResponseEntity.ok(
+                GenericResponseDTO.success("Review saved successfully", null)
+        );
+    }
+
+    @DeleteMapping("/review")
+    public ResponseEntity<GenericResponseDTO> deleteReview(
+            @RequestBody DeleteReviewRequestDTO requestDTO
+    ) {
+        logger.info("Deleting review: {}", requestDTO);
+
+        ratingService.deleteReview(requestDTO);
+
+        return ResponseEntity.ok(
+                GenericResponseDTO.success("Review deleted successfully", null)
         );
     }
 

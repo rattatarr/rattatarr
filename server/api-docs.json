@@ -178,6 +178,64 @@
         }
       }
     },
+    "/api/v1/ratings/review": {
+      "put": {
+        "tags": [
+          "ratings-controller"
+        ],
+        "operationId": "setReview",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ratings-controller"
+        ],
+        "operationId": "deleteReview",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteReviewRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/library/series/{id}/refresh": {
       "put": {
         "tags": [
@@ -2193,6 +2251,74 @@
           "ratingMediaType"
         ]
       },
+      "ReviewRequestDTO": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ratingMediaType": {
+            "type": "string",
+            "enum": [
+              "MEDIA_ITEM",
+              "MEDIA_SEASON"
+            ]
+          },
+          "reviewType": {
+            "type": "string",
+            "enum": [
+              "FREE_TEXT",
+              "STRUCTURED"
+            ]
+          },
+          "reviewText": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 0
+          },
+          "reviewStory": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 0
+          },
+          "reviewPerformances": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 0
+          },
+          "reviewDirection": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 0
+          },
+          "reviewVisuals": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 0
+          },
+          "reviewSound": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 0
+          },
+          "reviewVerdict": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "entityId",
+          "profileId",
+          "ratingMediaType",
+          "reviewType"
+        ]
+      },
       "PaginationMetadata": {
         "type": "object",
         "properties": {
@@ -2634,6 +2760,9 @@
           "myRating": {
             "type": "number",
             "format": "float"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ReviewResponseDTO"
           }
         }
       },
@@ -2651,6 +2780,39 @@
             "type": "string"
           },
           "profilePathUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "ReviewResponseDTO": {
+        "type": "object",
+        "properties": {
+          "reviewType": {
+            "type": "string",
+            "enum": [
+              "FREE_TEXT",
+              "STRUCTURED"
+            ]
+          },
+          "reviewText": {
+            "type": "string"
+          },
+          "reviewStory": {
+            "type": "string"
+          },
+          "reviewPerformances": {
+            "type": "string"
+          },
+          "reviewDirection": {
+            "type": "string"
+          },
+          "reviewVisuals": {
+            "type": "string"
+          },
+          "reviewSound": {
+            "type": "string"
+          },
+          "reviewVerdict": {
             "type": "string"
           }
         }
@@ -2684,6 +2846,9 @@
           "myRating": {
             "type": "number",
             "format": "float"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ReviewResponseDTO"
           }
         }
       },
@@ -2745,6 +2910,9 @@
           "myRating": {
             "type": "number",
             "format": "float"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ReviewResponseDTO"
           }
         }
       },
@@ -4385,6 +4553,31 @@
         }
       },
       "DeleteRateRequestDTO": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ratingMediaType": {
+            "type": "string",
+            "enum": [
+              "MEDIA_ITEM",
+              "MEDIA_SEASON"
+            ]
+          }
+        },
+        "required": [
+          "entityId",
+          "profileId",
+          "ratingMediaType"
+        ]
+      },
+      "DeleteReviewRequestDTO": {
         "type": "object",
         "properties": {
           "profileId": {

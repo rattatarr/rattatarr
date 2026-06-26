@@ -1,5 +1,11 @@
 import { APIError, apiClient, handleResponse } from './client'
-import type { BackgroundJob, RateRequest, GenericResponse } from '@/types'
+import type {
+  BackgroundJob,
+  RateRequest,
+  GenericResponse,
+  ReviewRequest,
+  DeleteReviewRequest,
+} from '@/types'
 
 export interface ExportRatingsCsvResponse {
   csvData: string
@@ -17,6 +23,26 @@ function parseContentDispositionFileName(headerValue: string | null): string | n
 
 export async function rateMediaItem(request: RateRequest): Promise<GenericResponse> {
   const response = await apiClient.PUT('/api/v1/ratings', {
+    body: request,
+  })
+  return handleResponse<GenericResponse>(response)
+}
+
+/**
+ * Upsert a review (free-text or structured) for a movie, series, or season
+ */
+export async function setReview(request: ReviewRequest): Promise<GenericResponse> {
+  const response = await apiClient.PUT('/api/v1/ratings/review', {
+    body: request,
+  })
+  return handleResponse<GenericResponse>(response)
+}
+
+/**
+ * Delete a review for a movie, series, or season
+ */
+export async function deleteReview(request: DeleteReviewRequest): Promise<GenericResponse> {
+  const response = await apiClient.DELETE('/api/v1/ratings/review', {
     body: request,
   })
   return handleResponse<GenericResponse>(response)

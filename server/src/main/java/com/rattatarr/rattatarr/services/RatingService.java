@@ -5,10 +5,13 @@ import com.rattatarr.rattatarr.exceptions.MediaItemExceptions;
 import com.rattatarr.rattatarr.exceptions.MediaSeasonExceptions;
 import com.rattatarr.rattatarr.exceptions.ProfilesExceptions;
 import com.rattatarr.rattatarr.models.dtos.requests.DeleteRateRequestDTO;
+import com.rattatarr.rattatarr.models.dtos.requests.DeleteReviewRequestDTO;
 import com.rattatarr.rattatarr.models.dtos.requests.RateRequestDTO;
+import com.rattatarr.rattatarr.models.dtos.requests.ReviewRequestDTO;
 import com.rattatarr.rattatarr.models.entities.*;
 import com.rattatarr.rattatarr.repositories.MediaItemCastRepository;
 import com.rattatarr.rattatarr.repositories.MediaItemCrewRepository;
+import com.rattatarr.rattatarr.utils.ReviewHtmlSanitizer;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.jspecify.annotations.NullMarked;
@@ -22,6 +25,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -152,6 +156,141 @@ public class RatingService {
             }
             default ->
                     throw new CommonExceptions.InvalidRequestExceptions("Unsupported rating media type: " + request.ratingMediaType());
+        }
+    }
+
+    public void setReview(ReviewRequestDTO request) {
+        logger.debug("Set review request received: {}", request);
+
+        if (request.ratingMediaType() == null) {
+            throw new CommonExceptions.InvalidRequestExceptions("Rating media type is required");
+        }
+        if (request.reviewType() == null) {
+            throw new CommonExceptions.InvalidRequestExceptions("Review type is required");
+        }
+
+        Profile profile = profilesService.findByIdOrThrow(
+                request.profileId(),
+                ProfilesExceptions.ProfileNotFoundExceptions::new
+        );
+
+        // Sanitize first: XSS-only content collapses to null, so validation runs on the real content.
+        String text = ReviewHtmlSanitizer.sanitize(request.reviewText());
+        String story = ReviewHtmlSanitizer.sanitize(request.reviewStory());
+        String performances = ReviewHtmlSanitizer.sanitize(request.reviewPerformances());
+        String direction = ReviewHtmlSanitizer.sanitize(request.reviewDirection());
+        String visuals = ReviewHtmlSanitizer.sanitize(request.reviewVisuals());
+        String sound = ReviewHtmlSanitizer.sanitize(request.reviewSound());
+        String verdict = ReviewHtmlSanitizer.sanitize(request.reviewVerdict());
+
+        boolean hasStructured = story != null || performances != null || direction != null
+                || visuals != null || sound != null || verdict != null;
+        boolean hasFreeText = text != null;
+
+        switch (request.reviewType()) {
+            case FREE_TEXT -> {
+                if (hasStructured) {
+                    throw new CommonExceptions.InvalidRequestExceptions(
+                            "Free text review must not include structured category fields");
+                }
+                if (!hasFreeText) {
+                    throw new CommonExceptions.InvalidRequestExceptions(
+                            "Free text review requires non-empty text");
+                }
+            }
+            case STRUCTURED -> {
+                if (hasFreeText) {
+                    throw new CommonExceptions.InvalidRequestExceptions(
+                            "Structured review must not include free text");
+                }
+                if (!hasStructured) {
+                    throw new CommonExceptions.InvalidRequestExceptions(
+                            "Structured review requires at least one category");
+                }
+            }
+        }
+
+        Consumer<ReviewableRating> applyReview = rating -> {
+            rating.setReviewType(request.reviewType());
+            rating.setReviewText(text);
+            rating.setReviewStory(story);
+            rating.setReviewPerformances(performances);
+            rating.setReviewDirection(direction);
+            rating.setReviewVisuals(visuals);
+            rating.setReviewSound(sound);
+            rating.setReviewVerdict(verdict);
+        };
+
+        switch (request.ratingMediaType()) {
+            case MEDIA_ITEM -> {
+                MediaItem mediaItem = mediaItemsService.findByIdOrThrow(
+                        request.entityId(),
+                        MediaItemExceptions.MediaItemNotFoundExceptions::new
+                );
+                mediaItemRatingsService.updateExistingReview(profile, mediaItem, applyReview::accept);
+                logger.info("Saved {} review for media item '{}' ({}) of profile '{}' ({})",
+                        request.reviewType(), mediaItem.title(), mediaItem.id(), profile.name(), profile.id());
+            }
+            case MEDIA_SEASON -> {
+                MediaSeason mediaSeason = mediaSeasonsService.findByIdOrThrow(
+                        request.entityId(),
+                        MediaSeasonExceptions.MediaSeasonNotFoundExceptions::new
+                );
+                mediaSeasonRatingsService.updateExistingReview(profile, mediaSeason, applyReview::accept);
+                logger.info("Saved {} review for season {} ({}) of profile '{}' ({})",
+                        request.reviewType(), mediaSeason.season(), mediaSeason.id(), profile.name(), profile.id());
+            }
+            default ->
+                    throw new CommonExceptions.InvalidRequestExceptions(
+                            "Unsupported rating media type: " + request.ratingMediaType());
+        }
+    }
+
+    public void deleteReview(DeleteReviewRequestDTO request) {
+        logger.debug("Delete review request received: {}", request);
+
+        if (request.ratingMediaType() == null) {
+            throw new CommonExceptions.InvalidRequestExceptions("Rating media type is required");
+        }
+
+        Profile profile = profilesService.findByIdOrThrow(
+                request.profileId(),
+                ProfilesExceptions.ProfileNotFoundExceptions::new
+        );
+
+        Consumer<ReviewableRating> clearReview = rating -> {
+            rating.setReviewType(null);
+            rating.setReviewText(null);
+            rating.setReviewStory(null);
+            rating.setReviewPerformances(null);
+            rating.setReviewDirection(null);
+            rating.setReviewVisuals(null);
+            rating.setReviewSound(null);
+            rating.setReviewVerdict(null);
+        };
+
+        switch (request.ratingMediaType()) {
+            case MEDIA_ITEM -> {
+                MediaItem mediaItem = mediaItemsService.findByIdOrThrow(
+                        request.entityId(),
+                        MediaItemExceptions.MediaItemNotFoundExceptions::new
+                );
+                mediaItemRatingsService.updateExistingReview(profile, mediaItem, clearReview::accept);
+                logger.info("Cleared review for media item '{}' ({}) of profile '{}' ({})",
+                        mediaItem.title(), mediaItem.id(), profile.name(), profile.id());
+            }
+            case MEDIA_SEASON -> {
+                MediaSeason mediaSeason = mediaSeasonsService.findByIdOrThrow(
+                        request.entityId(),
+                        MediaSeasonExceptions.MediaSeasonNotFoundExceptions::new
+                );
+                mediaSeasonRatingsService.updateExistingReview(profile, mediaSeason, clearReview::accept);
+                logger.info("Cleared review for season {} ({}) of profile '{}' ({})",
+                        mediaSeason.season(), mediaSeason.id(), profile.name(), profile.id());
+            }
+            default ->
+                    throw new CommonExceptions.InvalidRequestExceptions(
+                            "Unsupported rating media type: " + request.ratingMediaType());
         }
     }
 
