@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.0](https://github.com/rattatarr/rattatarr/compare/v1.2.0...v1.3.0) (2026-06-28)
+
+
+### Features
+
+* dismiss watched and show all watched movies/series button ([#48](https://github.com/rattatarr/rattatarr/issues/48)) ([fd90735](https://github.com/rattatarr/rattatarr/commit/fd90735f9fcb202fae89d164ba1759df99ffcfe6))
+* rich text review ([#50](https://github.com/rattatarr/rattatarr/issues/50)) ([400a299](https://github.com/rattatarr/rattatarr/commit/400a2991220c47f5c4713f6247d3402c389d994e))
+* track manual mark watch events in jellyfin ([#49](https://github.com/rattatarr/rattatarr/issues/49)) ([b603c3a](https://github.com/rattatarr/rattatarr/commit/b603c3aac88368f7ea23baa63605ba55b8f51a82))
+
 ## [1.2.0](https://github.com/rattatarr/rattatarr/compare/v1.1.1...v1.2.0) (2026-05-17)
 
 
