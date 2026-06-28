@@ -86,7 +86,7 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-ollama</artifactId>
-            <version>1.16.3</version>
+            <version>1.17.0</version>
         </dependency>
 
         <dependency>
@@ -110,7 +110,7 @@
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <version>3.5.1</version>
+                <version>3.7.0</version>
                 <configuration>
                     <ratchetFrom>origin/main</ratchetFrom>
                     <formats>
