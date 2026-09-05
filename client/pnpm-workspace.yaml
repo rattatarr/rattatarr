@@ -1,0 +1,5 @@
+# pnpm 11: per-package build-script policy. false = do not run its install script
+# (and do not fail with ERR_PNPM_IGNORED_BUILDS). Neither is needed on CI.
+allowBuilds:
+  esbuild: false
+  vue-demi: false
