@@ -6,7 +6,6 @@ import com.rattatarr.rattatarr.clients.jellyfin.responses.*;
 import com.rattatarr.rattatarr.exceptions.CommonExceptions;
 import com.rattatarr.rattatarr.exceptions.JellyfinTraversalExceptions;
 import com.rattatarr.rattatarr.models.JellyfinMediaType;
-import com.rattatarr.rattatarr.models.JobType;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.MediaValidationResult;
 import com.rattatarr.rattatarr.models.entities.*;
@@ -339,30 +338,49 @@ public class JellyfinTraversalService {
      * When a season already exists, we still need to check for new episodes.
      */
     private void processSeasons(String jellyfinSeriesId, MediaItem series) {
-        List<JellyfinClientItemSeasonResponseDTO> seasons = fetchSeasons(jellyfinSeriesId);
+        for (var season : fetchSeasons(jellyfinSeriesId)) {
+            MediaSeason resolvedSeason = resolveSeasonWithJellyfinId(series, season);
+            processEpisodes(season.id(), resolvedSeason);
+        }
+    }
 
-        for (var season : seasons) {
-            MediaSeason newSeason = new MediaSeason(
+    /**
+     * Resolves the local season for a Jellyfin season: creates it when new, and back-fills its
+     * Jellyfin ID when the row already existed without one (e.g. it was first created from TMDb
+     * metadata, which does not carry Jellyfin IDs). Without the back-fill, watch-event polling
+     * cannot map a played episode/season back to the local row.
+     */
+    private MediaSeason resolveSeasonWithJellyfinId(MediaItem series, JellyfinClientItemSeasonResponseDTO season) {
+        Optional<MediaSeason> existing = mediaSeasonsService.findByMediaItemAndSeason(series, season.seasonNumber());
+
+        if (existing.isEmpty()) {
+            logger.info("New season {} discovered for series '{}'", season.seasonNumber(), series.title());
+            return mediaSeasonsService.save(new MediaSeason(
                     series,
                     season.id(),
                     season.seasonNumber(),
                     season.name(),
                     Collections.emptySet()
-            );
-
-            MediaSeason resolvedSeason = mediaSeasonsService.findByMediaItemAndSeason(series, season.seasonNumber())
-                    .orElse(newSeason);
-
-            if (resolvedSeason.id() == null) {
-                logger.info("New season {} discovered for series '{}'", season.seasonNumber(), series.title());
-                resolvedSeason = mediaSeasonsService.save(resolvedSeason);
-            } else {
-                logger.debug("Season {} already exists for series '{}', checking for new episodes",
-                        season.seasonNumber(), series.title());
-            }
-
-            processEpisodes(season.id(), resolvedSeason);
+            ));
         }
+
+        MediaSeason resolvedSeason = existing.get();
+        if (Objects.equals(resolvedSeason.jellyfinId(), season.id())) {
+            logger.debug("Season {} already exists for series '{}', checking for new episodes",
+                    season.seasonNumber(), series.title());
+            return resolvedSeason;
+        }
+
+        try {
+            resolvedSeason.setJellyfinId(season.id());
+            resolvedSeason = mediaSeasonsService.update(resolvedSeason.id(), resolvedSeason).orElse(resolvedSeason);
+            logger.info("Back-filled Jellyfin ID for season {} of series '{}'",
+                    season.seasonNumber(), series.title());
+        } catch (Exception e) {
+            logger.warn("Could not back-fill Jellyfin ID for season {} of series '{}': {}",
+                    season.seasonNumber(), series.title(), e.getMessage());
+        }
+        return resolvedSeason;
     }
 
     private void processEpisodes(String jellyfinSeasonId, MediaSeason season) {
@@ -370,7 +388,10 @@ public class JellyfinTraversalService {
         List<MediaEpisode> toSave = new ArrayList<>();
 
         for (var episode : episodes) {
-            if (mediaEpisodesService.findByMediaSeasonAndEpisode(season, episode.episodeNumber()).isPresent()) {
+            Optional<MediaEpisode> existing =
+                    mediaEpisodesService.findByMediaSeasonAndEpisode(season, episode.episodeNumber());
+            if (existing.isPresent()) {
+                backfillEpisodeJellyfinId(existing.get(), episode, season);
                 continue;
             }
 
@@ -385,6 +406,27 @@ public class JellyfinTraversalService {
 
         if (!toSave.isEmpty()) {
             mediaEpisodesService.saveBatch(toSave);
+        }
+    }
+
+    /**
+     * Back-fills the Jellyfin ID on an episode row that already existed without one (typically
+     * created from TMDb metadata before this series was traversed from Jellyfin). No-op when the
+     * ID already matches. One row's failure is logged and does not abort the traversal.
+     */
+    private void backfillEpisodeJellyfinId(
+            MediaEpisode existing, JellyfinClientItemEpisodeResponseDTO episode, MediaSeason season) {
+        if (Objects.equals(existing.jellyfinId(), episode.id())) {
+            return;
+        }
+        try {
+            existing.setJellyfinId(episode.id());
+            mediaEpisodesService.update(existing.id(), existing);
+            logger.info("Back-filled Jellyfin ID for episode {} (season {}) '{}'",
+                    episode.episodeNumber(), season.season(), episode.name());
+        } catch (Exception e) {
+            logger.warn("Could not back-fill Jellyfin ID for episode {} (season {}): {}",
+                    episode.episodeNumber(), season.season(), e.getMessage());
         }
     }
     // ===== END SYNC METHODS =====
@@ -450,35 +492,9 @@ public class JellyfinTraversalService {
         logger.info("Refreshing Jellyfin series '{}' (Jellyfin ID: {})", title, jellyfinId);
 
         try {
-            // Process seasons and episodes
-            List<JellyfinClientItemSeasonResponseDTO> seasons = fetchSeasons(jellyfinId);
-            List<MediaSeason> newSeasons = new ArrayList<>();
-
-            for (var season : seasons) {
-                MediaSeason newSeason = new MediaSeason(
-                        existingSeries,
-                        season.id(),
-                        season.seasonNumber(),
-                        season.name(),
-                        Collections.emptySet()
-                );
-
-                MediaSeason resolvedSeason = mediaSeasonsService.findByMediaItemAndSeason(existingSeries, season.seasonNumber())
-                        .orElse(newSeason);
-
-                if (resolvedSeason.id() == null) {
-                    newSeasons.add(resolvedSeason);
-                }
-            }
-
-            if (!newSeasons.isEmpty()) {
-                mediaSeasonsService.saveBatch(newSeasons);
-            }
-
-            // Process episodes for each season
-            for (var season : seasons) {
-                MediaSeason resolvedSeason = mediaSeasonsService.findByMediaItemAndSeason(existingSeries, season.seasonNumber())
-                        .orElseThrow();
+            // Process seasons and episodes (creating new rows and back-filling missing Jellyfin IDs)
+            for (var season : fetchSeasons(jellyfinId)) {
+                MediaSeason resolvedSeason = resolveSeasonWithJellyfinId(existingSeries, season);
                 processEpisodes(season.id(), resolvedSeason);
             }
 

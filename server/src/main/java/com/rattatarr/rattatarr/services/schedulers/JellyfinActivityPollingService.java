@@ -178,6 +178,10 @@ public class JellyfinActivityPollingService {
             }
             var resolution = resolveMediaTargets(item.id());
             if (resolution.mediaItem().isEmpty()) {
+                logger.warn(
+                        "Jellyfin manual-played scan: no local media matches Jellyfin item id={} type={} name='{}' "
+                                + "(no MediaItem or MediaEpisode carries this jellyfinId) - run a full Jellyfin sync to back-fill",
+                        item.id(), item.type(), item.name());
                 return Optional.empty();
             }
             if (alreadyHasCompleteEvent(profile, resolution)) {
@@ -262,6 +266,10 @@ public class JellyfinActivityPollingService {
 
             var resolution = resolveMediaTargets(entry.itemId());
             if (resolution.mediaItem().isEmpty()) {
+                logger.warn(
+                        "Jellyfin activity poll: no local media matches Jellyfin item id={} (entry id={} type={} name='{}') "
+                                + "- watch event NOT recorded; run a full Jellyfin sync to back-fill the missing jellyfinId",
+                        entry.itemId(), entry.id(), entry.type(), entry.name());
                 return Optional.empty();
             }
 

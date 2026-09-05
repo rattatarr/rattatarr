@@ -396,6 +396,41 @@ class JellyfinActivityPollingServiceTest {
     }
 
     @Test
+    void pollJellyfinActivity_shouldNotRecordEventWhenActivityItemHasNoLocalMedia() {
+        JellyfinClientActivityLogEntryResponseDTO entry = new JellyfinClientActivityLogEntryResponseDTO(
+                900L, "Playback stopped", null, null, "VideoPlaybackStopped",
+                "unknown-item", "2026-09-05T10:00:00Z", "user-1", "Trace");
+
+        when(jellyfinClient.getActivityLogEntries())
+                .thenReturn(new JellyfinClientActivityLogEntriesWrapper(List.of(entry), 1, 0));
+        when(profilesService.findByJellyfinId("user-1")).thenReturn(Optional.of(new Profile("Alice", "user-1")));
+        when(mediaItemsService.findByJellyfinId("unknown-item")).thenReturn(Optional.empty());
+        when(mediaEpisodesService.findByJellyfinId("unknown-item")).thenReturn(Optional.empty());
+
+        service.pollJellyfinActivity();
+
+        verify(mediaEpisodesService).findByJellyfinId("unknown-item");
+        verify(watchEventsRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void pollJellyfinActivity_shouldNotRecordManualPlayedMarkWhenItemHasNoLocalMedia() {
+        when(jellyfinClient.getActivityLogEntries())
+                .thenReturn(new JellyfinClientActivityLogEntriesWrapper(List.of(), 0, 0));
+        when(profilesService.findAllWithJellyfinId()).thenReturn(List.of(new Profile("Alice", "user-1")));
+        when(jellyfinClient.getPlayedItemsForUser("user-1")).thenReturn(new JellyfinClientPlayedItemsWrapper(
+                List.of(new JellyfinClientPlaybackItemResponseDTO("ghost-ep", "Episode", "Ghost",
+                        new JellyfinClientPlaybackItemUserDataResponseDTO(0L, true)))));
+        when(mediaItemsService.findByJellyfinId("ghost-ep")).thenReturn(Optional.empty());
+        when(mediaEpisodesService.findByJellyfinId("ghost-ep")).thenReturn(Optional.empty());
+
+        service.pollJellyfinActivity();
+
+        verify(mediaEpisodesService).findByJellyfinId("ghost-ep");
+        verify(watchEventsRepository, never()).saveAll(any());
+    }
+
+    @Test
     void pollJellyfinActivity_shouldSkipInitialBackfillWhenBackfillFlagAlreadySet() {
         JellyfinClientActivityLogEntryResponseDTO entry = new JellyfinClientActivityLogEntryResponseDTO(
                 500L,
