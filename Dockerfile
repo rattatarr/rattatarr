@@ -7,7 +7,9 @@ WORKDIR /app/client
 RUN corepack enable
 
 # Install dependencies (leverage layer cache)
-COPY client/package.json client/pnpm-lock.yaml ./
+# pnpm-workspace.yaml carries the allowBuilds policy; without it pnpm 11 fails with
+# ERR_PNPM_IGNORED_BUILDS on esbuild / vue-demi.
+COPY client/package.json client/pnpm-lock.yaml client/pnpm-workspace.yaml ./
 RUN corepack prepare --activate && pnpm install --frozen-lockfile
 
 # Copy source and build
