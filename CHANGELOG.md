@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/rattatarr/rattatarr/compare/v1.3.0...v1.3.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* date watch event with the date from jellyfin if available ([246d6b9](https://github.com/rattatarr/rattatarr/commit/246d6b9f971b9b1d535b385f0b520ce3fc5781a4))
+* self heal seasons and series with jellyfinid ([8ef2868](https://github.com/rattatarr/rattatarr/commit/8ef28686023980ec93205e2a9e21a06975e3dc05))
+
 ## [1.3.0](https://github.com/rattatarr/rattatarr/compare/v1.2.0...v1.3.0) (2026-06-28)
 
 
