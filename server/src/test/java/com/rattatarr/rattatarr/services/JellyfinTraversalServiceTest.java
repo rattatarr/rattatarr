@@ -11,11 +11,13 @@ import com.rattatarr.rattatarr.models.JellyfinMediaType;
 import com.rattatarr.rattatarr.models.MediaType;
 import com.rattatarr.rattatarr.models.entities.BrokenMediaItem;
 import com.rattatarr.rattatarr.models.entities.Genre;
+import com.rattatarr.rattatarr.models.entities.MediaEpisode;
 import com.rattatarr.rattatarr.models.entities.MediaItem;
 import com.rattatarr.rattatarr.models.entities.MediaSeason;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -567,6 +569,78 @@ class JellyfinTraversalServiceTest {
         );
 
         verify(jellyfinClient, never()).getItems(any());
+    }
+
+    // ===== JELLYFIN ID BACK-FILL ON EXISTING SEASON/EPISODE ROWS =====
+
+    @Test
+    void pipelineTraverseSyncMedia_backfillsJellyfinIdOnExistingSeasonAndEpisodeMissingIt() {
+        // Season + episode rows already exist (e.g. created from TMDb metadata) with NO Jellyfin ID.
+        MediaItem existingSeries = new MediaItem(
+                MediaType.SERIES, "Test Series", "series-id-123", "tmdb456", "imdb123", 2022, 10,
+                Set.of(testGenre), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+        MediaSeason seasonWithoutJellyfinId = new MediaSeason(
+                existingSeries, null, 1, "Season 1", Collections.emptySet());
+        MediaEpisode episodeWithoutJellyfinId = new MediaEpisode(
+                seasonWithoutJellyfinId, null, 1, "Episode 1", 5);
+
+        when(jellyfinClient.getItems(any(JellyfinItemsQuery.class)))
+                .thenReturn(new JellyfinClientItemsWrapper(List.of(testFolder)))
+                .thenReturn(new JellyfinClientItemsWrapper(Collections.emptyList()))
+                .thenReturn(new JellyfinClientItemsWrapper(List.of(testSeries)))
+                .thenReturn(new JellyfinClientItemsWrapper(List.of(testSeason)))
+                .thenReturn(new JellyfinClientItemsWrapper(List.of(testEpisode)));
+
+        when(mediaItemsService.findByJellyfinId("series-id-123")).thenReturn(Optional.of(existingSeries));
+        when(mediaItemsService.save(any(MediaItem.class))).thenAnswer(i -> i.getArgument(0));
+        when(mediaSeasonsService.findByMediaItemAndSeason(any(MediaItem.class), anyInt()))
+                .thenReturn(Optional.of(seasonWithoutJellyfinId));
+        when(mediaSeasonsService.update(any(), any(MediaSeason.class)))
+                .thenAnswer(i -> Optional.of(i.getArgument(1)));
+        when(mediaEpisodesService.findByMediaSeasonAndEpisode(any(MediaSeason.class), anyInt()))
+                .thenReturn(Optional.of(episodeWithoutJellyfinId));
+
+        jellyfinTraversalService.pipelineTraverseSyncMedia();
+
+        ArgumentCaptor<MediaSeason> seasonCaptor = ArgumentCaptor.forClass(MediaSeason.class);
+        verify(mediaSeasonsService).update(any(), seasonCaptor.capture());
+        assertEquals("season-id-123", seasonCaptor.getValue().jellyfinId());
+
+        ArgumentCaptor<MediaEpisode> episodeCaptor = ArgumentCaptor.forClass(MediaEpisode.class);
+        verify(mediaEpisodesService).update(any(), episodeCaptor.capture());
+        assertEquals("episode-id-123", episodeCaptor.getValue().jellyfinId());
+
+        verify(mediaEpisodesService, never()).saveBatch(anyList());
+    }
+
+    @Test
+    void pipelineTraverseSyncMedia_doesNotUpdateSeasonOrEpisodeWhenJellyfinIdAlreadyMatches() {
+        MediaItem existingSeries = new MediaItem(
+                MediaType.SERIES, "Test Series", "series-id-123", "tmdb456", "imdb123", 2022, 10,
+                Set.of(testGenre), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+        MediaSeason season = new MediaSeason(
+                existingSeries, "season-id-123", 1, "Season 1", Collections.emptySet());
+        MediaEpisode episode = new MediaEpisode(season, "episode-id-123", 1, "Episode 1", 5);
+
+        when(jellyfinClient.getItems(any(JellyfinItemsQuery.class)))
+                .thenReturn(new JellyfinClientItemsWrapper(List.of(testFolder)))
+                .thenReturn(new JellyfinClientItemsWrapper(Collections.emptyList()))
+                .thenReturn(new JellyfinClientItemsWrapper(List.of(testSeries)))
+                .thenReturn(new JellyfinClientItemsWrapper(List.of(testSeason)))
+                .thenReturn(new JellyfinClientItemsWrapper(List.of(testEpisode)));
+
+        when(mediaItemsService.findByJellyfinId("series-id-123")).thenReturn(Optional.of(existingSeries));
+        when(mediaItemsService.save(any(MediaItem.class))).thenAnswer(i -> i.getArgument(0));
+        when(mediaSeasonsService.findByMediaItemAndSeason(any(MediaItem.class), anyInt()))
+                .thenReturn(Optional.of(season));
+        when(mediaEpisodesService.findByMediaSeasonAndEpisode(any(MediaSeason.class), anyInt()))
+                .thenReturn(Optional.of(episode));
+
+        jellyfinTraversalService.pipelineTraverseSyncMedia();
+
+        verify(mediaSeasonsService, never()).update(any(), any());
+        verify(mediaEpisodesService, never()).update(any(), any());
+        verify(mediaEpisodesService, never()).saveBatch(anyList());
     }
 
     @Test
