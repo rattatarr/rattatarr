@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -139,7 +140,7 @@ class JellyfinActivityPollingServiceTest {
                 "movie-1",
                 "Movie",
                 "Inception",
-                new JellyfinClientPlaybackItemUserDataResponseDTO(1_000_000_000L, true)
+                new JellyfinClientPlaybackItemUserDataResponseDTO(1_000_000_000L, true, null)
         ));
 
         service.pollJellyfinActivity();
@@ -179,7 +180,7 @@ class JellyfinActivityPollingServiceTest {
                 "movie-1",
                 "Movie",
                 "Inception",
-                new JellyfinClientPlaybackItemUserDataResponseDTO(450_000_000L, false)
+                new JellyfinClientPlaybackItemUserDataResponseDTO(450_000_000L, false, null)
         ));
 
         service.pollJellyfinActivity();
@@ -365,6 +366,56 @@ class JellyfinActivityPollingServiceTest {
     }
 
     @Test
+    void pollJellyfinActivity_shouldDateManuallyMarkedPlayedEventFromLastPlayedDate() {
+        Profile profile = new Profile("Alice", "user-1");
+        MediaItem mediaItem = mock(MediaItem.class);
+        Instant lastPlayed = Instant.parse("2026-08-14T20:11:33Z");
+
+        when(jellyfinClient.getActivityLogEntries())
+                .thenReturn(new JellyfinClientActivityLogEntriesWrapper(List.of(), 0, 0));
+        when(profilesService.findAllWithJellyfinId()).thenReturn(List.of(profile));
+        when(jellyfinClient.getPlayedItemsForUser("user-1")).thenReturn(new JellyfinClientPlayedItemsWrapper(
+                List.of(new JellyfinClientPlaybackItemResponseDTO("movie-1", "Movie", "Inception",
+                        new JellyfinClientPlaybackItemUserDataResponseDTO(0L, true, "2026-08-14T20:11:33.0000000Z")))));
+        when(mediaItemsService.findByJellyfinId("movie-1")).thenReturn(Optional.of(mediaItem));
+        when(watchEventsRepository.existsByProfile_IdAndMediaItem_IdAndEpisodeIsNullAndEventType(
+                any(), any(), eq(WatchEventType.COMPLETE))).thenReturn(false);
+
+        service.pollJellyfinActivity();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<WatchEvent>> eventCaptor = ArgumentCaptor.forClass(List.class);
+        verify(watchEventsRepository).saveAll(eventCaptor.capture());
+        assertEquals(lastPlayed, eventCaptor.getValue().getFirst().watchedAt());
+    }
+
+    @Test
+    void pollJellyfinActivity_shouldFallBackToNowWhenLastPlayedDateMissing() {
+        Profile profile = new Profile("Alice", "user-1");
+        Instant before = Instant.now();
+
+        when(jellyfinClient.getActivityLogEntries())
+                .thenReturn(new JellyfinClientActivityLogEntriesWrapper(List.of(), 0, 0));
+        when(profilesService.findAllWithJellyfinId()).thenReturn(List.of(profile));
+        when(jellyfinClient.getPlayedItemsForUser("user-1")).thenReturn(new JellyfinClientPlayedItemsWrapper(
+                List.of(new JellyfinClientPlaybackItemResponseDTO("movie-1", "Movie", "Inception",
+                        new JellyfinClientPlaybackItemUserDataResponseDTO(0L, true, null)))));
+        when(mediaItemsService.findByJellyfinId("movie-1")).thenReturn(Optional.of(mock(MediaItem.class)));
+        when(watchEventsRepository.existsByProfile_IdAndMediaItem_IdAndEpisodeIsNullAndEventType(
+                any(), any(), eq(WatchEventType.COMPLETE))).thenReturn(false);
+
+        service.pollJellyfinActivity();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<WatchEvent>> eventCaptor = ArgumentCaptor.forClass(List.class);
+        verify(watchEventsRepository).saveAll(eventCaptor.capture());
+        Instant watchedAt = eventCaptor.getValue().getFirst().watchedAt();
+        assertNotNull(watchedAt);
+        assertFalse(watchedAt.isBefore(before));
+        assertFalse(watchedAt.isAfter(Instant.now()));
+    }
+
+    @Test
     void pollJellyfinActivity_shouldNotDuplicateWhenCompleteEventAlreadyExistsForPlayedMovie() {
         Profile profile = new Profile("Alice", "user-1");
 
@@ -420,7 +471,7 @@ class JellyfinActivityPollingServiceTest {
         when(profilesService.findAllWithJellyfinId()).thenReturn(List.of(new Profile("Alice", "user-1")));
         when(jellyfinClient.getPlayedItemsForUser("user-1")).thenReturn(new JellyfinClientPlayedItemsWrapper(
                 List.of(new JellyfinClientPlaybackItemResponseDTO("ghost-ep", "Episode", "Ghost",
-                        new JellyfinClientPlaybackItemUserDataResponseDTO(0L, true)))));
+                        new JellyfinClientPlaybackItemUserDataResponseDTO(0L, true, null)))));
         when(mediaItemsService.findByJellyfinId("ghost-ep")).thenReturn(Optional.empty());
         when(mediaEpisodesService.findByJellyfinId("ghost-ep")).thenReturn(Optional.empty());
 

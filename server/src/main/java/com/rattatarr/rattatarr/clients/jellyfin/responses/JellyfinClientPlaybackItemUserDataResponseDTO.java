@@ -8,6 +8,7 @@ import java.io.Serializable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record JellyfinClientPlaybackItemUserDataResponseDTO(
         @JsonProperty("PlaybackPositionTicks") Long playbackPositionTicks,
-        @JsonProperty("Played") Boolean played
+        @JsonProperty("Played") Boolean played,
+        @JsonProperty("LastPlayedDate") String lastPlayedDate
 ) implements Serializable {
 }
