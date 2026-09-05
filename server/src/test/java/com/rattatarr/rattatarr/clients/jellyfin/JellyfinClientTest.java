@@ -297,7 +297,7 @@ class JellyfinClientTest {
                 "item-1",
                 "Movie",
                 "Inception",
-                new JellyfinClientPlaybackItemUserDataResponseDTO(12345L, false)
+                new JellyfinClientPlaybackItemUserDataResponseDTO(12345L, false, null)
         );
 
         when(responseSpec.body(JellyfinClientPlaybackItemResponseDTO.class)).thenReturn(expectedItem);
@@ -326,7 +326,7 @@ class JellyfinClientTest {
                         "movie-1",
                         "Movie",
                         "Inception",
-                        new JellyfinClientPlaybackItemUserDataResponseDTO(0L, true))
+                        new JellyfinClientPlaybackItemUserDataResponseDTO(0L, true, null))
         ));
 
         when(responseSpec.body(JellyfinClientPlayedItemsWrapper.class)).thenReturn(expected);

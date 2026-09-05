@@ -195,13 +195,23 @@ public class JellyfinActivityPollingService {
                     resolution.mediaSeason().orElse(null),
                     resolution.episode().orElse(null),
                     WatchEventType.COMPLETE,
-                    Instant.now(),
+                    resolveManualPlayedAt(item),
                     null
             ));
         } catch (Exception e) {
             logger.error("Jellyfin manual-played scan: failed processing played item id={}", item.id(), e);
             return Optional.empty();
         }
+    }
+
+    /**
+     * A manually "mark as played" item carries no activity-log entry, so we date the watch event
+     * from Jellyfin's {@code UserData.LastPlayedDate}. Falls back to now when Jellyfin omits it or
+     * the value cannot be parsed.
+     */
+    private Instant resolveManualPlayedAt(JellyfinClientPlaybackItemResponseDTO item) {
+        String lastPlayedDate = item.userData() != null ? item.userData().lastPlayedDate() : null;
+        return parseDateOrNow(lastPlayedDate);
     }
 
     private boolean alreadyHasCompleteEvent(Profile profile, MediaResolution resolution) {
