@@ -30,7 +30,7 @@
     "openapi-fetch": "^0.17.0",
     "openapi-typescript": "^7.13.0",
     "pinia": "^3.0.4",
-    "primeicons": "^7.0.0",
+    "primeicons": "^8.0.0",
     "primevue": "^4.5.5",
     "quill": "^2.0.3",
     "sockjs-client": "^1.6.1",
