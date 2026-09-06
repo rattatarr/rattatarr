@@ -22,7 +22,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@primeuix/themes": "^2.0.3",
+    "@primeuix/themes": "^3.0.0",
     "@stomp/stompjs": "^7.3.0",
     "@tanstack/vue-query": "^5.102.8",
     "@vueuse/core": "^14.4.0",
